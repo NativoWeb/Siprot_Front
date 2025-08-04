@@ -92,7 +92,7 @@ const roles = ref<string[]>([]) // Para almacenar los roles obtenidos del backen
 // Función para obtener los roles del backend
 const fetchRoles = async () => {
   try {
-    const res = await fetch('http://localhost:8000/roles')
+    const res = await fetch('http://localhost:8000/users/roles')
     if (!res.ok) {
       throw new Error('No se pudieron obtener los roles')
     }
