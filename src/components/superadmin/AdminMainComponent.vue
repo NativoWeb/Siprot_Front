@@ -48,6 +48,7 @@
     </div>  
   </div>
 
+  <!-- Graficos Hardcoded Job Data -->
   <div class="mt-6 flex gap-20">
     <div class="container-info w-[100%]">
       <h3>Acciones Rapidas</h3>
