@@ -7,6 +7,10 @@ import router from '../router'
 // Variables reactivas para email y contraseña
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
 
 
 // Funcion post de formulario
@@ -73,10 +77,23 @@ const loginUser = async () => {
               <input v-model="email" class="input-custom" type="email" required placeholder="tu@ejemplo.com" />
             </div>
 
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-3 relative">
               <label>Contraseña</label>
-              <input v-model="password" class="input-custom" type="password" required placeholder="***********" />
+              <input
+                v-model="password"
+                class="input-custom"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                placeholder="***********"
+              />
+              <span
+                @click="togglePassword"
+                class="absolute right-4 top-10 cursor-pointer text-sm text-blue-600"
+              >
+                {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+              </span>
             </div>
+
 
             <button class="w-[100%] input-button-custom" type="submit">Iniciar Sesión</button>
             <RouterLink class="text-center" to="/">¿Olvidaste tu contraseña?</RouterLink>

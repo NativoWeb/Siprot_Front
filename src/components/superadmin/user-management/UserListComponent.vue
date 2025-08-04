@@ -499,21 +499,29 @@ const updateUser = async (formData: any) => {
       return;
     }
 
+    // Construir el cuerpo de la petición
+    const bodyData: any = {
+      email: formData.email,
+      first_name: formData.first_name || null,
+      last_name: formData.last_name || null,
+      phone_number: formData.phone_number || null,
+      additional_notes: formData.additional_notes || null,
+      role: formData.role,
+      is_active: formData.is_active
+    };
+
+    // Solo agregar password si se llenó
+    if (formData.password && formData.password.trim() !== "") {
+      bodyData.password = formData.password;
+    }
+
     const res = await fetch(`http://localhost:8000/users/${userToEdit.value.id}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${token}`
       },
-      body: JSON.stringify({
-        email: formData.email,
-        first_name: formData.first_name || null,
-        last_name: formData.last_name || null,
-        phone_number: formData.phone_number || null,
-        additional_notes: formData.additional_notes || null,
-        role: formData.role,
-        is_active: formData.is_active
-      })
+      body: JSON.stringify(bodyData)
     });
 
     if (!res.ok) {
@@ -522,7 +530,7 @@ const updateUser = async (formData: any) => {
     }
 
     showSuccess('Usuario actualizado exitosamente!');
-    fetchUsers(); // Recargar la lista de usuarios
+    fetchUsers(); // Recargar lista
     showEditModal.value = false;
     userToEdit.value = null;
   } catch (error: any) {
@@ -532,6 +540,7 @@ const updateUser = async (formData: any) => {
     isUpdating.value = false;
   }
 };
+
 
 const cancelEdit = () => {
   showEditModal.value = false;

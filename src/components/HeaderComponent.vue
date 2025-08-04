@@ -1,4 +1,4 @@
-<template>
+rolesca<template>
   <header class="bg-white fixed top-0 left-0 w-full h-auto z-10 shadow-lg">
     <div class="flex justify-between items-center py-4 px-6">
       <div class="flex items-center">
@@ -51,11 +51,6 @@
                 <li class="px-4 py-2 hover:bg-gray-100">
                   <RouterLink to="/lista-usuario" @click="toggleDropdown('usuarios')">
                     Lista de Usuarios
-                  </RouterLink>
-                </li>
-                <li class="px-4 py-2 hover:bg-gray-100">
-                  <RouterLink to="/rol-usuario" @click="toggleDropdown('usuarios')">
-                    Cambiar Rol
                   </RouterLink>
                 </li>
               </ul>

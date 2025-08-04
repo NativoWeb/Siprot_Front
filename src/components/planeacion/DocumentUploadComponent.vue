@@ -176,9 +176,6 @@
               <option v-for="type in documentTypes" :key="type" :value="type">{{ type }}</option>
             </select>
           </div>
-          <div class="mb-4">
-
-
           
           <div class="flex flex-col gap-4">
             <label class="text-sm font-medium">Notas Adicionales</label>
@@ -550,7 +547,6 @@ const uploadDocument = async () => {
   formData.append('sector', documentSector.value)
   formData.append('core_line', documentCoreLine.value)
   formData.append('document_type', documentType.value)
-  formData.append('content', documentContent.value.trim())
   if (additionalNotes.value.trim()) {
     formData.append('additional_notes', additionalNotes.value.trim())
   }

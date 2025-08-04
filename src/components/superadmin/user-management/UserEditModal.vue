@@ -1,9 +1,6 @@
 <template>
   <div v-if="show" class="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto">
-    <!-- Fondo del modal (backdrop) -->
     <div class="absolute inset-0 bg-gray-500 opacity-75" aria-hidden="true"></div>
-    
-    <!-- Contenido del modal -->
     <div class="relative z-10 bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
       <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
         <div class="sm:flex sm:items-start">
@@ -82,6 +79,24 @@
                     </div>
                   </div>
                 </div>
+                <div class="mb-4">
+                  <label class="block text-gray-700 text-sm font-bold mb-2">Contraseña</label>
+                  <div class="relative">
+                    <input
+                      :type="showPassword ? 'text' : 'password'"
+                      v-model="password"
+                      placeholder="Nueva contraseña (opcional)"
+                      class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline"
+                    />
+                    <button
+                      type="button"
+                      @click="showPassword = !showPassword"
+                      class="absolute inset-y-0 right-0 pr-3 flex items-center text-sm text-gray-600"
+                    >
+                      {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+                    </button>
+                  </div>
+                </div>
                 <div>
                   <label class="block text-sm font-medium text-gray-700">Notas adicionales</label>
                   <textarea
@@ -145,6 +160,7 @@ interface EditForm {
   additional_notes: string;
   role: string;
   is_active: boolean;
+  password?: string; // ✅ OPCIONAL
 }
 
 interface Props {
@@ -156,10 +172,9 @@ interface Props {
 const props = defineProps<Props>()
 const emit = defineEmits<{
   close: []
-  update: [form: EditForm]
+  update: [form: Partial<EditForm>] // ✅ permite omitir password
 }>()
 
-// Estado del formulario
 const editForm = ref<EditForm>({
   email: '',
   first_name: '',
@@ -167,56 +182,55 @@ const editForm = ref<EditForm>({
   phone_number: '',
   additional_notes: '',
   role: 'instructor',
-  is_active: true
+  is_active: true,
 })
 
-// Errores de validación
-const errors = ref<Record<string, string>>({})
+const password = ref('')
+const showPassword = ref(false)
 
-// Validación del formulario
+const errors = ref<Record<string, string>>({})
 const isFormValid = computed(() => {
-  return editForm.value.email && 
-         editForm.value.role && 
+  return editForm.value.email &&
+         editForm.value.role &&
          Object.keys(errors.value).length === 0
 })
 
-// Validar email
 const validateEmail = (email: string) => {
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
   return emailRegex.test(email)
 }
 
-// Validar teléfono
 const validatePhone = (phone: string) => {
-  if (!phone) return true // Opcional
-  const phoneRegex = /^[\d\s\-\+$$$$]+$/
+  if (!phone) return true
+  const phoneRegex = /^[\d\s\-\+]+$/
   return phoneRegex.test(phone)
 }
 
-// Validar formulario
 const validateForm = () => {
   errors.value = {}
-  
   if (!editForm.value.email) {
     errors.value.email = 'El email es requerido'
   } else if (!validateEmail(editForm.value.email)) {
     errors.value.email = 'El formato del email no es válido'
   }
-  
   if (editForm.value.phone_number && !validatePhone(editForm.value.phone_number)) {
     errors.value.phone_number = 'El formato del teléfono no es válido'
   }
 }
 
-// Manejar actualización
 const handleUpdate = () => {
   validateForm()
   if (isFormValid.value) {
-    emit('update', editForm.value)
+    const updated: Partial<EditForm> = { ...editForm.value }
+    if (password.value.trim()) {
+      updated.password = password.value.trim()
+    } else {
+      delete updated.password // ✅ elimina password si está vacía
+    }
+    emit('update', updated)
   }
 }
 
-// Cargar datos del usuario cuando cambie
 watch(() => props.user, (newUser) => {
   if (newUser) {
     editForm.value = {
@@ -228,11 +242,11 @@ watch(() => props.user, (newUser) => {
       role: newUser.role,
       is_active: newUser.is_active
     }
+    password.value = ''
     errors.value = {}
   }
 }, { immediate: true })
 
-// Validar en tiempo real
 watch(() => editForm.value.email, () => {
   if (errors.value.email) {
     validateForm()
