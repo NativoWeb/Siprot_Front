@@ -3,31 +3,36 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import router from '../router'
 
+
 // Variables reactivas para email y contraseña
 const email = ref('')
 const password = ref('')
 
+
+// Funcion post de formulario
 const loginUser = async () => {
   try {
+    // Se hace la peticion al back
     const res = await fetch('http://localhost:8000/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // CAMBIO AQUÍ: Enviar 'email' en lugar de 'username'
       body: JSON.stringify({ email: email.value, password: password.value }) 
     })
 
+    // Si el codigo de respuesta no es 200 *Ok* lanza un error
     if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.detail || 'Credenciales inválidas');
     }
 
+    // Se guarda el token de acceso y el rol del usuario 
     const data = await res.json()
-    localStorage.setItem('access_token', data.access_token); // Asegúrate de guardar el token también
+    localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('role', data.user.role)
     
     console.log('Login exitoso. Rol del usuario:', data.user.role);
     
-    // Redireccionar según el rol
+    // Redireccionando al usuario segun el rol
     if (data.user.role === 'superadmin') {
       console.log('Intentando redirigir a: AdminMainView');
       router.push({ name: 'AdminMainView' })
@@ -40,6 +45,7 @@ const loginUser = async () => {
     }
 
   } catch (err: any) {
+    // Mostramos el error
     alert(`Error al iniciar sesión: ${err.message || 'Credenciales inválidas'}`)
     console.error('Error de login:', err)
   }
