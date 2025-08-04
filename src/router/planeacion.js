@@ -18,4 +18,10 @@ export default [
     component: () => import("../components/administrativo/DocumentLibraryComponent.vue"),
     meta: { requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"] },
   },
+    {
+    path: "/oferta-educativa",
+    name: "EducationalOffer",
+    component: () => import("../components/planeacion/EducationalOffer.vue"),
+    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"]},
+  },
 ]
