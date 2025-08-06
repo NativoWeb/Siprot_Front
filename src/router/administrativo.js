@@ -12,4 +12,10 @@ export default [
     component: () => import("../components/administrativo/DocumentLibraryComponent.vue"),
     meta: { requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"] },
   },
+  {
+    path: "/mis-reportes-administrativo",
+    name: "ReportsAdministrativo",
+    component: () => import("../views/administrativo/ReportsView.vue"),
+    meta: { requiresAuth: true, roles: ["administrativo", "superadmin"] },
+  },
 ]

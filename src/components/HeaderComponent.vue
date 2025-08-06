@@ -165,6 +165,11 @@ rolesca<template>
                 Gestion de equipos
               </RouterLink>
             </li>
+            <li class="text-sm">
+              <RouterLink to="/mis-reportes-administrativo">
+                Mis reportes
+              </RouterLink>
+            </li>
             <li class="text-sm cursor-pointer" @click="logout">
               Cerrar Sesión
             </li>
@@ -197,8 +202,8 @@ rolesca<template>
               </RouterLink>
             </li>
             <li class="text-sm">
-              <RouterLink to="/generar-reportes">
-                Generar reportes
+              <RouterLink to="/mis-reportes-planeacion">
+                Mis reportes
               </RouterLink>
             </li>
             <li class="text-sm cursor-pointer" @click="logout">Cerrar Sesión</li>
