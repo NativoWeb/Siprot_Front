@@ -24,4 +24,10 @@ export default [
     component: () => import("../components/planeacion/EducationalOffer.vue"),
     meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"]},
   },
+  {
+    path: "/mis-reportes-planeacion",
+    name: "ReportsPlaneacion",
+    component: () => import("../views/planeacion/ReportsView.vue"),
+    meta: { requiresAuth: true, roles: ["planeacion", "superadmin"] },
+  }
 ]
