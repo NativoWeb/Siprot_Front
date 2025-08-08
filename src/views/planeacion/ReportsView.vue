@@ -1,5 +1,5 @@
 <script setup>
-import ReportsMainComponent from '@/components/planeacion/ReportsMainComponent.vue'
+import ReportesMainComponent from '@/components/planeacion/ReportesMainComponent.vue'
 </script>
 
 <template>
