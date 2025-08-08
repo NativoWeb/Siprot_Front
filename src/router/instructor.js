@@ -23,7 +23,7 @@ const instructorRoutes = [
     path: "/biblioteca-documentos", // Nueva ruta para la biblioteca de documentos
     name: "DocumentLibrary",
     component: () => import("../components/administrativo/DocumentLibraryComponent.vue"),
-    meta: { requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"] },
+    meta: { requiresAuth: true, roles: ["administrativo", "planeacion", "instructor"] },
   },
 
 ]

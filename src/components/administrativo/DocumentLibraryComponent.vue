@@ -111,6 +111,7 @@
         :key="document.id"
         class="bg-white rounded-lg shadow-md hover:shadow-lg transition-shadow duration-200 p-6"
       >
+        <!-- Contenido de la tarjeta del documento -->
         <div class="flex items-start justify-between mb-4">
           <div class="flex-1">
             <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -120,13 +121,23 @@
               <CalendarIcon class="h-4 w-4 mr-1" />
               <span>{{ document.year }}</span>
             </div>
+            <div class="flex items-center text-xs text-gray-400 mb-2">
+              <FileIcon class="h-3 w-3 mr-1" />
+              <span>{{ document.original_filename }}</span>
+            </div>
           </div>
-          <div class="flex-shrink-0 ml-2">
+          <div class="flex-shrink-0 ml-2 flex flex-col gap-1">
             <span
               class="px-2 py-1 text-xs font-medium rounded-full"
               :class="getDocumentTypeBadgeClass(document.document_type)"
             >
               {{ document.document_type }}
+            </span>
+            <span
+              class="px-2 py-1 text-xs font-medium rounded-full"
+              :class="getFileTypeBadgeClass(document.file_extension)"
+            >
+              {{ document.file_extension.toUpperCase().replace('.', '') }}
             </span>
           </div>
         </div>
@@ -163,13 +174,29 @@
             <EyeIcon class="h-4 w-4 mr-1" />
             Ver detalles
           </button>
-          <button
-            @click="downloadDocument(document)"
-            class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 focus:outline-none"
-          >
-            <DownloadIcon class="h-4 w-4 mr-1" />
-            Descargar
-          </button>
+          
+          <div class="flex gap-2">
+            <button
+              @click="downloadDocument(document)"
+              :disabled="isDownloading[document.id]"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 focus:outline-none disabled:opacity-50"
+              :title="`Descargar como ${document.file_extension.toUpperCase().replace('.', '')}`"
+            >
+              <div v-if="isDownloading[document.id]" class="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600 mr-1"></div>
+              <DownloadIcon v-else class="h-4 w-4 mr-1" />
+              {{ isDownloading[document.id] ? 'Descargando...' : 'Descargar' }}
+            </button>
+            
+            <button 
+              v-if="canDeleteDocuments"
+              @click="confirmarEliminacion(document)"
+              class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-800 focus:outline-none"
+              title="Eliminar documento"
+            >
+              <TrashIcon class="h-4 w-4 mr-1" />
+              Eliminar
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -183,71 +210,41 @@
       </p>
     </div>
 
-    <!-- Modal de detalles del documento -->
-    <div v-if="showDetailModal" class="fixed inset-0 z-[9999] flex items-center justify-center overflow-y-auto">
-      <div class="absolute inset-0 bg-gray-500 opacity-75" aria-hidden="true" @click="closeDetailModal"></div>
-      
-      <div class="relative z-10 bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl sm:w-full">
-        <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-          <div class="sm:flex sm:items-start">
-            <div class="mx-auto flex-shrink-0 flex items-center justify-center h-12 w-12 rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-              <FileTextIcon class="h-6 w-6 text-blue-600" />
-            </div>
-            <div class="mt-3 text-center sm:mt-0 sm:ml-4 sm:text-left w-full">
-              <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Detalles del Documento</h3>
-              <div v-if="selectedDocument" class="mt-2 space-y-4">
-                <div>
-                  <h4 class="text-lg font-semibold text-gray-900">{{ selectedDocument.title }}</h4>
-                </div>
-                
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <span class="text-sm font-medium text-gray-500">Año:</span>
-                    <p class="text-sm text-gray-900">{{ selectedDocument.year }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm font-medium text-gray-500">Sector:</span>
-                    <p class="text-sm text-gray-900">{{ selectedDocument.sector }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm font-medium text-gray-500">Línea Medular:</span>
-                    <p class="text-sm text-gray-900">{{ selectedDocument.core_line }}</p>
-                  </div>
-                  <div>
-                    <span class="text-sm font-medium text-gray-500">Tipo:</span>
-                    <p class="text-sm text-gray-900">{{ selectedDocument.document_type }}</p>
-                  </div>
-                  <div class="md:col-span-2">
-                    <span class="text-sm font-medium text-gray-500">Fecha de subida:</span>
-                    <p class="text-sm text-gray-900">{{ formatDate(selectedDocument.uploaded_at) }}</p>
-                  </div>
-                </div>
-                
-                <div v-if="selectedDocument.additional_notes">
-                  <span class="text-sm font-medium text-gray-500">Notas adicionales:</span>
-                  <p class="text-sm text-gray-900 mt-1">{{ selectedDocument.additional_notes }}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-          <button
-            @click="downloadDocument(selectedDocument)"
-            class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-green-600 text-base font-medium text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 sm:ml-3 sm:w-auto sm:text-sm"
-          >
-            <DownloadIcon class="h-4 w-4 mr-1" />
-            Descargar
-          </button>
-          <button
-            @click="closeDetailModal"
-            class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm"
-          >
-            Cerrar
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- Modales -->
+    <DocumentDetailModal 
+      v-if="showDetailModal"
+      :document="selectedDocument"
+      :is-downloading="isDownloading"
+      :can-delete-documents="canDeleteDocuments"
+      @close="closeDetailModal"
+      @download="downloadDocument"
+      @edit="openEditModal"
+      @replace="openReplaceModal"
+    />
+
+    <DocumentEditModal
+      v-if="showEditModal"
+      :document="selectedDocument"
+      :is-saving="isSavingMetadata"
+      @save="saveMetadata"
+      @close="closeEditModal"
+    />
+
+    <DocumentReplaceModal
+      v-if="showReplaceModal"
+      :document="selectedDocument"
+      :is-replacing="isReplacing"
+      @replace="replaceDocumentFile"
+      @close="closeReplaceModal"
+    />
+
+    <DocumentDeleteModal
+      v-if="showDeleteModal"
+      :document="documentToDelete"
+      :is-deleting="isDeleting"
+      @confirm="eliminarDocumento"
+      @cancel="cancelarEliminacion"
+    />
 
     <!-- Notificaciones -->
     <div 
@@ -291,7 +288,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, watch, reactive } from 'vue'
 import {
   SearchIcon,
   FilterIcon,
@@ -304,29 +301,15 @@ import {
   TargetIcon,
   ClockIcon,
   CheckCircleIcon,
-  AlertTriangleIcon
+  AlertTriangleIcon,
+  TrashIcon,
+  FileIcon
 } from 'lucide-vue-next'
-
-// Interfaces
-interface Document {
-  id: number
-  title: string
-  year: number
-  sector: string
-  core_line: string
-  document_type: string
-  additional_notes: string | null
-  file_path: string
-  uploaded_by_user_id: number
-  uploaded_at: string
-}
-
-interface FilterOptions {
-  sectors: string[]
-  core_lines: string[]
-  document_types: string[]
-  years: number[]
-}
+import DocumentDetailModal from './DocumentDetailModal.vue'
+import DocumentEditModal from './DocumentEditModal.vue'
+import DocumentReplaceModal from './DocumentReplaceModal.vue'
+import DocumentDeleteModal from './DocumentDeleteModal.vue'
+import type { Document, FilterOptions } from '@/types/document'
 
 // Estado
 const documents = ref<Document[]>([])
@@ -352,6 +335,16 @@ const showNotification = ref(false)
 const showErrorNotification = ref(false)
 const notificationMessage = ref('')
 const errorMessage = ref('')
+const showDeleteModal = ref(false)
+const documentToDelete = ref<Document | null>(null)
+const isDeleting = ref(false)
+const showEditModal = ref(false)
+const showReplaceModal = ref(false)
+const isDownloading = reactive<{ [key: number]: boolean }>({})
+const isReplacing = ref(false)
+const isSavingMetadata = ref(false)
+const newFile = ref<File | null>(null)
+const userRole = ref<string>('')
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -359,18 +352,34 @@ const hasActiveFilters = computed(() => {
          filters.value.document_type || filters.value.year
 })
 
-// Funciones
+const canDeleteDocuments = computed(() => {
+  return userRole.value === 'planeacion' || userRole.value === 'superadmin'
+})
+
+const canEditDocuments = computed(() => {
+  return userRole.value === 'planeacion' || userRole.value === 'superadmin'
+})
+
+// Métodos
+const getUserInfo = async () => {
+  try {
+    const userInfo = localStorage.getItem('user_info')
+    if (userInfo) {
+      const user = JSON.parse(userInfo)
+      userRole.value = user.role || ''
+    }
+  } catch (error) {
+    console.error('Error al obtener información del usuario:', error)
+  }
+}
+
 const fetchFilterOptions = async () => {
   try {
     const token = localStorage.getItem('access_token')
-    if (!token) {
-      throw new Error('No autorizado. Inicie sesión.')
-    }
+    if (!token) throw new Error('No autorizado. Inicie sesión.')
 
     const res = await fetch('http://localhost:8000/documents/filter-options', {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     })
 
     if (!res.ok) {
@@ -389,11 +398,8 @@ const fetchDocuments = async () => {
   isLoading.value = true
   try {
     const token = localStorage.getItem('access_token')
-    if (!token) {
-      throw new Error('No autorizado. Inicie sesión.')
-    }
+    if (!token) throw new Error('No autorizado. Inicie sesión.')
 
-    // Construir parámetros de consulta
     const params = new URLSearchParams()
     if (filters.value.search) params.append('search', filters.value.search)
     if (filters.value.sector) params.append('sector', filters.value.sector)
@@ -404,9 +410,7 @@ const fetchDocuments = async () => {
     const url = `http://localhost:8000/documents${params.toString() ? '?' + params.toString() : ''}`
     
     const res = await fetch(url, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
+      headers: { 'Authorization': `Bearer ${token}` }
     })
 
     if (!res.ok) {
@@ -423,10 +427,7 @@ const fetchDocuments = async () => {
   }
 }
 
-const applyFilters = () => {
-  fetchDocuments()
-}
-
+const applyFilters = () => fetchDocuments()
 const clearFilters = () => {
   filters.value = {
     search: '',
@@ -448,15 +449,267 @@ const closeDetailModal = () => {
   selectedDocument.value = null
 }
 
-const downloadDocument = (document: Document | null) => {
-  if (!document) return
-  
-  // Simular descarga (en un entorno real, esto sería un endpoint de descarga)
-  showSuccess(`Descargando: ${document.title}`)
-  
-  // En un entorno real, harías algo como:
-  // window.open(`http://localhost:8000/documents/${document.id}/download`, '_blank')
+const openEditModal = () => {
+  showDetailModal.value = false
+  showEditModal.value = true
 }
+
+const openReplaceModal = () => {
+  showDetailModal.value = false
+  showReplaceModal.value = true
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
+  showDetailModal.value = true
+}
+
+const closeReplaceModal = () => {
+  showReplaceModal.value = false
+  showDetailModal.value = true
+}
+
+const downloadDocument = async (document: Document | null) => {
+  if (!document) return
+  if (isDownloading[document.id]) return
+  
+  isDownloading[document.id] = true
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) throw new Error('No autorizado. Inicie sesión.')
+
+    const response = await fetch(`http://localhost:8000/documents/download/${document.id}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Error al descargar el documento')
+    }
+
+    const contentDisposition = response.headers.get('Content-Disposition')
+    let filename = `${document.title}${document.file_extension}`
+    
+    if (contentDisposition) {
+      const filenameMatch = contentDisposition.match(/filename\*?=['"]?([^'";]+)['"]?/)
+      if (filenameMatch) filename = decodeURIComponent(filenameMatch[1])
+    }
+
+    const blob = await response.blob()
+    const url = window.URL.createObjectURL(blob)
+    const a = window.document.createElement('a')
+    a.style.display = 'none'
+    a.href = url
+    a.download = filename
+    window.document.body.appendChild(a)
+    a.click()
+    window.URL.revokeObjectURL(url)
+    window.document.body.removeChild(a)
+    
+    showSuccess(`Descarga completada: ${filename}`)
+  } catch (error: any) {
+    console.error('Error al descargar documento:', error)
+    showError(`Error al descargar: ${error.message}`)
+  } finally {
+    isDownloading[document.id] = false
+  }
+}
+
+const confirmarEliminacion = (document: Document) => {
+  documentToDelete.value = document
+  showDeleteModal.value = true
+}
+
+const cancelarEliminacion = () => {
+  showDeleteModal.value = false
+  documentToDelete.value = null
+}
+
+const eliminarDocumento = async () => {
+  if (!documentToDelete.value) return
+  
+  isDeleting.value = true
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) throw new Error('No autorizado. Inicie sesión.')
+
+    const response = await fetch(`http://localhost:8000/documents/${documentToDelete.value.id}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.detail || 'Error al eliminar el documento')
+    }
+
+    documents.value = documents.value.filter(doc => doc.id !== documentToDelete.value!.id)
+    showSuccess(`Documento "${documentToDelete.value.title}" eliminado exitosamente`)
+    showDeleteModal.value = false
+    documentToDelete.value = null
+  } catch (error: any) {
+    console.error('Error al eliminar documento:', error)
+    showError(`Error al eliminar: ${error.message}`)
+  } finally {
+    isDeleting.value = false
+  }
+}
+
+const saveMetadata = async (updatedDocument: Document) => {
+  isSavingMetadata.value = true;
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) throw new Error('No autorizado. Inicie sesión.');
+
+    // Validación de campos requeridos
+    const errors = [];
+    if (!updatedDocument.title?.trim()) errors.push('El título es requerido');
+    if (!updatedDocument.year || isNaN(Number(updatedDocument.year))) errors.push('Año inválido');
+    if (!updatedDocument.sector?.trim()) errors.push('Sector es requerido');
+    if (!updatedDocument.core_line?.trim()) errors.push('Línea medular es requerida');
+    if (!updatedDocument.document_type?.trim()) errors.push('Tipo de documento es requerido');
+    
+    if (errors.length > 0) {
+      throw new Error(errors.join('\n'));
+    }
+
+    // Crear FormData en lugar de JSON
+    const formData = new FormData();
+    formData.append('title', updatedDocument.title.trim());
+    formData.append('year', String(updatedDocument.year));
+    formData.append('sector', updatedDocument.sector.trim());
+    formData.append('core_line', updatedDocument.core_line.trim());
+    formData.append('document_type', updatedDocument.document_type.trim());
+    
+    if (updatedDocument.additional_notes) {
+      formData.append('additional_notes', updatedDocument.additional_notes.trim());
+    }
+
+    const response = await fetch(`http://localhost:8000/documents/${updatedDocument.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // No establecer Content-Type, el navegador lo hará automáticamente con FormData
+      },
+      body: formData
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(errorText || 'Error al actualizar metadatos');
+    }
+
+    const updatedDoc = await response.json();
+    documents.value = documents.value.map(doc => 
+      doc.id === updatedDoc.id ? updatedDoc : doc
+    );
+    
+    showSuccess('Documento actualizado correctamente');
+    closeEditModal();
+  } catch (error: any) {
+    console.error('Error al guardar:', error);
+    showError(error.message || 'Error al guardar cambios');
+  } finally {
+    isSavingMetadata.value = false;
+  }
+};
+
+const replaceDocumentFile = async (file: File) => {
+  if (!selectedDocument.value || !file) {
+    console.error('Documento no seleccionado o archivo inválido');
+    return;
+  }
+
+  isReplacing.value = true;
+  showErrorNotification.value = false; // Resetear notificación de error
+
+  try {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      throw new Error('No estás autenticado. Por favor inicia sesión.');
+    }
+
+    // Crear FormData y adjuntar archivo
+    const formData = new FormData();
+    formData.append('file', file);
+
+    // Mostrar información del archivo para depuración
+    console.log('Enviando archivo:', {
+      name: file.name,
+      type: file.type,
+      size: `${(file.size / 1024 / 1024).toFixed(2)} MB`
+    });
+
+    const response = await fetch(
+      `http://localhost:8000/documents/${selectedDocument.value.id}/file`,
+      {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // No establecer Content-Type, el navegador lo hará automáticamente con FormData
+        },
+        body: formData
+      }
+    );
+
+    // Manejar respuesta del servidor
+    if (!response.ok) {
+      let errorMessage = 'Error al reemplazar el documento';
+      
+      try {
+        const errorData = await response.json();
+        console.error('Error del servidor:', errorData);
+        
+        if (errorData.detail) {
+          if (Array.isArray(errorData.detail)) {
+            errorMessage = errorData.detail.map(err => err.msg).join(', ');
+          } else {
+            errorMessage = errorData.detail;
+          }
+        }
+      } catch (e) {
+        console.error('Error al parsear respuesta de error:', e);
+      }
+      
+      throw new Error(errorMessage);
+    }
+
+    // Procesar respuesta exitosa
+    const updatedDoc = await response.json();
+    console.log('Documento actualizado:', updatedDoc);
+
+    // Actualizar la lista de documentos manteniendo el orden
+    documents.value = documents.value.map(doc => 
+      doc.id === updatedDoc.id ? { ...doc, ...updatedDoc } : doc
+    );
+
+    // Mostrar notificación de éxito
+    showSuccess(`Archivo reemplazado: ${updatedDoc.original_filename}`);
+    
+    // Cerrar el modal de reemplazo
+    closeReplaceModal();
+
+  } catch (error: any) {
+    console.error('Error en replaceDocumentFile:', error);
+    
+    // Mostrar error específico al usuario
+    let userErrorMessage = 'Error al reemplazar el archivo';
+    
+    if (error.message.includes('Tipo de archivo no permitido')) {
+      userErrorMessage = 'Tipo de archivo no soportado. Use PDF, DOCX o XLSX.';
+    } else if (error.message.includes('tamaño excede')) {
+      userErrorMessage = 'El archivo es demasiado grande. Límite: 10MB.';
+    } else {
+      userErrorMessage = error.message || userErrorMessage;
+    }
+    
+    showError(userErrorMessage);
+    
+  } finally {
+    isReplacing.value = false;
+  }
+};
 
 const getDocumentTypeBadgeClass = (type: string) => {
   const classes: { [key: string]: string } = {
@@ -467,6 +720,15 @@ const getDocumentTypeBadgeClass = (type: string) => {
     'Reglamento': 'bg-red-100 text-red-800'
   }
   return classes[type] || 'bg-gray-100 text-gray-800'
+}
+
+const getFileTypeBadgeClass = (extension: string) => {
+  const classes: { [key: string]: string } = {
+    '.pdf': 'bg-red-100 text-red-800',
+    '.docx': 'bg-blue-100 text-blue-800',
+    '.xlsx': 'bg-green-100 text-green-800'
+  }
+  return classes[extension.toLowerCase()] || 'bg-gray-100 text-gray-800'
 }
 
 const formatDate = (dateString: string) => {
@@ -483,32 +745,25 @@ const formatDate = (dateString: string) => {
 const showSuccess = (message: string) => {
   notificationMessage.value = message
   showNotification.value = true
-  setTimeout(() => {
-    showNotification.value = false
-  }, 3000)
+  setTimeout(() => { showNotification.value = false }, 3000)
 }
 
 const showError = (message: string) => {
   errorMessage.value = message
   showErrorNotification.value = true
-  setTimeout(() => {
-    showErrorNotification.value = false
-  }, 5000)
+  setTimeout(() => { showErrorNotification.value = false }, 5000)
 }
 
 // Watchers
-watch(() => filters.value.search, () => {
-  // Auto-aplicar filtro de búsqueda con debounce
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => {
-    fetchDocuments()
-  }, 500)
-})
-
 let searchTimeout: any
+watch(() => filters.value.search, () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => fetchDocuments(), 500)
+})
 
 // Lifecycle
 onMounted(async () => {
+  await getUserInfo()
   await fetchFilterOptions()
   await fetchDocuments()
 })

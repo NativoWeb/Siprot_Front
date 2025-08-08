@@ -348,7 +348,7 @@ const documentTypes = ref<string[]>([
   'Reglamento',
   'Manual de Procedimientos',
   'Política Institucional',
-  'Proyecto Educico',
+  'Proyecto Educativo',
   'Datos CSV'
 ])
 
