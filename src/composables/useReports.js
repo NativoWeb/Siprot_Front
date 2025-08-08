@@ -134,6 +134,37 @@
       }
     }
 
+    const esperarYDescargarReporte = async (reporteId, intentos = 20, intervalo = 3000) => {
+      try {
+        for (let i = 0; i < intentos; i++) {
+          const res = await fetchWithAuth(`${API_BASE}/reportes/${reporteId}`);
+          const reporte = await res.json();
+
+          if (reporte.estado === 'completado' && reporte.archivo_path) {
+            const downloadRes = await fetchWithAuth(`${API_BASE}/reportes/${reporteId}/descargar`);
+            const blob = await downloadRes.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', `reporte_${reporteId}.pdf`);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+            return;
+          }
+
+          await new Promise(resolve => setTimeout(resolve, intervalo));
+        }
+
+        throw new Error("El reporte no se completó a tiempo.");
+      } catch (err) {
+        error.value = err.message;
+        throw err;
+      }
+    };
+
+
     const listarMisReportes = async (skip = 0, limit = 100) => {
       try {
         loading.value = true
@@ -228,6 +259,7 @@
       descargarReporte,
       eliminarReporte,
       resetFormData,
+      esperarYDescargarReporte,
       isAuthenticated,
       getCurrentUser,
       logout
