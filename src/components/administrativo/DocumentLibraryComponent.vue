@@ -356,6 +356,10 @@ const canDeleteDocuments = computed(() => {
   return userRole.value === 'planeacion' || userRole.value === 'superadmin'
 })
 
+const canEditDocuments = computed(() => {
+  return userRole.value === 'planeacion' || userRole.value === 'superadmin'
+})
+
 // Métodos
 const getUserInfo = async () => {
   try {

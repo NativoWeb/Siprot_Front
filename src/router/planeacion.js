@@ -1,3 +1,5 @@
+import path from "path";
+
 // Rutas para el rol de planeacion
 export default [
   {
@@ -23,5 +25,17 @@ export default [
     name: "EducationalOffer",
     component: () => import("../components/planeacion/EducationalOffer.vue"),
     meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"]},
+  },
+  {
+    path: "/dofa",
+    name: "DOFAAnalysis",
+    component: () => import("../components/planeacion/DOFAAnalysis.vue"),
+    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion"]},
+  },
+  {
+  path: "/escenarios-prospectivos",
+  name: "ProspectiveAnalysis",
+  component: () => import("../components/planeacion/EscenariosProspectivos.vue"),
+  meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion"]},
   },
 ]
