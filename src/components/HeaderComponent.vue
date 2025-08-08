@@ -1,4 +1,4 @@
-<template>
+rolesca<template>
   <header class="bg-white fixed top-0 left-0 w-full h-auto z-10 shadow-lg">
     <div class="flex justify-between items-center py-4 px-6">
       <div class="flex items-center">
@@ -51,11 +51,6 @@
                 <li class="px-4 py-2 hover:bg-gray-100">
                   <RouterLink to="/lista-usuario" @click="toggleDropdown('usuarios')">
                     Lista de Usuarios
-                  </RouterLink>
-                </li>
-                <li class="px-4 py-2 hover:bg-gray-100">
-                  <RouterLink to="/rol-usuario" @click="toggleDropdown('usuarios')">
-                    Cambiar Rol
                   </RouterLink>
                 </li>
               </ul>
@@ -170,6 +165,11 @@
                 Gestion de equipos
               </RouterLink>
             </li>
+            <li class="text-sm">
+              <RouterLink to="/mis-reportes-administrativo">
+                Mis reportes
+              </RouterLink>
+            </li>
             <li class="text-sm cursor-pointer" @click="logout">
               Cerrar Sesión
             </li>
@@ -202,8 +202,8 @@
               </RouterLink>
             </li>
             <li class="text-sm">
-              <RouterLink to="/generar-reportes">
-                Generar reportes
+              <RouterLink to="/mis-reportes-planeacion">
+                Mis reportes
               </RouterLink>
             </li>
             <li class="text-sm cursor-pointer" @click="logout">Cerrar Sesión</li>

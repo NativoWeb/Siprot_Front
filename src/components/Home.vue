@@ -24,35 +24,46 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, computed } from 'vue'
 
-// Añade más imágenes para una ruleta más variada
-const images = ref(['1.jpg', '2.jpg']) // Nombres de tus imágenes
+
+// Array que contiene la referencia *nombre* de las imagenes
+const images = ref(['1.jpg', '2.jpg'])
 const currentIndex = ref(0)
 let intervalId: any = null
 
+
+// Obtenemos el valor de la imagen *Sera 0*
 const currentImage = computed(() => images.value[currentIndex.value])
 
+
+// Obtenemos la ruta de la imagen
 const getImagePath = (imageName: string) => {
-  // Asegúrate de que la ruta a las imágenes sea correcta (src/assets/)
-  // Si tus imágenes están en src/assets/images/, cambia a `../assets/images/${imageName}`
+  // Si las imágenes están en src/assets/images/, cambia a `../assets/images/${imageName}`
   return new URL(`../assets/${imageName}`, import.meta.url).href
 }
 
+
+// Se inicializa el carousel, cada 5 segundos cambia al siguiente indice
 const startCarousel = () => {
   intervalId = setInterval(() => {
     currentIndex.value = (currentIndex.value + 1) % images.value.length
   }, 5000) // Cambia cada 5 segundos
 }
 
+
+// Cuando el componente se monta en el DOM se inicializa el carousel
 onMounted(() => {
   startCarousel()
 })
 
+
+// Cancela el setInterval previamente iniciado
 onUnmounted(() => {
   if (intervalId) {
     clearInterval(intervalId)
   }
 })
 </script>
+
 
 <style scoped>
 /* Transición para el efecto de fade */

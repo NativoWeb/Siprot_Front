@@ -3,31 +3,40 @@ import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import router from '../router'
 
+
 // Variables reactivas para email y contraseña
 const email = ref('')
 const password = ref('')
+const showPassword = ref(false)
+const togglePassword = () => {
+  showPassword.value = !showPassword.value
+}
 
+
+// Funcion post de formulario
 const loginUser = async () => {
   try {
+    // Se hace la peticion al back
     const res = await fetch('http://localhost:8000/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      // CAMBIO AQUÍ: Enviar 'email' en lugar de 'username'
       body: JSON.stringify({ email: email.value, password: password.value }) 
     })
 
+    // Si el codigo de respuesta no es 200 *Ok* lanza un error
     if (!res.ok) {
       const errorData = await res.json();
       throw new Error(errorData.detail || 'Credenciales inválidas');
     }
 
+    // Se guarda el token de acceso y el rol del usuario 
     const data = await res.json()
-    localStorage.setItem('access_token', data.access_token); // Asegúrate de guardar el token también
+    localStorage.setItem('access_token', data.access_token);
     localStorage.setItem('role', data.user.role)
     
     console.log('Login exitoso. Rol del usuario:', data.user.role);
     
-    // Redireccionar según el rol
+    // Redireccionando al usuario segun el rol
     if (data.user.role === 'superadmin') {
       console.log('Intentando redirigir a: AdminMainView');
       router.push({ name: 'AdminMainView' })
@@ -40,6 +49,7 @@ const loginUser = async () => {
     }
 
   } catch (err: any) {
+    // Mostramos el error
     alert(`Error al iniciar sesión: ${err.message || 'Credenciales inválidas'}`)
     console.error('Error de login:', err)
   }
@@ -67,10 +77,23 @@ const loginUser = async () => {
               <input v-model="email" class="input-custom" type="email" required placeholder="tu@ejemplo.com" />
             </div>
 
-            <div class="flex flex-col gap-3">
+            <div class="flex flex-col gap-3 relative">
               <label>Contraseña</label>
-              <input v-model="password" class="input-custom" type="password" required placeholder="***********" />
+              <input
+                v-model="password"
+                class="input-custom"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                placeholder="***********"
+              />
+              <span
+                @click="togglePassword"
+                class="absolute right-4 top-10 cursor-pointer text-sm text-blue-600"
+              >
+                {{ showPassword ? 'Ocultar' : 'Mostrar' }}
+              </span>
             </div>
+
 
             <button class="w-[100%] input-button-custom" type="submit">Iniciar Sesión</button>
             <RouterLink class="text-center" to="/">¿Olvidaste tu contraseña?</RouterLink>
