@@ -309,7 +309,7 @@ onMounted(async () => {
 <style scoped>
 /* Variables CSS */
 .generar-reporte {
-  --primary-color: #3b82f6;
+  --primary-color: #00af00;
   --primary-hover: #2563eb;
   --success-color: #10b981;
   --warning-color: #f59e0b;
@@ -485,7 +485,7 @@ onMounted(async () => {
 }
 
 .tiempo-badge {
-  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+  background: linear-gradient(135deg, #00af00 0%, #00af00 100%);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 50px;

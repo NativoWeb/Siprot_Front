@@ -50,7 +50,7 @@ const onReporteEliminado = (reporteId) => {
 <template>
   <div class="reportes-container">
     <div class="header">
-      <h1 class="title">Sistema de Reportes</h1>
+      <h1 class="title">Reportes</h1>
       <!-- <button @click="mostrarModalGenerar = true" class="btn btn-primary">
         <i class="fas fa-plus"></i>
         Generar Nuevo Reporte
@@ -139,7 +139,7 @@ const onReporteEliminado = (reporteId) => {
 .title {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #2E86AB;
+  color: #00af00;
   margin: 0;
 }
 
