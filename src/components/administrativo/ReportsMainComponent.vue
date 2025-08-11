@@ -50,11 +50,11 @@ const onReporteEliminado = (reporteId) => {
 <template>
   <div class="reportes-container">
     <div class="header">
-      <h1 class="title">Sistema de Reportes</h1>
-      <button @click="mostrarModalGenerar = true" class="btn btn-primary">
+      <h1 class="title">Reportes</h1>
+      <!-- <button @click="mostrarModalGenerar = true" class="btn btn-primary">
         <i class="fas fa-plus"></i>
         Generar Nuevo Reporte
-      </button>
+      </button> -->
     </div>
 
     <div class="tabs">
@@ -79,9 +79,54 @@ const onReporteEliminado = (reporteId) => {
 
 <style scoped>
 .reportes-container {
-  max-width: 1500px;
+  max-width: 2000px;
+  width: 95%; /* Usa 95% del ancho disponible */
   margin: 0 auto;
   padding: 20px;
+}
+
+/* Media queries para responsividad */
+@media (max-width: 768px) {
+  .reportes-container {
+    width: 100%;
+    padding: 15px;
+  }
+  
+  .title {
+    font-size: 2rem;
+  }
+  
+  .header {
+    flex-direction: column;
+    gap: 15px;
+    align-items: stretch;
+  }
+  
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; /* Smooth scrolling en iOS */
+  }
+  
+  .tab-btn {
+    white-space: nowrap;
+    min-width: max-content;
+    padding: 12px 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  .reportes-container {
+    padding: 10px;
+  }
+  
+  .title {
+    font-size: 1.5rem;
+  }
+  
+  .btn {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
 }
 
 .header {
@@ -94,7 +139,7 @@ const onReporteEliminado = (reporteId) => {
 .title {
   font-size: 2.5rem;
   font-weight: bold;
-  color: #2E86AB;
+  color: #00af00;
   margin: 0;
 }
 

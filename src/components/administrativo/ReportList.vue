@@ -274,7 +274,7 @@ onMounted(async () => {
 <style scoped>
 /* Variables CSS */
 .lista-reportes {
-  --primary-color: #3b82f6;
+  --primary-color: #00af00;
   --primary-hover: #2563eb;
   --success-color: #10b981;
   --warning-color: #f59e0b;

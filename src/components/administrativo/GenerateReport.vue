@@ -1,244 +1,246 @@
 <template>
   <div class="generar-reporte">
-    <!-- Header Section -->
-    <div class="header-section">
-      <div class="header-content">
-        <div class="title-group">
-          <i class="fas fa-plus-circle title-icon"></i>
-          <h2 class="section-title">Generar Nuevo Reporte</h2>
-        </div>
-      </div>
-    </div>
-    
-    <form @submit.prevent="generarNuevoReporte" class="form-container">
-      <!-- Selección de tipo de reporte -->
-      <div class="section-card">
-        <div class="card-header">
-          <h3 class="card-title">
-            <i class="fas fa-file-alt"></i>
-            Tipo de Reporte
-          </h3>
-          <span class="required-badge">Requerido</span>
-        </div>
-        
-        <div class="tipos-grid">
-          <div 
-            v-for="tipo in tiposReporte" 
-            :key="tipo.tipo"
-            @click="seleccionarTipo(tipo.tipo)"
-            :class="['tipo-card', { selected: formData.tipo === tipo.tipo }]"
-          >
-            <div class="card-header-simple">
-              <h4 class="tipo-nombre">{{ tipo.nombre }}</h4>
-              <span class="tiempo-badge">{{ tipo.tiempo_estimado }}</span>
-            </div>
-            <p class="tipo-descripcion">{{ tipo.descripcion }}</p>
-            <div class="opciones-container">
-              <span 
-                v-for="opcion in tipo.opciones_disponibles" 
-                :key="opcion"
-                class="opcion-chip"
-              >
-                {{ opcion }}
-              </span>
-            </div>
+      <!-- Header Section -->
+      <div class="header-section">
+        <div class="header-content">
+          <div class="title-group">
+            <i class="fas fa-plus-circle title-icon"></i>
+            <h2 class="section-title">Generar Nuevo Reporte</h2>
           </div>
         </div>
       </div>
 
-      <!-- Configuración específica por tipo -->
-      <div v-if="formData.tipo" class="section-card configuracion-card">
-        <div class="card-header">
-          <h3 class="card-title">
-            <i class="fas fa-cogs"></i>
-            Configuración del Reporte
-          </h3>
-        </div>
-        
-        <!-- Selección de indicadores (para reportes de indicadores) -->
-        <div v-if="formData.tipo === 'indicadores'" class="form-group">
-          <div class="group-header">
-            <label class="group-label">
-              <i class="fas fa-list-check"></i>
-              Indicadores a Incluir
-            </label>
-            <span class="selection-count" v-if="formData.parametros.indicadores_seleccionados.length">
-              {{ formData.parametros.indicadores_seleccionados.length }} seleccionados
-            </span>
+    <div class="page-container">
+      <form @submit.prevent="generarNuevoReporte" class="form-container">
+        <!-- Selección de tipo de reporte -->
+        <div class="section-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-file-alt"></i>
+              Tipo de Reporte
+            </h3>
+            <span class="required-badge">Requerido</span>
           </div>
-          <div class="indicadores-selector">
+          
+          <div class="tipos-grid">
             <div 
-              v-for="indicador in indicadores" 
-              :key="indicador.id"
-              class="indicador-item"
+              v-for="tipo in tiposReporte" 
+              :key="tipo.tipo"
+              @click="seleccionarTipo(tipo.tipo)"
+              :class="['tipo-card', { selected: formData.tipo === tipo.tipo }]"
             >
-              <div class="indicador-checkbox-container">
-                <input 
-                  :id="'ind_' + indicador.id"
-                  type="checkbox" 
-                  :value="indicador.id"
-                  v-model="formData.parametros.indicadores_seleccionados"
-                  class="indicador-checkbox"
-                />
-                <label :for="'ind_' + indicador.id" class="checkbox-custom"></label>
+              <div class="card-header-simple">
+                <h4 class="tipo-nombre">{{ tipo.nombre }}</h4>
+                <span class="tiempo-badge">{{ tipo.tiempo_estimado }}</span>
               </div>
-              <label :for="'ind_' + indicador.id" class="indicador-label">
-                <div class="indicador-info">
-                  <span class="indicador-nombre">{{ indicador.nombre }}</span>
-                  <span class="indicador-categoria">
-                    <i class="fas fa-tag"></i>
-                    {{ indicador.categoria }}
-                  </span>
-                </div>
-                <div class="indicador-valores">
-                  <span class="valor-actual">{{ indicador.valor_actual }}{{ indicador.unidad }}</span>
-                  <span :class="['estado-badge', indicador.estado_semaforo]">
-                    <i :class="{
-                      'fas fa-check-circle': indicador.estado_semaforo === 'verde',
-                      'fas fa-exclamation-triangle': indicador.estado_semaforo === 'amarillo',
-                      'fas fa-times-circle': indicador.estado_semaforo === 'rojo'
-                    }"></i>
-                    {{ indicador.estado_semaforo.toUpperCase() }}
-                  </span>
-                </div>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <!-- Rango de fechas -->
-        <div class="form-group">
-          <div class="group-header">
-            <label class="group-label">
-              <i class="fas fa-calendar-alt"></i>
-              Periodo de Análisis
-            </label>
-          </div>
-          <div class="form-row">
-            <div class="input-group">
-              <label class="input-label">Fecha de Inicio</label>
-              <div class="input-container">
-                <i class="fas fa-calendar input-icon"></i>
-                <input 
-                  type="date" 
-                  v-model="formData.parametros.fecha_inicio"
-                  class="form-input"
-                />
-              </div>
-            </div>
-            <div class="input-group">
-              <label class="input-label">Fecha de Fin</label>
-              <div class="input-container">
-                <i class="fas fa-calendar input-icon"></i>
-                <input 
-                  type="date" 
-                  v-model="formData.parametros.fecha_fin"
-                  class="form-input"
-                />
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- Comentarios del analista -->
-        <div class="form-group">
-          <div class="group-header">
-            <label class="group-label">
-              <i class="fas fa-comment-alt"></i>
-              Comentarios del Analista
-            </label>
-            <span class="optional-badge">Opcional</span>
-          </div>
-          <div class="textarea-container">
-            <textarea 
-              v-model="formData.parametros.comentarios_analista"
-              placeholder="Agregue comentarios adicionales para el análisis que considere relevantes..."
-              class="form-textarea"
-              rows="4"
-            ></textarea>
-            <div class="textarea-counter">
-              {{ formData.parametros.comentarios_analista?.length || 0 }}/500
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Botones de acción -->
-      <div class="form-actions">
-        <button 
-          type="button" 
-          @click="resetFormData"
-          class="action-btn secondary"
-          :disabled="loading"
-        >
-          <i class="fas fa-eraser"></i>
-          <span>Limpiar Formulario</span>
-        </button>
-        <button 
-          type="submit" 
-          class="action-btn primary"
-          :disabled="!formData.tipo || loading"
-        >
-          <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-          <i v-else class="fas fa-rocket"></i>
-          <span>{{ loading ? 'Generando Reporte...' : 'Generar Reporte' }}</span>
-        </button>
-      </div>
-    </form>
-
-    <!-- Modal de confirmación mejorado -->
-    <div v-if="reporteGenerado" class="modal-overlay" @click="cerrarModal">
-      <div class="modal-container" @click.stop>
-        <div class="modal-content">
-          <div class="modal-header">
-            <div class="success-icon">
-              <i class="fas fa-check-circle"></i>
-            </div>
-            <h3 class="modal-title">¡Reporte Generado Exitosamente!</h3>
-            <button @click="cerrarModal" class="modal-close">
-              <i class="fas fa-times"></i>
-            </button>
-          </div>
-          <div class="modal-body">
-            <div class="reporte-info">
-              <div class="info-item">
-                <span class="info-label">ID del Reporte:</span>
-                <span class="info-value">#{{ reporteGenerado.id }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">Estado:</span>
-                <span class="status-badge">
-                  <i class="fas fa-cog fa-spin"></i>
-                  {{ reporteGenerado.estado }}
+              <p class="tipo-descripcion">{{ tipo.descripcion }}</p>
+              <div class="opciones-container">
+                <span 
+                  v-for="opcion in tipo.opciones_disponibles" 
+                  :key="opcion"
+                  class="opcion-chip"
+                >
+                  {{ opcion }}
                 </span>
               </div>
             </div>
-            <div class="modal-message">
-              <p>Tu reporte se está generando en segundo plano. Recibirás una notificación cuando esté listo para descargar.</p>
+          </div>
+        </div>
+
+        <!-- Configuración específica por tipo -->
+        <div v-if="formData.tipo" class="section-card configuracion-card">
+          <div class="card-header">
+            <h3 class="card-title">
+              <i class="fas fa-cogs"></i>
+              Configuración del Reporte
+            </h3>
+          </div>
+          
+          <!-- Selección de indicadores (para reportes de indicadores) -->
+          <div v-if="formData.tipo === 'indicadores'" class="form-group">
+            <div class="group-header">
+              <label class="group-label">
+                <i class="fas fa-list-check"></i>
+                Indicadores a Incluir
+              </label>
+              <span class="selection-count" v-if="formData.parametros.indicadores_seleccionados.length">
+                {{ formData.parametros.indicadores_seleccionados.length }} seleccionados
+              </span>
+            </div>
+            <div class="indicadores-selector">
+              <div 
+                v-for="indicador in indicadores" 
+                :key="indicador.id"
+                class="indicador-item"
+              >
+                <div class="indicador-checkbox-container">
+                  <input 
+                    :id="'ind_' + indicador.id"
+                    type="checkbox" 
+                    :value="indicador.id"
+                    v-model="formData.parametros.indicadores_seleccionados"
+                    class="indicador-checkbox"
+                  />
+                  <label :for="'ind_' + indicador.id" class="checkbox-custom"></label>
+                </div>
+                <label :for="'ind_' + indicador.id" class="indicador-label">
+                  <div class="indicador-info">
+                    <span class="indicador-nombre">{{ indicador.nombre }}</span>
+                    <span class="indicador-categoria">
+                      <i class="fas fa-tag"></i>
+                      {{ indicador.categoria }}
+                    </span>
+                  </div>
+                  <div class="indicador-valores">
+                    <span class="valor-actual">{{ indicador.valor_actual }}{{ indicador.unidad }}</span>
+                    <span :class="['estado-badge', indicador.estado_semaforo]">
+                      <i :class="{
+                        'fas fa-check-circle': indicador.estado_semaforo === 'verde',
+                        'fas fa-exclamation-triangle': indicador.estado_semaforo === 'amarillo',
+                        'fas fa-times-circle': indicador.estado_semaforo === 'rojo'
+                      }"></i>
+                      {{ indicador.estado_semaforo.toUpperCase() }}
+                    </span>
+                  </div>
+                </label>
+              </div>
             </div>
           </div>
-          <div class="modal-footer">
-            <button @click="cerrarModal" class="modal-btn primary">
-              <i class="fas fa-folder-open"></i>
-              Ver Mis Reportes
-            </button>
+
+          <!-- Rango de fechas -->
+          <div class="form-group">
+            <div class="group-header">
+              <label class="group-label">
+                <i class="fas fa-calendar-alt"></i>
+                Periodo de Análisis
+              </label>
+            </div>
+            <div class="form-row">
+              <div class="input-group">
+                <label class="input-label">Fecha de Inicio</label>
+                <div class="input-container">
+                  <i class="fas fa-calendar input-icon"></i>
+                  <input 
+                    type="date" 
+                    v-model="formData.parametros.fecha_inicio"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+              <div class="input-group">
+                <label class="input-label">Fecha de Fin</label>
+                <div class="input-container">
+                  <i class="fas fa-calendar input-icon"></i>
+                  <input 
+                    type="date" 
+                    v-model="formData.parametros.fecha_fin"
+                    class="form-input"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Comentarios del analista -->
+          <div class="form-group">
+            <div class="group-header">
+              <label class="group-label">
+                <i class="fas fa-comment-alt"></i>
+                Comentarios del Analista
+              </label>
+              <span class="optional-badge">Opcional</span>
+            </div>
+            <div class="textarea-container">
+              <textarea 
+                v-model="formData.parametros.comentarios_analista"
+                placeholder="Agregue comentarios adicionales para el análisis que considere relevantes..."
+                class="form-textarea"
+                rows="4"
+              ></textarea>
+              <div class="textarea-counter">
+                {{ formData.parametros.comentarios_analista?.length || 0 }}/500
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de acción -->
+        <div class="form-actions">
+          <button 
+            type="button" 
+            @click="resetFormData"
+            class="action-btn secondary"
+            :disabled="loading"
+          >
+            <i class="fas fa-eraser"></i>
+            <span>Limpiar Formulario</span>
+          </button>
+          <button 
+            type="submit" 
+            class="action-btn primary"
+            :disabled="!formData.tipo || loading"
+          >
+            <i v-if="loading" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-rocket"></i>
+            <span>{{ loading ? 'Generando Reporte...' : 'Generar Reporte' }}</span>
+          </button>
+        </div>
+      </form>
+
+      <!-- Modal de confirmación mejorado -->
+      <div v-if="reporteGenerado" class="modal-overlay" @click="cerrarModal">
+        <div class="modal-container" @click.stop>
+          <div class="modal-content">
+            <div class="modal-header">
+              <div class="success-icon">
+                <i class="fas fa-check-circle"></i>
+              </div>
+              <h3 class="modal-title">¡Reporte Generado Exitosamente!</h3>
+              <button @click="cerrarModal" class="modal-close">
+                <i class="fas fa-times"></i>
+              </button>
+            </div>
+            <div class="modal-body">
+              <div class="reporte-info">
+                <div class="info-item">
+                  <span class="info-label">ID del Reporte:</span>
+                  <span class="info-value">#{{ reporteGenerado.id }}</span>
+                </div>
+                <div class="info-item">
+                  <span class="info-label">Estado:</span>
+                  <span class="status-badge">
+                    <i class="fas fa-cog fa-spin"></i>
+                    {{ reporteGenerado.estado }}
+                  </span>
+                </div>
+              </div>
+              <div class="modal-message">
+                <p>Tu reporte se está generando en segundo plano. Recibirás una notificación cuando esté listo para descargar.</p>
+              </div>
+            </div>
+            <div class="modal-footer">
+              <button @click="cerrarModal" class="modal-btn primary">
+                <i class="fas fa-folder-open"></i>
+                Ver Mis Reportes
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
 
-    <!-- Mensaje de error mejorado -->
-    <div v-if="error" class="error-alert">
-      <div class="alert-icon">
-        <i class="fas fa-exclamation-triangle"></i>
-      </div>
-      <div class="alert-content">
-        <h4 class="alert-title">Error al Generar Reporte</h4>
-        <p class="alert-message">{{ error }}</p>
-      </div>
-      <button class="alert-close" @click="error = null">
-        <i class="fas fa-times"></i>
-      </button>
+      <!-- Mensaje de error mejorado -->
+      <!-- <div v-if="error" class="error-alert">
+        <div class="alert-icon">
+          <i class="fas fa-exclamation-triangle"></i>
+        </div>
+        <div class="alert-content">
+          <h4 class="alert-title">Error al Generar Reporte</h4>
+          <p class="alert-message">{{ error }}</p>
+        </div>
+        <button class="alert-close" @click="error = null">
+          <i class="fas fa-times"></i>
+        </button>
+      </div> -->
     </div>
   </div>
 </template>
@@ -307,7 +309,7 @@ onMounted(async () => {
 <style scoped>
 /* Variables CSS */
 .generar-reporte {
-  --primary-color: #3b82f6;
+  --primary-color: #00af00;
   --primary-hover: #2563eb;
   --success-color: #10b981;
   --warning-color: #f59e0b;
@@ -363,6 +365,13 @@ onMounted(async () => {
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
+}
+
+.page-container {
+  max-width: 1100px;   /* ajusta a lo que quieras (1000, 1100, 1200) */
+  margin: 0 auto;      /* centra toda la columna en la pantalla */
+  padding: 0 1rem;
+  box-sizing: border-box;
 }
 
 /* Form Container */
@@ -476,7 +485,7 @@ onMounted(async () => {
 }
 
 .tiempo-badge {
-  background: linear-gradient(135deg, #a855f7 0%, #9333ea 100%);
+  background: linear-gradient(135deg, #00af00 0%, #00af00 100%);
   color: white;
   padding: 0.5rem 1rem;
   border-radius: 50px;
