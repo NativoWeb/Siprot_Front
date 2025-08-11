@@ -162,13 +162,13 @@ const onReporteEliminado = (reporteId) => {
 }
 
 .tab-btn:hover {
-  color: #2E86AB;
+  color: #00af00;
   background-color: #f8f9fa;
 }
 
 .tab-btn.active {
-  color: #2E86AB;
-  border-bottom-color: #2E86AB;
+  color: #00af00;
+  border-bottom-color: #00af00;
   background-color: #f8f9fa;
 }
 
