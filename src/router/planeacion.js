@@ -27,7 +27,6 @@ export default [
     meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"]},
   },
   {
-  {
     path: "/dofa",
     name: "DOFAAnalysis",
     component: () => import("../components/planeacion/DOFAAnalysis.vue"),

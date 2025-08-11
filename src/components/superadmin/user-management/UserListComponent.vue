@@ -267,7 +267,7 @@ import {
   ChevronRightIcon,
   AlertTriangleIcon,
   CheckCircleIcon,
-  XIcon
+  XIcon,
 } from 'lucide-vue-next'
 
 // Importar los componentes de modal
