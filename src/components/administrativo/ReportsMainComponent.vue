@@ -109,7 +109,7 @@ const onReporteEliminado = (reporteId) => {
 <template>
   <div class="reportes-container">
     <div class="header">
-      <h1 class="title">Reportes</h1>
+      <h1 class="title">Reportes Estratégicos</h1>
     </div>
 
     <div class="tabs">
