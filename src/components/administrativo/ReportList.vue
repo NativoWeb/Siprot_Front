@@ -5,6 +5,7 @@ import { useReports } from '../../composables/useReports'
 const {
   reportes,
   listarMisReportes,
+  descargarReporte,
   loading,
   error
 } = useReports()
@@ -189,9 +190,40 @@ const obtenerIconoTipo = (tipo) => {
   return iconos[tipo] || 'fas fa-file'
 }
 
-const descargarReporte = (reporte) => {
-  // Implementar lógica de descarga
-  console.log('Descargando reporte:', reporte.id)
+// Agregar estado de descarga
+const descargandoReportes = ref(new Set()) // Para trackear qué reportes se están descargando
+
+// Función de descarga mejorada
+const descargarReporteId = async (reporte) => {
+  try {
+    // Agregar el reporte al set de descargas en progreso
+    descargandoReportes.value.add(reporte.id)
+    
+    console.log('Iniciando descarga del reporte:', reporte.id)
+    
+    // Llamar al método de descarga y esperar su resultado
+    await descargarReporte(reporte.id)
+    
+    console.log('Descarga completada para reporte:', reporte.id)
+    
+    // Aquí podrías mostrar un mensaje de éxito si lo deseas
+    // Por ejemplo, usando una librería de notificaciones
+    
+  } catch (error) {
+    console.error('Error al descargar el reporte:', error)
+    
+    // Aquí podrías mostrar un mensaje de error al usuario
+    alert(`Error al descargar el reporte #${reporte.id}: ${error.message}`)
+    
+  } finally {
+    // Remover el reporte del set de descargas en progreso
+    descargandoReportes.value.delete(reporte.id)
+  }
+}
+
+// Función helper para verificar si un reporte se está descargando
+const estaDescargando = (reporteId) => {
+  return descargandoReportes.value.has(reporteId)
 }
 
 const verReporte = (reporte) => {
@@ -425,11 +457,16 @@ onMounted(async () => {
           <button 
             class="action-btn primary" 
             v-if="reporte.estado === 'completado'"
-            @click="descargarReporte(reporte)"
-            title="Descargar reporte"
+            @click="descargarReporteId(reporte)"
+            :disabled="estaDescargando(reporte.id)"
+            :title="estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar reporte'"
           >
-            <i class="fas fa-download"></i>
-            Descargar
+            <!-- Mostrar spinner si se está descargando -->
+            <i v-if="estaDescargando(reporte.id)" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-download"></i>
+            
+            <!-- Cambiar texto según el estado -->
+            <span>{{ estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar' }}</span>
           </button>
           <button 
             class="action-btn secondary" 

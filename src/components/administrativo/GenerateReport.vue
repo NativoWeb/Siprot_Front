@@ -746,14 +746,14 @@ onMounted(async () => {
 }
 
 .tipo-card:hover {
-  border-color: #10b981;
+  border-color: #00af00;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.02) 0%, rgba(16, 185, 129, 0.05) 100%);
   transform: translateY(-2px);
   box-shadow: 0 10px 25px rgba(16, 185, 129, 0.15);
 }
 
 .tipo-card.selected {
-  border-color: #10b981;
+  border-color: #00af00;
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.05) 0%, rgba(16, 185, 129, 0.08) 100%);
   box-shadow: 0 8px 25px rgba(16, 185, 129, 0.2);
 }
