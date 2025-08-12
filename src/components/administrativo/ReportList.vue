@@ -238,7 +238,7 @@ onMounted(async () => {
           <span class="stat-label">Completados</span>
         </div>
       </div>
-      <div class="stat-card">
+      <!-- <div class="stat-card">
         <div class="stat-icon generando">
           <i class="fas fa-clock"></i>
         </div>
@@ -246,7 +246,7 @@ onMounted(async () => {
           <span class="stat-value">{{ estadisticas.generando }}</span>
           <span class="stat-label">Generando</span>
         </div>
-      </div>
+      </div> -->
       <div class="stat-card">
         <div class="stat-icon error">
           <i class="fas fa-exclamation-circle"></i>
