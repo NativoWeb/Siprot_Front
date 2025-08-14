@@ -1,21 +1,31 @@
 <script setup>
 import { onMounted, computed, ref } from 'vue'
 import { useReports } from '../../composables/useReports'
+import ModalViewReport from './ModalViewReport.vue' // Importar el componente modal
 
 const {
   reportes,
   listarMisReportes,
   descargarReporte,
+  verReporte, // Agregar la nueva función
   loading,
   error
 } = useReports()
 
+// ... todas las variables reactivas existentes ...
 const tabActiva = ref('todos')
 const filtroEstado = ref('')
 const paginaActual = ref(1)
-const reportesPorPagina = ref(10) // Puedes ajustar este número según necesites
+const reportesPorPagina = ref(10)
 
-// Definir los tabs disponibles
+// Estados para el modal PDF
+const modalVisible = ref(false)
+const reporteActual = ref(null)
+const pdfUrl = ref(null)
+const loadingPDF = ref(false)
+const errorPDF = ref(null)
+
+// ... todas las funciones computadas existentes ...
 const tabs = [
   { id: 'todos', label: 'Todos', icon: 'fas fa-th-large' },
   { id: 'indicadores', label: 'Indicadores', icon: 'fas fa-chart-bar' },
@@ -24,7 +34,6 @@ const tabs = [
   { id: 'consolidado', label: 'Consolidado', icon: 'fas fa-file-alt' }
 ]
 
-// Contar reportes por tipo
 const contadoresPorTipo = computed(() => {
   const contadores = {
     todos: reportes.value.length,
@@ -43,7 +52,6 @@ const contadoresPorTipo = computed(() => {
   return contadores
 })
 
-// Filtrar reportes según tab activa y estado
 const reportesFiltrados = computed(() => {
   return reportes.value.filter(reporte => {
     const coincideTipo = tabActiva.value === 'todos' || reporte.tipo === tabActiva.value
@@ -52,25 +60,21 @@ const reportesFiltrados = computed(() => {
   })
 })
 
-// Calcular total de páginas
 const totalPaginas = computed(() => {
   return Math.ceil(reportesFiltrados.value.length / reportesPorPagina.value)
 })
 
-// Reportes paginados
 const reportesPaginados = computed(() => {
   const inicio = (paginaActual.value - 1) * reportesPorPagina.value
   const fin = inicio + reportesPorPagina.value
   return reportesFiltrados.value.slice(inicio, fin)
 })
 
-// Generar array de números de página para mostrar
 const numerosPaginas = computed(() => {
   const paginas = []
   const total = totalPaginas.value
   const actual = paginaActual.value
   
-  // Lógica para mostrar máximo 7 páginas con puntos suspensivos
   if (total <= 7) {
     for (let i = 1; i <= total; i++) {
       paginas.push(i)
@@ -102,7 +106,6 @@ const numerosPaginas = computed(() => {
   return paginas
 })
 
-// Agrupar reportes por estado para mostrar estadísticas
 const estadisticas = computed(() => {
   const stats = {
     completado: 0,
@@ -119,10 +122,11 @@ const estadisticas = computed(() => {
   return stats
 })
 
+// ... todas las funciones existentes de paginación y filtros ...
 const cambiarTab = (tabId) => {
   tabActiva.value = tabId
-  filtroEstado.value = '' // Resetear filtro de estado al cambiar de tab
-  paginaActual.value = 1 // Resetear a primera página
+  filtroEstado.value = ''
+  paginaActual.value = 1
 }
 
 const cambiarPagina = (pagina) => {
@@ -149,6 +153,85 @@ const cargarReportes = async () => {
   } catch (err) {
     console.error('Error cargando reportes:', err)
   }
+}
+
+// Funciones para el modal PDF
+const abrirModalPDF = async (reporte) => {
+  if (reporte.estado !== 'completado') {
+    alert('El reporte no está disponible para visualizar')
+    return
+  }
+
+  reporteActual.value = reporte
+  modalVisible.value = true
+  await cargarPDF(reporte)
+}
+
+const cargarPDF = async (reporte) => {
+  try {
+    loadingPDF.value = true
+    errorPDF.value = null
+    
+    // Limpiar URL anterior si existe
+    if (pdfUrl.value) {
+      window.URL.revokeObjectURL(pdfUrl.value)
+      pdfUrl.value = null
+    }
+    
+    const url = await verReporte(reporte.id)
+    pdfUrl.value = url
+  } catch (err) {
+    console.error('Error cargando PDF:', err)
+    errorPDF.value = err.message || 'Error al cargar el PDF'
+  } finally {
+    loadingPDF.value = false
+  }
+}
+
+const cerrarModalPDF = () => {
+  modalVisible.value = false
+  reporteActual.value = null
+  errorPDF.value = null
+  
+  // Limpiar URL del blob
+  if (pdfUrl.value) {
+    window.URL.revokeObjectURL(pdfUrl.value)
+    pdfUrl.value = null
+  }
+}
+
+const recargarPDF = async (reporte) => {
+  await cargarPDF(reporte)
+}
+
+const descargarDesdeModal = async (reporte) => {
+  try {
+    await descargarReporte(reporte.id)
+  } catch (err) {
+    console.error('Error al descargar:', err)
+    alert(`Error al descargar el reporte: ${err.message}`)
+  }
+}
+
+// ... resto de funciones existentes (formateo, descarga, etc.) ...
+const descargandoReportes = ref(new Set())
+
+const descargarReporteId = async (reporte) => {
+  try {
+    descargandoReportes.value.add(reporte.id)
+    console.log('Iniciando descarga del reporte:', reporte.id)
+    await descargarReporte(reporte.id)
+    console.log('Descarga completada para reporte:', reporte.id)
+  } catch (error) {
+    console.error('Error al descargar el reporte:', error)
+    alert(`Error al descargar el reporte #${reporte.id}: ${error.message}`)
+  } finally {
+    descargandoReportes.value.delete(reporte.id)
+  }
+}
+
+const estaDescargando = (reporteId) => {
+  return descargandoReportes.value.has(reporteId)
 }
 
 const formatearFecha = (fechaStr) => {
@@ -190,49 +273,7 @@ const obtenerIconoTipo = (tipo) => {
   return iconos[tipo] || 'fas fa-file'
 }
 
-// Agregar estado de descarga
-const descargandoReportes = ref(new Set()) // Para trackear qué reportes se están descargando
-
-// Función de descarga mejorada
-const descargarReporteId = async (reporte) => {
-  try {
-    // Agregar el reporte al set de descargas en progreso
-    descargandoReportes.value.add(reporte.id)
-    
-    console.log('Iniciando descarga del reporte:', reporte.id)
-    
-    // Llamar al método de descarga y esperar su resultado
-    await descargarReporte(reporte.id)
-    
-    console.log('Descarga completada para reporte:', reporte.id)
-    
-    // Aquí podrías mostrar un mensaje de éxito si lo deseas
-    // Por ejemplo, usando una librería de notificaciones
-    
-  } catch (error) {
-    console.error('Error al descargar el reporte:', error)
-    
-    // Aquí podrías mostrar un mensaje de error al usuario
-    alert(`Error al descargar el reporte #${reporte.id}: ${error.message}`)
-    
-  } finally {
-    // Remover el reporte del set de descargas en progreso
-    descargandoReportes.value.delete(reporte.id)
-  }
-}
-
-// Función helper para verificar si un reporte se está descargando
-const estaDescargando = (reporteId) => {
-  return descargandoReportes.value.has(reporteId)
-}
-
-const verReporte = (reporte) => {
-  // Implementar lógica para ver detalles
-  console.log('Ver reporte:', reporte.id)
-}
-
 const eliminarReporte = (reporte) => {
-  // Implementar lógica de eliminación con confirmación
   if (confirm(`¿Estás seguro de eliminar el reporte #${reporte.id}?`)) {
     console.log('Eliminando reporte:', reporte.id)
   }
@@ -245,6 +286,8 @@ onMounted(async () => {
 
 <template>
   <div class="lista-reportes">
+    <!-- Todo el contenido existente permanece igual hasta las acciones de las cards -->
+    
     <!-- Header Principal -->
     <div class="header-section">
       <div class="header-content">
@@ -270,15 +313,6 @@ onMounted(async () => {
           <span class="stat-label">Completados</span>
         </div>
       </div>
-      <!-- <div class="stat-card">
-        <div class="stat-icon generando">
-          <i class="fas fa-clock"></i>
-        </div>
-        <div class="stat-info">
-          <span class="stat-value">{{ estadisticas.generando }}</span>
-          <span class="stat-label">Generando</span>
-        </div>
-      </div> -->
       <div class="stat-card">
         <div class="stat-icon error">
           <i class="fas fa-exclamation-circle"></i>
@@ -461,21 +495,22 @@ onMounted(async () => {
             :disabled="estaDescargando(reporte.id)"
             :title="estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar reporte'"
           >
-            <!-- Mostrar spinner si se está descargando -->
             <i v-if="estaDescargando(reporte.id)" class="fas fa-spinner fa-spin"></i>
             <i v-else class="fas fa-download"></i>
-            
-            <!-- Cambiar texto según el estado -->
             <span>{{ estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar' }}</span>
           </button>
+          
+          <!-- BOTÓN VER MODIFICADO -->
           <button 
             class="action-btn secondary" 
-            @click="verReporte(reporte)"
-            title="Ver detalles"
+            v-if="reporte.estado === 'completado'"
+            @click="abrirModalPDF(reporte)"
+            title="Ver PDF"
           >
             <i class="fas fa-eye"></i>
-            Ver
+            Ver PDF
           </button>
+          
           <button 
             class="action-btn danger" 
             @click="eliminarReporte(reporte)"
@@ -534,6 +569,18 @@ onMounted(async () => {
         de {{ reportesFiltrados.length }} reportes
       </div>
     </div>
+
+    <!-- MODAL PARA VER PDF -->
+    <ModalViewReport
+      :is-visible="modalVisible"
+      :reporte="reporteActual"
+      :loading="loadingPDF"
+      :error="errorPDF"
+      :pdf-url="pdfUrl"
+      @close="cerrarModalPDF"
+      @descargar="descargarDesdeModal"
+      @recargar="recargarPDF"
+    />
   </div>
 </template>
 
@@ -1109,6 +1156,7 @@ onMounted(async () => {
   background: white;
   color: var(--gray-700);
   border-color: var(--gray-200);
+  flex: 1;
 }
 
 .action-btn.secondary:hover {
@@ -1125,6 +1173,105 @@ onMounted(async () => {
 .action-btn.danger:hover {
   background: rgb(239 68 68 / 0.05);
   border-color: var(--danger-color);
+}
+
+/* Estilos de Paginación */
+.paginacion-container {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+}
+
+.btn-paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-paginacion:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-paginacion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-50);
+}
+
+.numeros-pagina {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-numero {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-numero:hover:not(:disabled):not(.active) {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+  transform: translateY(-1px);
+}
+
+.btn-numero.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.btn-numero.dots {
+  cursor: default;
+  border: none;
+  background: transparent;
+  color: var(--gray-400);
+}
+
+.btn-numero.dots:hover {
+  transform: none;
+  background: transparent;
+}
+
+.paginacion-info {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  text-align: center;
 }
 
 /* Responsive Design */
@@ -1247,224 +1394,5 @@ onMounted(async () => {
 
 .reporte-card {
   animation: fadeIn 0.3s ease;
-}
-
-.reporte-card:nth-child(1) { animation-delay: 0.05s; }
-.reporte-card:nth-child(2) { animation-delay: 0.1s; }
-.reporte-card:nth-child(3) { animation-delay: 0.15s; }
-.reporte-card:nth-child(4) { animation-delay: 0.2s; }
-.reporte-card:nth-child(5) { animation-delay: 0.25s; }
-.reporte-card:nth-child(6) { animation-delay: 0.3s; }
-
-/* Scrollbar personalizada para el contenedor principal */
-.reportes-grid {
-  overflow-y: visible; /* Cambiado para usar paginación en lugar de scroll */
-  padding-right: 0;
-}
-
-/* Indicador de tab activa con línea */
-.tab-button::after {
-  content: '';
-  position: absolute;
-  bottom: -1rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 0;
-  height: 3px;
-  background: var(--primary-color);
-  transition: width 0.3s ease;
-}
-
-.tab-button.active::after {
-  width: 80%;
-}
-
-/* Tooltip para acciones */
-.action-btn {
-  position: relative;
-}
-
-.action-btn::before {
-  content: attr(title);
-  position: absolute;
-  bottom: 100%;
-  left: 50%;
-  transform: translateX(-50%);
-  padding: 0.375rem 0.75rem;
-  background: var(--gray-900);
-  color: white;
-  font-size: 0.75rem;
-  border-radius: 6px;
-  white-space: nowrap;
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 0.3s ease, transform 0.3s ease;
-  margin-bottom: 0.5rem;
-}
-
-.action-btn:hover::before {
-  opacity: 1;
-  transform: translateX(-50%) translateY(-4px);
-}
-
-/* Mejoras de accesibilidad */
-.tab-button:focus-visible,
-.filter-btn:focus-visible,
-.action-btn:focus-visible {
-  outline: 2px solid var(--primary-color);
-  outline-offset: 2px;
-}
-
-/* Badge de nuevo reporte */
-.reporte-card.nuevo {
-  position: relative;
-}
-
-.reporte-card.nuevo::before {
-  content: 'NUEVO';
-  position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
-  background: var(--primary-color);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.625rem;
-  font-weight: 700;
-  letter-spacing: 0.5px;
-  z-index: 10;
-}
-
-/* Estilos de Paginación */
-.paginacion-container {
-  margin-top: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  align-items: center;
-}
-
-.paginacion {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  background: white;
-  padding: 0.75rem 1rem;
-  border-radius: var(--border-radius);
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--gray-100);
-}
-
-.btn-paginacion {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
-  background: white;
-  border: 2px solid var(--gray-200);
-  border-radius: var(--border-radius);
-  color: var(--gray-700);
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-paginacion:hover:not(:disabled) {
-  background: var(--gray-50);
-  border-color: var(--primary-color);
-  color: var(--primary-color);
-}
-
-.btn-paginacion:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-  background: var(--gray-50);
-}
-
-.numeros-pagina {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.btn-numero {
-  min-width: 2.5rem;
-  height: 2.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: white;
-  border: 2px solid var(--gray-200);
-  border-radius: var(--border-radius);
-  color: var(--gray-700);
-  font-weight: 600;
-  font-size: 0.875rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-numero:hover:not(:disabled):not(.active) {
-  background: var(--gray-50);
-  border-color: var(--gray-300);
-  transform: translateY(-1px);
-}
-
-.btn-numero.active {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-  color: white;
-}
-
-.btn-numero.dots {
-  cursor: default;
-  border: none;
-  background: transparent;
-  color: var(--gray-400);
-}
-
-.btn-numero.dots:hover {
-  transform: none;
-  background: transparent;
-}
-
-.paginacion-info {
-  font-size: 0.875rem;
-  color: var(--gray-600);
-  text-align: center;
-}
-
-/* Responsive para paginación */
-@media (max-width: 640px) {
-  .paginacion {
-    flex-wrap: wrap;
-    justify-content: center;
-  }
-  
-  .btn-paginacion.anterior,
-  .btn-paginacion.siguiente {
-    flex: 1;
-    justify-content: center;
-  }
-  
-  .numeros-pagina {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-    margin-top: 0.5rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .btn-numero {
-    min-width: 2rem;
-    height: 2rem;
-    font-size: 0.75rem;
-  }
-  
-  .btn-paginacion {
-    padding: 0.375rem 0.75rem;
-    font-size: 0.813rem;
-  }
 }
 </style>
