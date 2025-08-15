@@ -1,6 +1,15 @@
 <template>
   <div class="container mx-auto py-6 px-4">
-    <h1 class="text-2xl font-bold mb-6">Lista de Usuarios</h1>
+    <div class="flex justify-between items-center mb-6">
+      <h1 class="text-2xl font-bold">Lista de Usuarios</h1>
+      <button 
+        @click="refreshUsers"
+        class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+        :disabled="isLoading"
+      >
+        {{ isLoading ? 'Cargando...' : 'Actualizar' }}
+      </button>
+    </div>
 
     <!-- Búsqueda y filtros -->
     <div class="bg-white rounded-lg shadow p-4 mb-6">
@@ -10,10 +19,12 @@
             <input
               v-model="searchTerm"
               type="text"
-              placeholder="Buscar usuarios..."
+              placeholder="Buscar usuarios por nombre o email..."
               class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
-            <SearchIcon class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+            <svg class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg>
           </div>
         </div>
         <div class="w-full md:w-48">
@@ -43,7 +54,31 @@
 
     <!-- Indicador de carga -->
     <div v-if="isLoading" class="text-center py-8">
-      <p class="text-gray-600">Cargando usuarios...</p>
+      <div class="inline-flex items-center">
+        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-3"></div>
+        <p class="text-gray-600">Cargando usuarios...</p>
+      </div>
+    </div>
+
+    <!-- Mensaje de error -->
+    <div v-else-if="errorMessage" class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+      <div class="flex items-center">
+        <svg class="h-5 w-5 text-red-400 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+        </svg>
+        <div class="flex-grow">
+          <p class="text-sm text-red-700">{{ errorMessage }}</p>
+          <p v-if="errorMessage.includes('Failed to fetch')" class="text-red-600 text-sm mt-1">
+            Verifique que el backend esté ejecutándose en http://localhost:8000 y que CORS esté configurado.
+          </p>
+        </div>
+        <button 
+          @click="refreshUsers" 
+          class="ml-auto text-red-600 hover:text-red-800 underline"
+        >
+          Reintentar
+        </button>
+      </div>
     </div>
 
     <!-- Tabla de usuarios -->
@@ -62,7 +97,7 @@
                 Estado
               </th>
               <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Último acceso
+                Fecha de Registro
               </th>
               <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Acciones
@@ -71,21 +106,28 @@
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-if="paginatedUsers.length === 0">
-              <td colspan="5" class="px-6 py-4 text-center text-gray-500">
-                No se encontraron usuarios
+              <td colspan="5" class="px-6 py-8 text-center text-gray-500">
+                <div class="flex flex-col items-center">
+                  <svg class="h-12 w-12 text-gray-300 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+                  </svg>
+                  <p>No se encontraron usuarios</p>
+                  <p class="text-sm">Intenta ajustar los filtros de búsqueda</p>
+                </div>
               </td>
             </tr>
-            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-gray-50">
+            <tr v-for="user in paginatedUsers" :key="user.id" class="hover:bg-gray-50 transition-colors duration-150">
               <td class="px-6 py-4 whitespace-nowrap">
                 <div class="flex items-center">
                   <div class="flex-shrink-0 h-10 w-10">
-                    <div class="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center text-gray-600 font-medium">
+                    <div class="h-10 w-10 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-medium text-sm">
                       {{ getInitials(user.first_name, user.last_name) }}
                     </div>
                   </div>
                   <div class="ml-4">
                     <div class="text-sm font-medium text-gray-900">{{ getFullName(user) }}</div>
                     <div class="text-sm text-gray-500">{{ user.email }}</div>
+                    <div v-if="user.phone_number" class="text-xs text-gray-400">{{ user.phone_number }}</div>
                   </div>
                 </div>
               </td>
@@ -106,31 +148,38 @@
                 </span>
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                <!-- El backend no proporciona 'lastLogin', puedes dejarlo vacío o añadir una lógica si lo implementas -->
-                N/A
+                {{ formatDate(user.created_at) }}
               </td>
               <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                 <div class="flex justify-end space-x-2">
                   <button
-                    @click="viewUser(user.id)"
-                    class="text-gray-600 hover:text-gray-900"
+                    @click="viewUser(user)"
+                    class="text-gray-600 hover:text-gray-900 p-1 rounded transition-colors duration-150"
                     title="Ver detalles"
                   >
-                    <EyeIcon class="h-5 w-5" />
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
+                    </svg>
                   </button>
                   <button
-                    @click="editUser(user.id)"
-                    class="text-blue-600 hover:text-blue-900"
+                    @click="editUser(user)"
+                    class="text-blue-600 hover:text-blue-900 p-1 rounded transition-colors duration-150"
                     title="Editar usuario"
                   >
-                    <PencilIcon class="h-5 w-5" />
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path>
+                    </svg>
                   </button>
                   <button
                     @click="confirmDeleteUser(user)"
-                    class="text-red-600 hover:text-red-900"
-                    title="Eliminar usuario"
+                    class="text-red-600 hover:text-red-900 p-1 rounded transition-colors duration-150"
+                    title="Desactivar usuario"
+                    :disabled="user.role === 'superadmin'"
                   >
-                    <TrashIcon class="h-5 w-5" />
+                    <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path>
+                    </svg>
                   </button>
                 </div>
               </td>
@@ -144,7 +193,9 @@
         <div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
           <div>
             <p class="text-sm text-gray-700">
-              Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> a <span class="font-medium">{{ endIndex }}</span> de <span class="font-medium">{{ filteredUsers.length }}</span> resultados
+              Mostrando <span class="font-medium">{{ startIndex + 1 }}</span> a 
+              <span class="font-medium">{{ endIndex }}</span> de 
+              <span class="font-medium">{{ filteredUsers.length }}</span> resultados
             </p>
           </div>
           <div>
@@ -152,20 +203,38 @@
               <button
                 @click="prevPage"
                 :disabled="currentPage === 1"
-                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                :class="{ 'opacity-50 cursor-not-allowed': currentPage === 1 }"
+                class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
               >
                 <span class="sr-only">Anterior</span>
-                <ChevronLeftIcon class="h-5 w-5" />
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
               </button>
+              
+              <!-- Números de página -->
+              <button
+                v-for="page in visiblePages"
+                :key="page"
+                @click="goToPage(page)"
+                :class="[
+                  'relative inline-flex items-center px-4 py-2 border text-sm font-medium transition-colors duration-150',
+                  page === currentPage
+                    ? 'z-10 bg-blue-50 border-blue-500 text-blue-600'
+                    : 'bg-white border-gray-300 text-gray-500 hover:bg-gray-50'
+                ]"
+              >
+                {{ page }}
+              </button>
+              
               <button
                 @click="nextPage"
                 :disabled="currentPage >= totalPages"
-                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50"
-                :class="{ 'opacity-50 cursor-not-allowed': currentPage >= totalPages }"
+                class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-150"
               >
                 <span class="sr-only">Siguiente</span>
-                <ChevronRightIcon class="h-5 w-5" />
+                <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                </svg>
               </button>
             </nav>
           </div>
@@ -173,83 +242,83 @@
       </div>
     </div>
 
-    <!-- Modal de detalles de usuario -->
-    <UserDetailModal 
-      :show="showDetailModal" 
-      :user="userToView" 
-      @close="closeDetailModal" 
-    />
-
-    <!-- Modal de edición de usuario -->
-    <UserEditModal 
-      :show="showEditModal" 
-      :user="userToEdit" 
-      :is-updating="isUpdating"
-      @close="cancelEdit"
-      @update="updateUser" 
-    />
-
-    <!-- Nuevo Modal de eliminación de usuario -->
-    <UserDeleteModal
-      :show="showDeleteModalComponent"
-      :user="userToDeleteForModal"
-      @close="showDeleteModalComponent = false"
-      @deleted="handleUserDeleted"
-      @error="handleDeleteError"
-    />
-
-    <!-- Notificación de éxito -->
-    <div 
-      v-if="showNotification"
-      class="fixed bottom-4 right-4 bg-green-50 border-l-4 border-green-400 p-4 shadow-md rounded-md z-[9999]"
-    >
-      <div class="flex">
-        <div class="flex-shrink-0">
-          <CheckCircleIcon class="h-5 w-5 text-green-400" />
-        </div>
-        <div class="ml-3">
-          <p class="text-sm text-green-700">
-            {{ notificationMessage }}
-          </p>
-        </div>
-        <div class="ml-auto pl-3">
-          <div class="-mx-1.5 -my-1.5">
+    <!-- Modal simple para ver detalles del usuario -->
+    <div v-if="showDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <h3 class="text-lg font-medium text-gray-900 mb-4">Detalles del Usuario</h3>
+          <div v-if="userToView" class="space-y-3">
+            <div><strong>Nombre:</strong> {{ getFullName(userToView) }}</div>
+            <div><strong>Email:</strong> {{ userToView.email }}</div>
+            <div><strong>Teléfono:</strong> {{ userToView.phone_number || 'No especificado' }}</div>
+            <div><strong>Rol:</strong> {{ getRoleLabel(userToView.role) }}</div>
+            <div><strong>Estado:</strong> {{ getStatusLabel(userToView.is_active) }}</div>
+            <div><strong>Fecha de registro:</strong> {{ formatDate(userToView.created_at) }}</div>
+            <div v-if="userToView.additional_notes"><strong>Notas:</strong> {{ userToView.additional_notes }}</div>
+          </div>
+          <div class="flex justify-end mt-6">
             <button
-              @click="showNotification = false"
-              class="inline-flex rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              @click="closeDetailModal"
+              class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-150"
             >
-              <span class="sr-only">Cerrar</span>
-              <XIcon class="h-5 w-5" />
+              Cerrar
             </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Notificación de error -->
+    <!-- Notificaciones -->
     <div 
-      v-if="showErrorNotification"
-      class="fixed bottom-4 right-4 bg-red-50 border-l-4 border-red-400 p-4 shadow-md rounded-md z-[9999]"
+      v-if="showNotification"
+      class="fixed bottom-4 right-4 bg-green-50 border-l-4 border-green-400 p-4 shadow-lg rounded-md z-[9999] max-w-md"
     >
       <div class="flex">
         <div class="flex-shrink-0">
-          <AlertTriangleIcon class="h-5 w-5 text-red-400" />
+          <svg class="h-5 w-5 text-green-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
+          </svg>
         </div>
         <div class="ml-3">
-          <p class="text-sm text-red-700">
-            {{ errorMessage }}
-          </p>
+          <p class="text-sm text-green-700">{{ notificationMessage }}</p>
         </div>
         <div class="ml-auto pl-3">
-          <div class="-mx-1.5 -my-1.5">
-            <button
-              @click="showErrorNotification = false"
-              class="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-            >
-              <span class="sr-only">Cerrar</span>
-              <XIcon class="h-5 w-5" />
-            </button>
-          </div>
+          <button
+            @click="showNotification = false"
+            class="inline-flex rounded-md p-1.5 text-green-500 hover:bg-green-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-150"
+          >
+            <span class="sr-only">Cerrar</span>
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div 
+      v-if="showErrorNotification"
+      class="fixed bottom-4 right-4 bg-red-50 border-l-4 border-red-400 p-4 shadow-lg rounded-md z-[9999] max-w-md"
+    >
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z"></path>
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-700">{{ errorNotificationMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button
+            @click="showErrorNotification = false"
+            class="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500 transition-colors duration-150"
+          >
+            <span class="sr-only">Cerrar</span>
+            <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
         </div>
       </div>
     </div>
@@ -258,24 +327,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import {
-  SearchIcon,
-  PencilIcon,
-  TrashIcon,
-  EyeIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-  AlertTriangleIcon,
-  CheckCircleIcon,
-  XIcon,
-} from 'lucide-vue-next'
 
-// Importar los componentes de modal
-import UserDetailModal from './UserDetailModal.vue'
-import UserEditModal from './UserEditModal.vue'
-import UserDeleteModal from './DeleteUserComponent.vue' // Importar el nuevo modal de eliminación
-
-// Tipado para el usuario
 interface User {
   id: number;
   email: string;
@@ -285,7 +337,8 @@ interface User {
   additional_notes: string | null;
   role: string;
   is_active: boolean;
-  created_at: string; // O Date si lo parseas
+  created_at: string;
+  updated_at: string;
 }
 
 // Estado
@@ -294,117 +347,150 @@ const searchTerm = ref('')
 const roleFilter = ref('all')
 const statusFilter = ref('all')
 const currentPage = ref(1)
-const itemsPerPage = ref(5)
-const isLoading = ref(true)
+const itemsPerPage = ref(10)
+const isLoading = ref(false)
+const errorMessage = ref('')
 
-// Estado para el modal de edición
-const showEditModal = ref(false)
-const userToEdit = ref<User | null>(null)
-const isUpdating = ref(false)
-
-// Estado para el modal de detalles
+// Estado para modales
 const showDetailModal = ref(false)
 const userToView = ref<User | null>(null)
-
-// Estado para el nuevo modal de eliminación
-const showDeleteModalComponent = ref(false)
-const userToDeleteForModal = ref<User | null>(null)
 
 // Estado para notificaciones
 const showNotification = ref(false)
 const showErrorNotification = ref(false)
 const notificationMessage = ref('')
-const errorMessage = ref('')
+const errorNotificationMessage = ref('')
 
-// Función para obtener usuarios del backend
 const fetchUsers = async () => {
-  isLoading.value = true;
+  isLoading.value = true
+  errorMessage.value = ''
+  
   try {
-    const token = localStorage.getItem('access_token');
+    const token = localStorage.getItem('access_token')
     if (!token) {
-      showError('No autorizado. Inicie sesión.');
-      isLoading.value = false;
-      return;
+      throw new Error('No autorizado. Inicie sesión.')
     }
 
-    const res = await fetch('http://localhost:8000/users', {
+    const res = await fetch('http://localhost:8000/users/', {
       headers: {
-        'Authorization': `Bearer ${token}`
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
       }
-    });
+    })
 
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || 'Error al obtener usuarios');
+      if (res.status === 401) {
+        localStorage.removeItem('access_token')
+        throw new Error('Sesión expirada. Inicie sesión nuevamente.')
+      } else if (res.status === 403) {
+        throw new Error('No tiene permisos para ver la lista de usuarios.')
+      }
+      const errorData = await res.json()
+      throw new Error(errorData.detail || 'Error al obtener usuarios')
     }
 
-    const data: User[] = await res.json();
-    users.value = data;
+    const data: User[] = await res.json()
+    users.value = data
   } catch (error: any) {
-    console.error('Error al obtener usuarios:', error);
-    showError(`Error al cargar usuarios: ${error.message || 'Ocurrió un error inesperado.'}`);
+    console.error('Error al obtener usuarios:', error)
+    errorMessage.value = error.message || 'Ocurrió un error inesperado.'
+    showError(error.message || 'Error al cargar usuarios')
   } finally {
-    isLoading.value = false;
+    isLoading.value = false
   }
+}
+
+// Función para refrescar usuarios
+const refreshUsers = () => {
+  fetchUsers()
 }
 
 // Cargar datos al montar el componente
 onMounted(() => {
-  fetchUsers();
+  fetchUsers()
 })
 
 // Filtrado de usuarios
 const filteredUsers = computed(() => {
   return users.value.filter(user => {
-    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase();
+    const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase()
     const matchesSearch =
       fullName.includes(searchTerm.value.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.value.toLowerCase());
+      user.email.toLowerCase().includes(searchTerm.value.toLowerCase())
 
-    const matchesRole = roleFilter.value === 'all' || user.role === roleFilter.value;
+    const matchesRole = roleFilter.value === 'all' || user.role === roleFilter.value
     const matchesStatus = statusFilter.value === 'all' ||
                           (statusFilter.value === 'active' && user.is_active) ||
-                          (statusFilter.value === 'inactive' && !user.is_active);
+                          (statusFilter.value === 'inactive' && !user.is_active)
 
-    return matchesSearch && matchesRole && matchesStatus;
-  });
-});
+    return matchesSearch && matchesRole && matchesStatus
+  })
+})
 
 // Paginación
 const totalPages = computed(() => {
-  return Math.ceil(filteredUsers.value.length / itemsPerPage.value);
-});
+  return Math.ceil(filteredUsers.value.length / itemsPerPage.value)
+})
 
 const startIndex = computed(() => {
-  return (currentPage.value - 1) * itemsPerPage.value;
-});
+  return (currentPage.value - 1) * itemsPerPage.value
+})
 
 const endIndex = computed(() => {
-  return Math.min(startIndex.value + itemsPerPage.value, filteredUsers.value.length);
-});
+  return Math.min(startIndex.value + itemsPerPage.value, filteredUsers.value.length)
+})
 
 const paginatedUsers = computed(() => {
-  return filteredUsers.value.slice(startIndex.value, endIndex.value);
-});
+  return filteredUsers.value.slice(startIndex.value, endIndex.value)
+})
+
+const visiblePages = computed(() => {
+  const pages = []
+  const maxVisible = 5
+  let start = Math.max(1, currentPage.value - Math.floor(maxVisible / 2))
+  let end = Math.min(totalPages.value, start + maxVisible - 1)
+  
+  if (end - start + 1 < maxVisible) {
+    start = Math.max(1, end - maxVisible + 1)
+  }
+  
+  for (let i = start; i <= end; i++) {
+    pages.push(i)
+  }
+  
+  return pages
+})
 
 const nextPage = () => {
   if (currentPage.value < totalPages.value) {
-    currentPage.value++;
+    currentPage.value++
   }
-};
+}
 
 const prevPage = () => {
   if (currentPage.value > 1) {
-    currentPage.value--;
+    currentPage.value--
   }
-};
+}
+
+const goToPage = (page: number) => {
+  currentPage.value = page
+}
 
 // Funciones de utilidad
 const getInitials = (firstName: string | null, lastName: string | null) => {
-  const firstInitial = firstName ? firstName.charAt(0) : '';
-  const lastInitial = lastName ? lastName.charAt(0) : '';
-  return `${firstInitial}${lastInitial}`.toUpperCase().substring(0, 2);
-};
+  const firstInitial = firstName ? firstName.charAt(0) : ''
+  const lastInitial = lastName ? lastName.charAt(0) : ''
+  const initials = `${firstInitial}${lastInitial}`.toUpperCase()
+  return initials || '??'
+}
+
+const getFullName = (user: User) => {
+  const firstName = user.first_name || ''
+  const lastName = user.last_name || ''
+  const fullName = `${firstName} ${lastName}`.trim()
+  return fullName || user.email
+}
 
 const getRoleLabel = (role: string) => {
   const labels: { [key: string]: string } = {
@@ -412,156 +498,88 @@ const getRoleLabel = (role: string) => {
     administrativo: 'Administrativo',
     planeacion: 'Planeación',
     instructor: 'Instructor'
-  };
-  return labels[role] || role;
-};
+  }
+  return labels[role] || role
+}
 
 const getStatusLabel = (isActive: boolean) => {
-  return isActive ? 'Activo' : 'Inactivo';
-};
+  return isActive ? 'Activo' : 'Inactivo'
+}
 
 const getRoleBadgeClass = (role: string) => {
   switch (role) {
     case 'superadmin':
-      return 'bg-purple-100 text-purple-800';
+      return 'bg-purple-100 text-purple-800'
     case 'administrativo':
-      return 'bg-blue-100 text-blue-800';
+      return 'bg-blue-100 text-blue-800'
     case 'planeacion':
-      return 'bg-yellow-100 text-yellow-800';
+      return 'bg-yellow-100 text-yellow-800'
     case 'instructor':
-      return 'bg-green-100 text-green-800';
+      return 'bg-green-100 text-green-800'
     default:
-      return 'bg-gray-100 text-gray-800';
+      return 'bg-gray-100 text-gray-800'
   }
-};
+}
 
 const getStatusBadgeClass = (isActive: boolean) => {
-  return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800';
-};
+  return isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+}
 
-const getFullName = (user: User | null) => {
-  if (!user) return '';
-  const firstName = user.first_name || '';
-  const lastName = user.last_name || '';
-  return `${firstName} ${lastName}`.trim() || user.email;
-};
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString)
+    return date.toLocaleDateString('es-ES', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+  } catch {
+    return 'Fecha inválida'
+  }
+}
 
 // Funciones de notificación
 const showSuccess = (message: string) => {
-  notificationMessage.value = message;
-  showNotification.value = true;
+  notificationMessage.value = message
+  showNotification.value = true
   setTimeout(() => {
-    showNotification.value = false;
-  }, 3000);
-};
+    showNotification.value = false
+  }, 4000)
+}
 
 const showError = (message: string) => {
-  errorMessage.value = message;
-  showErrorNotification.value = true;
+  errorNotificationMessage.value = message
+  showErrorNotification.value = true
   setTimeout(() => {
-    showErrorNotification.value = false;
-  }, 5000);
-};
+    showErrorNotification.value = false
+  }, 6000)
+}
 
-// Acciones de usuario
-// Función para ver detalles del usuario
-const viewUser = (userId: number) => {
-  const user = users.value.find(u => u.id === userId);
-  if (user) {
-    userToView.value = user;
-    showDetailModal.value = true;
-  }
-};
+const viewUser = (user: User) => {
+  userToView.value = user
+  showDetailModal.value = true
+}
 
-// Función para cerrar el modal de detalles
 const closeDetailModal = () => {
-  showDetailModal.value = false;
-  userToView.value = null;
-};
+  showDetailModal.value = false
+  userToView.value = null
+}
 
-// Función para editar usuario
-const editUser = (userId: number) => {
-  const user = users.value.find(u => u.id === userId);
-  if (user) {
-    userToEdit.value = user;
-    showEditModal.value = true;
-  }
-};
+const editUser = (user: User) => {
+  alert(`Funcionalidad de edición para ${user.email} - Implementar modal de edición`)
+}
 
-const updateUser = async (formData: any) => {
-  if (!userToEdit.value) return;
-
-  isUpdating.value = true;
-  try {
-    const token = localStorage.getItem('access_token');
-    if (!token) {
-      showError('No autorizado. Inicie sesión.');
-      return;
-    }
-
-    // Construir el cuerpo de la petición
-    const bodyData: any = {
-      email: formData.email,
-      first_name: formData.first_name || null,
-      last_name: formData.last_name || null,
-      phone_number: formData.phone_number || null,
-      additional_notes: formData.additional_notes || null,
-      role: formData.role,
-      is_active: formData.is_active
-    };
-
-    // Solo agregar password si se llenó
-    if (formData.password && formData.password.trim() !== "") {
-      bodyData.password = formData.password;
-    }
-
-    const res = await fetch(`http://localhost:8000/users/${userToEdit.value.id}`, {
-      method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
-      },
-      body: JSON.stringify(bodyData)
-    });
-
-    if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || 'Error al actualizar usuario');
-    }
-
-    showSuccess('Usuario actualizado exitosamente!');
-    fetchUsers(); // Recargar lista
-    showEditModal.value = false;
-    userToEdit.value = null;
-  } catch (error: any) {
-    console.error('Error al actualizar usuario:', error);
-    showError(`Error al actualizar usuario: ${error.message || 'Ocurrió un error inesperado.'}`);
-  } finally {
-    isUpdating.value = false;
-  }
-};
-
-
-const cancelEdit = () => {
-  showEditModal.value = false;
-  userToEdit.value = null;
-  isUpdating.value = false;
-};
-
-// Función para confirmar eliminación (ahora usa el nuevo modal)
 const confirmDeleteUser = (user: User) => {
-  userToDeleteForModal.value = user;
-  showDeleteModalComponent.value = true;
-};
-
-// Manejador cuando el UserDeleteModal emite 'deleted'
-const handleUserDeleted = () => {
-  showSuccess('Usuario eliminado exitosamente!');
-  fetchUsers(); // Recargar la lista de usuarios después de la eliminación
-};
-
-// Manejador cuando el UserDeleteModal emite 'error'
-const handleDeleteError = (message: string) => {
-  showError(message);
-};
+  if (confirm(`¿Está seguro de que desea desactivar al usuario ${user.email}?`)) {
+    alert('Funcionalidad de eliminación - Implementar lógica de desactivación')
+  }
+}
 </script>
+
+<style scoped>
+.container {
+  max-width: 1200px;
+}
+</style>
