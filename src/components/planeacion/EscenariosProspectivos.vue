@@ -8,12 +8,6 @@
       </div>
       <div class="flex gap-2">
         <button 
-          @click="comparisonMode = !comparisonMode"
-          class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50"
-        >
-          {{ comparisonMode ? 'Vista Individual' : 'Comparar Escenarios' }}
-        </button>
-        <button 
           @click="exportScenario"
           class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
         >
@@ -341,30 +335,44 @@
             <h3 class="text-lg font-semibold mb-4">
               Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
             </h3>
-            <div class="h-96">
+            <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-96">
               <LineChart
-                :data="scenarios[selectedScenario]?.data || []"
+                :data="scenarios[selectedScenario].data"
                 :series="trendSeries"
-                :colors="['#8884d8', '#82ca9d', '#ffc658']"
+                :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
               />
+            </div>
+            <div v-else class="h-96 flex items-center justify-center text-gray-500">
+              <div class="text-center">
+                <Settings class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No hay datos disponibles para mostrar</p>
+                <p class="text-sm">Selecciona un archivo CSV para generar proyecciones</p>
+              </div>
             </div>
           </div>
 
           <!-- Comparison Tab -->
           <div v-if="activeTab === 'comparison'">
             <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
-            <div class="h-96">
+            <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-96">
               <LineChart
-                :data="comparisonData"
-                :series="comparisonSeries"
+                :data="comparisonChartData.data"
+                :series="comparisonChartSeries"
                 :colors="Object.values(scenarios).map(s => s.color)"
               />
+            </div>
+            <div v-else class="h-96 flex items-center justify-center text-gray-500">
+              <div class="text-center">
+                <TrendingUp class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No hay escenarios disponibles para comparar</p>
+                <p class="text-sm">Genera escenarios seleccionando un archivo CSV</p>
+              </div>
             </div>
           </div>
 
           <!-- Indicators Tab -->
           <div v-if="activeTab === 'indicators'">
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div
                 v-for="indicator in indicators"
                 :key="indicator"
@@ -378,6 +386,13 @@
                     :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
                   />
                 </div>
+              </div>
+            </div>
+            <div v-else class="h-96 flex items-center justify-center text-gray-500">
+              <div class="text-center">
+                <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No hay indicadores disponibles</p>
+                <p class="text-sm">Los indicadores se generarán automáticamente desde los datos CSV</p>
               </div>
             </div>
           </div>
@@ -569,37 +584,105 @@ const indicators = computed(() => {
   return Object.keys(currentScenario.data[0].values || {})
 })
 
-const trendSeries = computed(() => [
-  { key: 'values.Estudiantes Matriculados', name: 'Estudiantes Matriculados' },
-  { key: 'values.Demanda Laboral', name: 'Demanda Laboral' },
-  { key: 'values.Graduados', name: 'Graduados' }
-])
-
-const comparisonSeries = computed(() => 
-  Object.entries(scenarios.value).map(([key, scenario]) => ({
-    key: 'values.Estudiantes Matriculados',
-    name: scenario.scenario_name,
-    data: scenario.data
+const trendSeries = computed(() => {
+  const currentScenario = scenarios.value[selectedScenario.value]
+  if (!currentScenario || !currentScenario.data || !currentScenario.data[0]) {
+    return []
+  }
+  
+  const firstDataPoint = currentScenario.data[0]
+  const availableIndicators = Object.keys(firstDataPoint.values || {})
+  
+  console.log(`[TRENDS] Indicadores disponibles:`, availableIndicators)
+  
+  // Crear series basadas en los indicadores reales disponibles
+  const series = availableIndicators.map(indicator => ({
+    key: `values.${indicator}`,
+    name: indicator
   }))
-)
+  
+  console.log(`[TRENDS] Series generadas:`, series)
+  return series
+})
 
-const comparisonData = computed(() => {
-  // Combinar datos de todos los escenarios para comparación
+// Datos de comparación mejorados
+const comparisonChartData = computed(() => {
+  console.log('[COMPARISON] Generando datos de comparación...')
+  
+  if (!scenarios.value || Object.keys(scenarios.value).length === 0) {
+    console.log('[COMPARISON] No hay escenarios disponibles')
+    return { data: [], series: [] }
+  }
+  
+  // Obtener todos los años únicos de todos los escenarios
   const allYears = new Set()
   Object.values(scenarios.value).forEach(scenario => {
-    scenario.data?.forEach(d => allYears.add(d.year))
+    if (scenario.data && Array.isArray(scenario.data)) {
+      scenario.data.forEach(d => {
+        if (d.year) allYears.add(d.year)
+      })
+    }
   })
   
-  return Array.from(allYears).sort().map(year => {
-    const dataPoint = { year }
+  if (allYears.size === 0) {
+    console.log('[COMPARISON] No se encontraron años en los datos')
+    return { data: [], series: [] }
+  }
+  
+  console.log('[COMPARISON] Años encontrados:', Array.from(allYears).sort())
+  
+  // Crear datos combinados para cada año
+  const data = Array.from(allYears).sort((a, b) => a - b).map(year => {
+    const yearData = { year }
+    
+    // Para cada escenario, obtener el valor del primer indicador disponible
     Object.entries(scenarios.value).forEach(([key, scenario]) => {
-      const yearData = scenario.data?.find(d => d.year === year)
-      if (yearData) {
-        dataPoint[scenario.scenario_name] = yearData.values['Estudiantes Matriculados']
+      if (scenario.data && Array.isArray(scenario.data)) {
+        const yearScenarioData = scenario.data.find(d => d.year === year)
+        if (yearScenarioData && yearScenarioData.values) {
+          // Usar el primer indicador disponible o un indicador específico
+          const indicators = Object.keys(yearScenarioData.values)
+          const primaryIndicator = indicators.find(ind => 
+            ind.includes('poblacion') || ind.includes('Estudiantes') || ind.includes('Matriculados')
+          ) || indicators[0]
+          
+          if (primaryIndicator) {
+            yearData[scenario.scenario_name] = yearScenarioData.values[primaryIndicator]
+          }
+        }
       }
     })
-    return dataPoint
+    
+    return yearData
   })
+  
+  console.log('[COMPARISON] Datos de comparación generados:', {
+    totalYears: data.length,
+    sampleData: data.slice(0, 3),
+    indicators: data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'year') : []
+  })
+  
+  return { data }
+})
+
+const comparisonChartSeries = computed(() => {
+  console.log('[COMPARISON] Generando series de comparación...')
+  console.log('[COMPARISON] Escenarios disponibles:', Object.keys(scenarios.value))
+  
+  const series = Object.entries(scenarios.value).map(([key, scenario]) => {
+    console.log(`[COMPARISON] Procesando escenario ${key}:`, {
+      name: scenario.scenario_name,
+      dataLength: scenario.data?.length || 0
+    })
+    
+    return {
+      key: scenario.scenario_name, // Usar el nombre del escenario como clave
+      name: scenario.scenario_name
+    }
+  })
+  
+  console.log('[COMPARISON] Series generadas:', series.length)
+  return series
 })
 
 // Tabs configuration
@@ -639,6 +722,8 @@ const loadCsvFiles = async () => {
     console.error('[v0] Error loading CSV files:', error)
     csvError.value = `Error al cargar archivos: ${error.message}`
     showError(error.message)
+    // Fallback a datos mock si hay error
+    loadMockCsvFiles()
   } finally {
     loadingCsvFiles.value = false
   }
@@ -744,9 +829,8 @@ const loadScenarios = async () => {
     const token = localStorage.getItem('access_token')
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
-    const fileId = selectedCsvFile.value.id || selectedCsvFile.value
+    const fileId = selectedCsvFile.value
     console.log(`[v0] Generando escenarios para archivo ID: ${fileId}`)
-    console.log(`[v0] Archivo seleccionado:`, selectedCsvFile.value)
 
     const scenarioTypes = ['tendencial', 'optimista', 'pesimista']
     const yearsAhead = 10
@@ -771,13 +855,40 @@ const loadScenarios = async () => {
     
     if (response.ok) {
       const scenarioData = await response.json()
-      scenarios.value = scenarioData
-      showSuccess('Escenarios generados exitosamente')
+      console.log(`[v0] Datos recibidos del backend:`, scenarioData)
+      
+      // Procesar y validar datos de escenarios
+      const processedScenarios = {}
+      
+      for (const [scenarioType, data] of Object.entries(scenarioData)) {
+        if (data && data.data && Array.isArray(data.data)) {
+          // Ordenar datos por año para asegurar continuidad
+          const sortedData = data.data.sort((a, b) => a.year - b.year)
+          
+          processedScenarios[scenarioType] = {
+            ...data,
+            data: sortedData
+          }
+          
+          console.log(`[v0] Escenario ${scenarioType}: ${sortedData.length} puntos de datos`)
+          console.log(`[v0] Rango de años: ${sortedData[0]?.year} - ${sortedData[sortedData.length - 1]?.year}`)
+          console.log(`[v0] Indicadores disponibles:`, Object.keys(sortedData[0]?.values || {}))
+        }
+      }
+      
+      scenarios.value = processedScenarios
+      
+      // Actualizar selectedScenario si no existe
+      if (!scenarios.value[selectedScenario.value]) {
+        selectedScenario.value = Object.keys(scenarios.value)[0] || 'tendencial'
+      }
+      
+      showSuccess(`Escenarios generados exitosamente. Total de escenarios: ${Object.keys(processedScenarios).length}`)
     } else {
       const errorData = await response.json()
       console.error('[v0] Error response:', errorData)
       
-      // Mostrar detalles específicos del error
+      // Mostrar detalles específicos del error con sugerencias
       let errorMessage = 'Error al generar escenarios'
       if (errorData.detail) {
         if (Array.isArray(errorData.detail)) {
@@ -786,6 +897,13 @@ const loadScenarios = async () => {
           ).join(', ')
         } else {
           errorMessage = errorData.detail
+        }
+      }
+      
+      // Agregar sugerencias específicas para errores comunes
+      if (response.status === 400) {
+        if (errorMessage.includes('Error al leer el archivo') || errorMessage.includes('formato')) {
+          errorMessage += '\n\nSugerencias:\n• Verifique que el archivo sea un CSV válido\n• Asegúrese de que tenga columnas de fecha y datos numéricos\n• Revise que no tenga caracteres especiales en los encabezados\n• Intente con otro archivo CSV'
         }
       }
       
@@ -833,6 +951,7 @@ const loadMockScenarios = async () => {
   }
   
   scenarios.value = mockScenarios
+  console.log('Escenarios mock cargados:', Object.keys(mockScenarios))
 }
 
 // Methods for pagination and filtering
@@ -967,12 +1086,44 @@ const getScenarioIcon = (type) => {
 
 const getIndicatorData = (indicator) => {
   const scenario = scenarios.value[selectedScenario.value]
-  if (!scenario) return []
+  console.log(`[v0] getIndicatorData - scenario:`, scenario)
+  console.log(`[v0] getIndicatorData - indicator:`, indicator)
   
-  return scenario.data.slice(-5).map(d => ({
-    year: d.year,
-    value: d.values[indicator] || 0
-  }))
+  if (!scenario || !scenario.data) {
+    console.log(`[v0] getIndicatorData - no scenario or data found`)
+    return []
+  }
+
+  // Mapeo de nombres de indicadores legibles a claves del backend
+  const indicatorMapping = {
+    'Población Objetivo': 'poblacion_objetivo',
+    'Demanda de Empleo': 'demanda_empleo', 
+    'Oferta Educativa': 'oferta_educativa',
+    'Estudiantes Matriculados': 'poblacion_objetivo',
+    'Demanda Laboral': 'demanda_empleo',
+    'Graduados': 'oferta_educativa'
+  }
+
+  // Usar el mapeo o el indicador original si no existe mapeo
+  const mappedIndicator = indicatorMapping[indicator] || indicator
+  console.log(`[v0] getIndicatorData - mapped indicator: ${indicator} -> ${mappedIndicator}`)
+
+  // Verificar qué indicadores están disponibles en los datos
+  if (scenario.data.length > 0) {
+    console.log(`[v0] getIndicatorData - available indicators:`, Object.keys(scenario.data[0].values || {}))
+  }
+  
+  const data = scenario.data.slice(-5).map(d => {
+    const value = d.values[mappedIndicator] || d.values[indicator] || 0
+    console.log(`[v0] getIndicatorData - year ${d.year}, indicator ${mappedIndicator}, value:`, value)
+    return {
+      year: d.year,
+      value: value
+    }
+  })
+  
+  console.log(`[v0] getIndicatorData - resultado final:`, data)
+  return data
 }
 
 const showSuccess = (message) => {
