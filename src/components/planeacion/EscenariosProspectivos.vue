@@ -330,65 +330,56 @@
         </div>
 
         <div class="p-6">
-          <!-- Trends Tab -->
           <div v-if="activeTab === 'trends'">
-            <h3 class="text-lg font-semibold mb-4">
-              Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
-            </h3>
-            <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-96">
-              <LineChart
-                :data="scenarios[selectedScenario].data"
-                :series="trendSeries"
-                :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
-              />
-            </div>
-            <div v-else class="h-96 flex items-center justify-center text-gray-500">
-              <div class="text-center">
-                <Settings class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No hay datos disponibles para mostrar</p>
-                <p class="text-sm">Selecciona un archivo CSV para generar proyecciones</p>
+              <h3 class="text-lg font-semibold mb-4">
+                Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
+              </h3>
+              <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">  <!-- Cambiado de h-96 a h-120 -->
+                <LineChart
+                  :data="scenarios[selectedScenario].data"
+                  :series="trendSeries"
+                  :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
+                />
+              </div>
+              <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
+                <!-- ... contenido igual ... -->
               </div>
             </div>
-          </div>
 
-          <!-- Comparison Tab -->
-          <div v-if="activeTab === 'comparison'">
-            <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
-            <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-96">
-              <LineChart
-                :data="comparisonChartData.data"
-                :series="comparisonChartSeries"
-                :colors="Object.values(scenarios).map(s => s.color)"
-              />
-            </div>
-            <div v-else class="h-96 flex items-center justify-center text-gray-500">
-              <div class="text-center">
-                <TrendingUp class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No hay escenarios disponibles para comparar</p>
-                <p class="text-sm">Genera escenarios seleccionando un archivo CSV</p>
+            <!-- Comparison Tab -->
+            <div v-if="activeTab === 'comparison'">
+              <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
+              <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">  <!-- Cambiado de h-96 a h-120 -->
+                <LineChart
+                  :data="comparisonChartData.data"
+                  :series="comparisonChartSeries"
+                  :colors="Object.values(scenarios).map(s => s.color)"
+                />
+              </div>
+              <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
+                <!-- ... contenido igual ... -->
               </div>
             </div>
-          </div>
 
-          <!-- Indicators Tab -->
-          <div v-if="activeTab === 'indicators'">
-            <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div
-                v-for="indicator in indicators"
-                :key="indicator"
-                class="bg-gray-50 rounded-lg p-4"
-              >
-                <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
-                <div class="h-48">
-                  <BarChart
-                    :data="getIndicatorData(indicator)"
-                    :series="[{ key: 'value', name: indicator }]"
-                    :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
-                  />
+            <!-- Indicators Tab -->
+            <div v-if="activeTab === 'indicators'">
+              <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  v-for="indicator in indicators"
+                  :key="indicator"
+                  class="bg-gray-50 rounded-lg p-4"
+                >
+                  <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
+                  <div class="h-64">  <!-- Cambiado de h-48 a h-64 -->
+                    <BarChart
+                      :data="getIndicatorData(indicator)"
+                      :series="[{ key: 'value', name: indicator }]"
+                      :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
-            <div v-else class="h-96 flex items-center justify-center text-gray-500">
+              <div v-else class="h-120 flex items-center justify-center text-gray-500"> 
               <div class="text-center">
                 <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
                 <p>No hay indicadores disponibles</p>

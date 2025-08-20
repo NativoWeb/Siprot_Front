@@ -1,38 +1,123 @@
-<!-- LineChart.vue - Versión corregida -->
+<!-- LineChart.vue - Versión con leyenda separada -->
 <template>
-  <div class="w-full h-full relative">
-    <canvas ref="chartCanvas" class="w-full h-full"></canvas>
-    
-    <!-- Leyenda -->
-    <div class="absolute top-4 right-4 bg-white bg-opacity-90 rounded-lg p-3 shadow-lg">
-      <div class="space-y-2">
-        <div
-          v-for="(serie, index) in series"
-          :key="serie.name"
-          class="flex items-center gap-2 text-sm"
-        >
+  <!-- Opción 1: Leyenda arriba del gráfico -->
+  <div class="w-full h-full flex flex-col">
+    <!-- Leyenda superior -->
+    <div class="bg-white rounded-lg p-4 shadow-sm border border-gray-200 mb-4">
+      <div class="flex flex-wrap items-center gap-4">
+        <div class="text-sm font-medium text-gray-700 mr-2">
+          Indicadores:
+        </div>
+        
+        <!-- Series en línea horizontal -->
+        <div class="flex flex-wrap items-center gap-3">
           <div
-            class="w-3 h-3 rounded"
-            :style="{ backgroundColor: getSerieColor(index) }"
-          ></div>
-          <span class="text-gray-700">{{ serie.name }}</span>
+            v-for="(serie, index) in series"
+            :key="serie.name"
+            @click="toggleSerie(index)"
+            class="flex items-center gap-2 text-sm cursor-pointer hover:bg-gray-50 px-2 py-1 rounded transition-colors"
+          >
+            <!-- Checkbox visual -->
+            <div class="relative">
+              <div
+                class="w-4 h-4 rounded border-2 flex items-center justify-center transition-all"
+                :class="[
+                  selectedSeries[index] 
+                    ? 'border-transparent' 
+                    : 'border-gray-300 bg-white'
+                ]"
+                :style="selectedSeries[index] ? { backgroundColor: getSerieColor(index) } : {}"
+              >
+                <svg 
+                  v-if="selectedSeries[index]"
+                  class="w-3 h-3 text-white" 
+                  fill="none" 
+                  viewBox="0 0 24 24" 
+                  stroke="currentColor"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+            </div>
+            
+            <!-- Indicador de color -->
+            <div
+              class="w-3 h-3 rounded transition-opacity"
+              :class="selectedSeries[index] ? 'opacity-100' : 'opacity-30'"
+              :style="{ backgroundColor: getSerieColor(index) }"
+            ></div>
+            
+            <!-- Nombre de la serie -->
+            <span 
+              class="text-gray-700 transition-opacity select-none"
+              :class="selectedSeries[index] ? 'opacity-100 font-medium' : 'opacity-50'"
+            >
+              {{ serie.name }}
+            </span>
+            
+            <!-- Valor actual si está disponible -->
+            <span 
+              v-if="getCurrentValue(serie, index)"
+              class="text-xs text-gray-500"
+              :class="selectedSeries[index] ? 'opacity-100' : 'opacity-30'"
+            >
+              ({{ formatNumber(getCurrentValue(serie, index)) }})
+            </span>
+          </div>
+        </div>
+        
+        <!-- Controles de selección -->
+        <div class="flex gap-1 ml-auto">
+          <button
+            @click="selectAllSeries"
+            class="text-xs px-3 py-1 bg-blue-50 text-blue-600 rounded hover:bg-blue-100 transition-colors"
+          >
+            Todas
+          </button>
+          <button
+            @click="deselectAllSeries"
+            class="text-xs px-3 py-1 bg-gray-50 text-gray-600 rounded hover:bg-gray-100 transition-colors"
+          >
+            Ninguna
+          </button>
+          <button
+            @click="resetSelection"
+            class="text-xs px-3 py-1 bg-green-50 text-green-600 rounded hover:bg-green-100 transition-colors"
+          >
+            Reset
+          </button>
+        </div>
+        
+        <!-- Contador de series seleccionadas -->
+        <div class="text-xs text-gray-400">
+          {{ selectedSeriesCount }}/{{ series.length }}
         </div>
       </div>
     </div>
 
-    <!-- Tooltip -->
-    <div
-      v-if="tooltip.visible"
-      class="absolute bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg pointer-events-none z-10 text-sm"
-      :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
-    >
-      <div class="font-semibold">Año {{ tooltip.year }}</div>
-      <div v-for="item in tooltip.data" :key="item.name" class="flex items-center gap-2">
-        <div
-          class="w-2 h-2 rounded"
-          :style="{ backgroundColor: item.color }"
-        ></div>
-        <span>{{ item.name }}: {{ formatNumber(item.value) }}</span>
+    <!-- Área del gráfico -->
+    <div class="flex-1 relative bg-white rounded-lg shadow-sm border border-gray-200">
+      <canvas ref="chartCanvas" class="w-full h-full"></canvas>
+      
+      <!-- Tooltip -->
+      <div
+        v-if="tooltip.visible"
+        class="absolute bg-gray-800 text-white px-3 py-2 rounded-lg shadow-lg pointer-events-none z-10 text-sm"
+        :style="{ left: tooltip.x + 'px', top: tooltip.y + 'px' }"
+      >
+        <div class="font-semibold">Año {{ tooltip.year }}</div>
+        <div 
+          v-for="item in tooltip.data" 
+          :key="item.name" 
+          class="flex items-center gap-2"
+          v-show="item.visible"
+        >
+          <div
+            class="w-2 h-2 rounded"
+            :style="{ backgroundColor: item.color }"
+          ></div>
+          <span>{{ item.name }}: {{ formatNumber(item.value) }}</span>
+        </div>
       </div>
     </div>
   </div>
@@ -53,10 +138,22 @@ const props = defineProps({
   colors: {
     type: Array,
     default: () => ['#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6']
+  },
+  defaultSelected: {
+    type: Array,
+    default: null
+  },
+  legendPosition: {
+    type: String,
+    default: 'top', // 'top', 'bottom', 'left', 'right'
+    validator: value => ['top', 'bottom', 'left', 'right'].includes(value)
   }
 })
 
+const emit = defineEmits(['selection-changed'])
+
 const chartCanvas = ref(null)
+const selectedSeries = ref([])
 const tooltip = ref({
   visible: false,
   x: 0,
@@ -66,7 +163,7 @@ const tooltip = ref({
 })
 
 let chartDimensions = {
-  padding: 80,
+  padding: 60,
   chartWidth: 0,
   chartHeight: 0,
   minYear: 0,
@@ -76,17 +173,88 @@ let chartDimensions = {
 
 // Computed para asegurar que siempre tengamos colores válidos
 const validColors = computed(() => {
-  console.log('[LineChart] Colores recibidos:', props.colors)
   return props.colors && props.colors.length > 0 ? props.colors : ['#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6']
 })
 
+const selectedSeriesCount = computed(() => {
+  return selectedSeries.value.filter(Boolean).length
+})
+
+const visibleSeries = computed(() => {
+  return props.series.filter((_, index) => selectedSeries.value[index])
+})
+
 const getSerieColor = (index) => {
-  const color = validColors.value[index % validColors.value.length]
-  console.log(`[LineChart] Color para serie ${index}:`, color)
-  return color
+  return validColors.value[index % validColors.value.length]
+}
+
+const getCurrentValue = (serie, index) => {
+  if (!props.data.length || !selectedSeries.value[index]) return null
+  const lastDataPoint = props.data[props.data.length - 1]
+  return getNestedValue(lastDataPoint, serie.key)
+}
+
+const initializeSelection = () => {
+  if (props.defaultSelected && Array.isArray(props.defaultSelected)) {
+    selectedSeries.value = props.series.map((_, index) => 
+      props.defaultSelected.includes(index)
+    )
+  } else {
+    selectedSeries.value = new Array(props.series.length).fill(true)
+  }
+}
+
+const toggleSerie = (index) => {
+  selectedSeries.value[index] = !selectedSeries.value[index]
+  
+  if (selectedSeriesCount.value === 0) {
+    selectedSeries.value[index] = true
+  }
+  
+  nextTick(() => {
+    drawChart()
+    emitSelectionChange()
+  })
+}
+
+const selectAllSeries = () => {
+  selectedSeries.value = new Array(props.series.length).fill(true)
+  nextTick(() => {
+    drawChart()
+    emitSelectionChange()
+  })
+}
+
+const deselectAllSeries = () => {
+  selectedSeries.value = props.series.map((_, index) => index === 0)
+  nextTick(() => {
+    drawChart()
+    emitSelectionChange()
+  })
+}
+
+const resetSelection = () => {
+  initializeSelection()
+  nextTick(() => {
+    drawChart()
+    emitSelectionChange()
+  })
+}
+
+const emitSelectionChange = () => {
+  const selectedIndices = selectedSeries.value
+    .map((selected, index) => selected ? index : -1)
+    .filter(index => index !== -1)
+  
+  emit('selection-changed', {
+    selectedIndices,
+    selectedSeries: selectedIndices.map(index => props.series[index]),
+    visibleSeriesCount: selectedSeriesCount.value
+  })
 }
 
 const formatNumber = (value) => {
+  if (!value || isNaN(value)) return '0'
   if (value >= 1000000) {
     return (value / 1000000).toFixed(1) + 'M'
   } else if (value >= 1000) {
@@ -109,15 +277,14 @@ const getNestedValue = (obj, path) => {
 }
 
 const calculateChartBounds = () => {
-  if (!props.data.length || !props.series.length) return
+  if (!props.data.length || !visibleSeries.value.length) return
 
   const years = props.data.map(d => d.year)
   chartDimensions.minYear = Math.min(...years)
   chartDimensions.maxYear = Math.max(...years)
 
-  // Encontrar el valor máximo considerando todas las series
   chartDimensions.maxValue = 0
-  props.series.forEach(serie => {
+  visibleSeries.value.forEach(serie => {
     props.data.forEach(d => {
       const value = getNestedValue(d, serie.key)
       if (value > chartDimensions.maxValue) {
@@ -126,45 +293,46 @@ const calculateChartBounds = () => {
     })
   })
 
-  // Agregar un poco de espacio arriba del valor máximo
-  chartDimensions.maxValue = chartDimensions.maxValue * 1.1
+  chartDimensions.maxValue = chartDimensions.maxValue * 1.1 || 100
 }
 
 const drawChart = () => {
-  if (!chartCanvas.value || !props.data.length || !props.series.length) return
+  if (!chartCanvas.value || !props.data.length || !visibleSeries.value.length) {
+    if (chartCanvas.value) {
+      const ctx = chartCanvas.value.getContext('2d')
+      const rect = chartCanvas.value.getBoundingClientRect()
+      ctx.clearRect(0, 0, rect.width, rect.height)
+      
+      ctx.fillStyle = '#9CA3AF'
+      ctx.font = '16px sans-serif'
+      ctx.textAlign = 'center'
+      ctx.fillText('Selecciona al menos un indicador para ver el gráfico', 
+                   rect.width / 2, rect.height / 2)
+    }
+    return
+  }
 
   const canvas = chartCanvas.value
   const ctx = canvas.getContext('2d')
   const rect = canvas.getBoundingClientRect()
   
-  // Set canvas size
   canvas.width = rect.width * window.devicePixelRatio
   canvas.height = rect.height * window.devicePixelRatio
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
-  // Clear canvas
   ctx.clearRect(0, 0, rect.width, rect.height)
 
-  // Chart dimensions
   chartDimensions.chartWidth = rect.width - chartDimensions.padding * 2
   chartDimensions.chartHeight = rect.height - chartDimensions.padding * 2
 
   calculateChartBounds()
 
-  // Draw background
   ctx.fillStyle = '#fafafa'
   ctx.fillRect(0, 0, rect.width, rect.height)
 
-  // Draw grid
   drawGrid(ctx)
-
-  // Draw axes
   drawAxes(ctx)
-
-  // Draw data lines
   drawDataLines(ctx)
-
-  // Draw axis labels
   drawLabels(ctx)
 }
 
@@ -174,7 +342,6 @@ const drawGrid = (ctx) => {
 
   const { padding, chartWidth, chartHeight } = chartDimensions
 
-  // Vertical grid lines (años)
   const yearRange = chartDimensions.maxYear - chartDimensions.minYear
   const yearStep = Math.max(1, Math.floor(yearRange / 10))
   
@@ -186,14 +353,15 @@ const drawGrid = (ctx) => {
     ctx.stroke()
   }
 
-  // Horizontal grid lines (valores)
-  const valueStep = chartDimensions.maxValue / 5
-  for (let i = 0; i <= 5; i++) {
-    const y = padding + chartHeight - (i * chartHeight / 5)
-    ctx.beginPath()
-    ctx.moveTo(padding, y)
-    ctx.lineTo(padding + chartWidth, y)
-    ctx.stroke()
+  if (chartDimensions.maxValue > 0) {
+    const valueStep = chartDimensions.maxValue / 5
+    for (let i = 0; i <= 5; i++) {
+      const y = padding + chartHeight - (i * chartHeight / 5)
+      ctx.beginPath()
+      ctx.moveTo(padding, y)
+      ctx.lineTo(padding + chartWidth, y)
+      ctx.stroke()
+    }
   }
 }
 
@@ -203,10 +371,8 @@ const drawAxes = (ctx) => {
   ctx.strokeStyle = '#374151'
   ctx.lineWidth = 2
   ctx.beginPath()
-  // Eje Y
   ctx.moveTo(padding, padding)
   ctx.lineTo(padding, padding + chartHeight)
-  // Eje X
   ctx.lineTo(padding + chartWidth, padding + chartHeight)
   ctx.stroke()
 }
@@ -214,24 +380,18 @@ const drawAxes = (ctx) => {
 const drawDataLines = (ctx) => {
   const { padding, chartWidth, chartHeight, minYear, maxYear, maxValue } = chartDimensions
 
-  console.log('[LineChart] Dibujando líneas. Series:', props.series.length, 'Colores:', validColors.value)
-
   props.series.forEach((serie, index) => {
-    const color = getSerieColor(index)
-    console.log(`[LineChart] Dibujando serie ${index} (${serie.name}) con color:`, color)
+    if (!selectedSeries.value[index]) return
     
-    // Filtrar datos válidos para esta serie
+    const color = getSerieColor(index)
+    
     const validData = props.data.filter(d => {
       const value = getNestedValue(d, serie.key)
       return value !== undefined && value !== null && !isNaN(value)
     })
 
-    if (validData.length === 0) {
-      console.log(`[LineChart] No hay datos válidos para la serie ${serie.name}`)
-      return
-    }
+    if (validData.length === 0) return
 
-    // Dibujar línea
     ctx.strokeStyle = color
     ctx.lineWidth = 3
     ctx.beginPath()
@@ -249,7 +409,6 @@ const drawDataLines = (ctx) => {
     })
     ctx.stroke()
 
-    // Dibujar puntos
     ctx.fillStyle = color
     validData.forEach(d => {
       const x = padding + ((d.year - minYear) / (maxYear - minYear)) * chartWidth
@@ -260,7 +419,6 @@ const drawDataLines = (ctx) => {
       ctx.arc(x, y, 4, 0, 2 * Math.PI)
       ctx.fill()
 
-      // Borde blanco en los puntos
       ctx.strokeStyle = '#fff'
       ctx.lineWidth = 2
       ctx.stroke()
@@ -274,7 +432,6 @@ const drawLabels = (ctx) => {
   ctx.fillStyle = '#374151'
   ctx.font = '12px sans-serif'
 
-  // Etiquetas del eje X (años)
   ctx.textAlign = 'center'
   const yearRange = maxYear - minYear
   const yearStep = Math.max(1, Math.floor(yearRange / 8))
@@ -284,15 +441,15 @@ const drawLabels = (ctx) => {
     ctx.fillText(year.toString(), x, padding + chartHeight + 20)
   }
 
-  // Etiquetas del eje Y (valores)
   ctx.textAlign = 'right'
-  for (let i = 0; i <= 5; i++) {
-    const value = (maxValue / 5) * (5 - i)
-    const y = padding + (chartHeight / 5) * i + 5
-    ctx.fillText(formatNumber(Math.round(value)), padding - 10, y)
+  if (maxValue > 0) {
+    for (let i = 0; i <= 5; i++) {
+      const value = (maxValue / 5) * (5 - i)
+      const y = padding + (chartHeight / 5) * i + 5
+      ctx.fillText(formatNumber(Math.round(value)), padding - 10, y)
+    }
   }
 
-  // Título del eje Y
   ctx.save()
   ctx.translate(20, padding + chartHeight / 2)
   ctx.rotate(-Math.PI / 2)
@@ -302,7 +459,6 @@ const drawLabels = (ctx) => {
   ctx.fillText('Valores', 0, 0)
   ctx.restore()
 
-  // Título del eje X
   ctx.textAlign = 'center'
   ctx.font = '14px sans-serif'
   ctx.fillStyle = '#6B7280'
@@ -310,7 +466,7 @@ const drawLabels = (ctx) => {
 }
 
 const handleMouseMove = (event) => {
-  if (!chartCanvas.value) return
+  if (!chartCanvas.value || visibleSeries.value.length === 0) return
 
   const canvas = chartCanvas.value
   const rect = canvas.getBoundingClientRect()
@@ -319,24 +475,22 @@ const handleMouseMove = (event) => {
 
   const { padding, chartWidth, minYear, maxYear } = chartDimensions
 
-  // Verificar si está dentro del área del gráfico
   if (x >= padding && x <= padding + chartWidth && y >= padding && y <= padding + chartDimensions.chartHeight) {
-    // Calcular el año más cercano
     const relativeX = (x - padding) / chartWidth
     const year = Math.round(minYear + relativeX * (maxYear - minYear))
 
-    // Buscar datos para ese año
     const yearData = props.data.find(d => d.year === year)
     if (yearData) {
       const tooltipData = props.series.map((serie, index) => ({
         name: serie.name,
         value: getNestedValue(yearData, serie.key),
-        color: getSerieColor(index)
+        color: getSerieColor(index),
+        visible: selectedSeries.value[index]
       }))
 
       tooltip.value = {
         visible: true,
-        x: Math.min(x, rect.width - 200), // Evitar que se salga del canvas
+        x: Math.min(x, rect.width - 200),
         y: Math.max(y - 100, 10),
         year: year,
         data: tooltipData
@@ -353,10 +507,25 @@ const handleMouseLeave = () => {
   tooltip.value.visible = false
 }
 
-onMounted(() => {
+watch([() => props.data, () => props.series, () => props.colors], () => {
+  initializeSelection()
   nextTick(() => {
-    console.log('[LineChart] onMounted - Colores:', props.colors)
     drawChart()
+    emitSelectionChange()
+  })
+}, { deep: true })
+
+watch(selectedSeries, () => {
+  nextTick(() => {
+    drawChart()
+  })
+}, { deep: true })
+
+onMounted(() => {
+  initializeSelection()
+  nextTick(() => {
+    drawChart()
+    emitSelectionChange()
     if (chartCanvas.value) {
       chartCanvas.value.addEventListener('mousemove', handleMouseMove)
       chartCanvas.value.addEventListener('mouseleave', handleMouseLeave)
@@ -370,11 +539,4 @@ onUnmounted(() => {
     chartCanvas.value.removeEventListener('mouseleave', handleMouseLeave)
   }
 })
-
-watch([() => props.data, () => props.series, () => props.colors], () => {
-  console.log('[LineChart] Props cambiaron - Redibujando con colores:', props.colors)
-  nextTick(() => {
-    drawChart()
-  })
-}, { deep: true })
 </script>
