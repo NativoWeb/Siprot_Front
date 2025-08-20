@@ -499,6 +499,103 @@ const showErrorNotification = ref(false)
 const notificationMessage = ref('')
 const errorMessage = ref('')
 
+const scenarioNarratives = ref({
+  tendencial: {
+    title: "Escenario Tendencial - Continuidad del Patrón Actual",
+    overview: "Este escenario proyecta la continuación de las tendencias históricas observadas en la región, manteniendo los patrones actuales de crecimiento económico, demanda educativa y desarrollo sectorial.",
+    context: {
+      demographic: "La población objetivo mantendrá un crecimiento moderado del 2-3% anual, siguiendo las tendencias demográficas regionales actuales. Las cohortes en edad formativa se mantendrán estables con ligero incremento.",
+      economic: "El contexto económico regional continuará basado en los sectores tradicionales (agropecuario, comercio, servicios básicos) con incorporación gradual de tecnología sin disrupciones significativas.",
+      educational: "La demanda formativa crecerá al ritmo histórico observado. Los programas técnicos mantendrán su relevancia actual, con ajustes menores según evolución del mercado laboral.",
+      technological: "Adopción tecnológica progresiva y predecible. Las competencias digitales básicas se incorporarán gradualmente a los currículos existentes sin cambios estructurales profundos.",
+      labor_market: "El mercado laboral mantendrá su estructura actual con crecimiento orgánico. La empleabilidad de egresados se mantendrá en niveles similares a los actuales (75-85%)."
+    },
+    implications: [
+      "Necesidad de mantener la calidad y cobertura actual de programas técnicos",
+      "Ajustes curriculares graduales basados en retroalimentación del sector productivo",
+      "Inversión sostenida en infraestructura física y tecnológica",
+      "Fortalecimiento de alianzas existentes con el sector productivo"
+    ],
+    risks: [
+      "Posible desalineación gradual con cambios tecnológicos no previstos",
+      "Riesgo de saturación en algunos programas tradicionales",
+      "Dependencia de factores externos (políticas nacionales, economía global)"
+    ],
+    timeframe: "Las proyecciones se mantienen estables durante los primeros 5 años, con variabilidad mínima en los años 6-10."
+  },
+  
+  optimista: {
+    title: "Escenario Optimista - Crecimiento Acelerado y Transformación",
+    overview: "Este escenario contempla condiciones favorables con crecimiento económico acelerado, mayor inversión en educación técnica, diversificación económica exitosa y adopción tecnológica avanzada en la región.",
+    context: {
+      demographic: "Crecimiento poblacional del 4-5% anual impulsado por migración hacia la región debido a oportunidades económicas. Aumento significativo en demanda de formación técnica especializada.",
+      economic: "Diversificación económica exitosa con desarrollo de sectores emergentes: tecnología, agroindustria avanzada, turismo sostenible y energías renovables. PIB regional crece 6-8% anual.",
+      educational: "Expansión significativa de la oferta educativa técnica (+40-50% en 10 años). Nuevos programas en tecnologías emergentes. Alianzas internacionales para transferencia de conocimiento.",
+      technological: "Adopción acelerada de Industria 4.0, IoT, automatización y tecnologías digitales. La región se convierte en referente tecnológico nacional en sectores específicos.",
+      labor_market: "Mercado laboral dinámico con alta demanda de técnicos especializados. Empleabilidad de egresados superior al 95%. Salarios competitivos que atraen talento."
+    },
+    implications: [
+      "Necesidad de expansión acelerada de infraestructura educativa",
+      "Desarrollo urgente de nuevos programas en tecnologías emergentes", 
+      "Capacitación masiva de instructores en competencias avanzadas",
+      "Inversión significativa en laboratorios y equipos especializados",
+      "Fortalecimiento de vínculos con universidades e instituciones internacionales"
+    ],
+    risks: [
+      "Riesgo de crecimiento no sostenible que genere burbuja formativa",
+      "Posible escasez de instructores calificados para nuevas tecnologías",
+      "Dependencia de inversión externa que podría ser volátil"
+    ],
+    timeframe: "Crecimiento acelerado en años 1-3, consolidación en años 4-7, y madurez del ecosistema en años 8-10."
+  },
+  
+  pesimista: {
+    title: "Escenario Pesimista - Contracción y Desafíos Estructurales", 
+    overview: "Este escenario considera condiciones adversas con desaceleración económica, reducción de inversión pública, migración hacia centros urbanos mayores y menor demanda de formación técnica especializada.",
+    context: {
+      demographic: "Estancamiento o decrecimiento poblacional (-1% a 0% anual) debido a migración hacia ciudades principales. Envejecimiento de la población y reducción de cohortes en edad formativa.",
+      economic: "Contracción económica regional del 2-3% anual. Dependencia excesiva de sectores tradicionales en declive. Limitada capacidad de inversión pública y privada.",
+      educational: "Reducción de recursos para educación técnica. Algunos programas podrían suspenderse por baja demanda. Dificultades para mantener infraestructura actualizada.",
+      technological: "Adopción tecnológica lenta y desigual. Brecha digital se amplía. Dificultades para competir con regiones más desarrolladas tecnológicamente.",
+      labor_market: "Mercado laboral contraído con limitadas oportunidades. Empleabilidad de egresados del 60-70%. Migración de talento hacia otras regiones."
+    },
+    implications: [
+      "Necesidad de optimización y racionalización de recursos",
+      "Enfoque en programas con mayor empleabilidad y demanda comprobada",
+      "Búsqueda de alternativas de financiación (cooperación, alianzas)",
+      "Estrategias de retención de talento local",
+      "Adaptación de programas a realidades económicas locales"
+    ],
+    risks: [
+      "Círculo vicioso de reducción de calidad y menor demanda",
+      "Pérdida de posicionamiento institucional en la región",
+      "Dificultades para atraer y retener personal calificado"
+    ],
+    timeframe: "Impacto gradual en años 1-2, consolidación de tendencias negativas en años 3-5, posible estabilización en niveles más bajos años 6-10."
+  }
+})
+
+// 2. Añadir computed para obtener narrativa actual
+const currentScenarioNarrative = computed(() => {
+  return scenarioNarratives.value[selectedScenario.value] || scenarioNarratives.value.tendencial
+})
+
+// 3. Función para obtener narrativa por sección
+const getNarrativeSection = (section) => {
+  const narrative = currentScenarioNarrative.value
+  return narrative.context[section] || ''
+}
+
+// 4. Función para obtener implicaciones
+const getImplications = () => {
+  return currentScenarioNarrative.value.implications || []
+}
+
+// 5. Función para obtener riesgos
+const getRisks = () => {
+  return currentScenarioNarrative.value.risks || []
+}
+
 const filteredCsvFiles = computed(() => {
   let filtered = csvFiles.value
 
@@ -1040,37 +1137,383 @@ const handleParameterChange = (param, value) => {
   }
 }
 
-const exportScenario = () => {
+// ==== SISTEMA COMPLETO DE EXPORTACIÓN R4.6 ====
+
+// 1. Añadir al data/ref del componente:
+const exportOptions = ref({
+  format: 'pdf',
+  includeCharts: true,
+  includeNarratives: true,
+  includeComparison: false,
+  template: 'executive'
+})
+
+const exportFormats = [
+  { value: 'pdf', label: 'Documento PDF', icon: 'FileText' },
+  { value: 'png', label: 'Imagen PNG', icon: 'Image' },
+  { value: 'csv', label: 'Datos CSV', icon: 'FileSpreadsheet' },
+  { value: 'json', label: 'Datos JSON', icon: 'Code' }
+]
+
+const exportTemplates = [
+  { value: 'executive', label: 'Ejecutivo', description: 'Resumen para directivos' },
+  { value: 'technical', label: 'Técnico', description: 'Reporte detallado' },
+  { value: 'presentation', label: 'Presentación', description: 'Para exposiciones' }
+]
+
+// 2. Funciones de exportación mejoradas:
+
+const exportToPDF = async () => {
+  try {
+    const scenario = scenarios.value[selectedScenario.value]
+    if (!scenario) return
+
+    // Generar contenido HTML para PDF
+    const htmlContent = generatePDFContent()
+    
+    // Crear un elemento temporal para renderizar
+    const printWindow = window.open('', '_blank')
+    printWindow.document.write(htmlContent)
+    printWindow.document.close()
+    
+    // Esperar a que se cargue y luego imprimir
+    setTimeout(() => {
+      printWindow.print()
+      printWindow.close()
+    }, 1000)
+    
+  } catch (error) {
+    showError('Error al exportar PDF: ' + error.message)
+  }
+}
+
+const exportChartAsPNG = async (chartId = 'trends') => {
+  try {
+    let canvas
+    
+    // Obtener el canvas según la pestaña activa
+    if (chartId === 'trends' && chartCanvas.value) {
+      canvas = chartCanvas.value
+    }
+    
+    if (!canvas) {
+      throw new Error('No se encontró el gráfico para exportar')
+    }
+    
+    // Convertir canvas a imagen
+    const dataURL = canvas.toDataURL('image/png', 1.0)
+    
+    // Crear enlace de descarga
+    const link = document.createElement('a')
+    link.download = `escenario_${selectedScenario.value}_${chartId}_${new Date().toISOString().split('T')[0]}.png`
+    link.href = dataURL
+    link.click()
+    
+    showSuccess('Gráfico exportado como PNG')
+    
+  } catch (error) {
+    showError('Error al exportar gráfico: ' + error.message)
+  }
+}
+
+const exportDataAsCSV = () => {
+  try {
+    const scenario = scenarios.value[selectedScenario.value]
+    if (!scenario || !scenario.data) return
+    
+    // Generar CSV
+    let csvContent = 'Año,Escenario'
+    
+    // Headers dinámicos basados en los indicadores
+    const indicators = Object.keys(scenario.data[0]?.values || {})
+    indicators.forEach(indicator => {
+      csvContent += ',' + indicator
+    })
+    csvContent += '\n'
+    
+    // Datos
+    scenario.data.forEach(d => {
+      csvContent += `${d.year},${scenario.scenario_name}`
+      indicators.forEach(indicator => {
+        csvContent += ',' + (d.values[indicator] || 0)
+      })
+      csvContent += '\n'
+    })
+    
+    // Descargar
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `datos_escenario_${selectedScenario.value}_${new Date().toISOString().split('T')[0]}.csv`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    
+    showSuccess('Datos exportados como CSV')
+    
+  } catch (error) {
+    showError('Error al exportar CSV: ' + error.message)
+  }
+}
+
+const exportDataAsJSON = () => {
+  try {
+    const exportData = {
+      metadata: {
+        exported_at: new Date().toISOString(),
+        scenario_type: selectedScenario.value,
+        source_file: selectedFileInfo.value?.title || 'Datos sintéticos',
+        template: exportOptions.value.template
+      },
+      scenario: {
+        ...scenarios.value[selectedScenario.value],
+        narrative: currentScenarioNarrative.value
+      }
+    }
+    
+    const jsonString = JSON.stringify(exportData, null, 2)
+    const blob = new Blob([jsonString], { type: 'application/json' })
+    const link = document.createElement('a')
+    link.href = URL.createObjectURL(blob)
+    link.download = `escenario_${selectedScenario.value}_completo_${new Date().toISOString().split('T')[0]}.json`
+    link.click()
+    URL.revokeObjectURL(link.href)
+    
+    showSuccess('Escenario completo exportado como JSON')
+    
+  } catch (error) {
+    showError('Error al exportar JSON: ' + error.message)
+  }
+}
+
+const generatePDFContent = () => {
   const scenario = scenarios.value[selectedScenario.value]
-  if (!scenario) return
-
-  const report = `
-REPORTE DE ESCENARIO PROSPECTIVO
-================================
-
-Escenario: ${scenario.scenario_name}
-Descripción: ${scenario.description}
-Archivo CSV utilizado: ${selectedFileInfo.value?.title || 'Datos sintéticos'}
-Fecha de generación: ${new Date().toLocaleDateString()}
-
-PROYECCIONES A 10 AÑOS:
-${scenario.data
-  .filter(d => d.year > new Date().getFullYear())
-  .map(d => 
-    `Año ${d.year}: ${Object.entries(d.values)
-      .map(([k, v]) => `${k}: ${v}`)
-      .join(', ')}`
-  )
-  .join('\n')}
+  const narrative = currentScenarioNarrative.value
+  const template = exportOptions.value.template
+  
+  let content = `
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <meta charset="UTF-8">
+      <title>Escenario Prospectivo - ${scenario.scenario_name}</title>
+      <style>
+        body { 
+          font-family: 'Arial', sans-serif; 
+          margin: 40px; 
+          color: #333; 
+          line-height: 1.6; 
+        }
+        .header { 
+          text-align: center; 
+          border-bottom: 3px solid #3B82F6; 
+          padding-bottom: 20px; 
+          margin-bottom: 30px; 
+        }
+        .section { 
+          margin-bottom: 25px; 
+        }
+        .scenario-title { 
+          color: ${scenario.color}; 
+          font-size: 24px; 
+          font-weight: bold; 
+        }
+        .subsection { 
+          margin-left: 20px; 
+          margin-bottom: 15px; 
+        }
+        .indicator-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          margin: 20px 0; 
+        }
+        .indicator-table th, .indicator-table td { 
+          border: 1px solid #ddd; 
+          padding: 8px; 
+          text-align: left; 
+        }
+        .indicator-table th { 
+          background-color: #f2f2f2; 
+        }
+        .implications-list { 
+          list-style-type: none; 
+          padding-left: 0; 
+        }
+        .implications-list li { 
+          background: #f8f9fa; 
+          margin: 5px 0; 
+          padding: 10px; 
+          border-left: 4px solid ${scenario.color}; 
+        }
+        .footer { 
+          margin-top: 40px; 
+          text-align: center; 
+          font-size: 12px; 
+          color: #666; 
+        }
+        @media print {
+          body { margin: 20px; }
+          .no-print { display: none; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="header">
+        <h1>ESCENARIOS PROSPECTIVOS</h1>
+        <h2 class="scenario-title">${narrative.title}</h2>
+        <p><strong>Archivo fuente:</strong> ${selectedFileInfo.value?.title || 'Datos sintéticos'}</p>
+        <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
+      </div>
   `
+  
+  // Contenido según template
+  if (template === 'executive') {
+    content += generateExecutiveContent(scenario, narrative)
+  } else if (template === 'technical') {
+    content += generateTechnicalContent(scenario, narrative)
+  } else {
+    content += generatePresentationContent(scenario, narrative)
+  }
+  
+  content += `
+      <div class="footer">
+        <p>Documento generado automáticamente por el Sistema de Escenarios Prospectivos</p>
+        <p>${new Date().toLocaleString()}</p>
+      </div>
+    </body>
+    </html>
+  `
+  
+  return content
+}
 
-  const blob = new Blob([report], { type: 'text/plain' })
-  const url = URL.createObjectURL(blob)
-  const a = document.createElement('a')
-  a.href = url
-  a.download = `escenario_${selectedScenario.value}_${new Date().toISOString().split('T')[0]}.txt`
-  a.click()
-  URL.revokeObjectURL(url)
+const generateExecutiveContent = (scenario, narrative) => {
+  return `
+    <div class="section">
+      <h3>Resumen Ejecutivo</h3>
+      <p>${narrative.overview}</p>
+    </div>
+    
+    <div class="section">
+      <h3>Indicadores Clave (Proyección a 10 años)</h3>
+      <table class="indicator-table">
+        <thead>
+          <tr>
+            <th>Indicador</th>
+            <th>Valor Actual</th>
+            <th>Proyección 2034</th>
+            <th>Variación</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${generateIndicatorRows(scenario)}
+        </tbody>
+      </table>
+    </div>
+    
+    <div class="section">
+      <h3>Implicaciones Estratégicas</h3>
+      <ul class="implications-list">
+        ${narrative.implications.map(impl => `<li>${impl}</li>`).join('')}
+      </ul>
+    </div>
+  `
+}
+
+const generateTechnicalContent = (scenario, narrative) => {
+  return `
+    <div class="section">
+      <h3>Contexto del Escenario</h3>
+      <div class="subsection">
+        <h4>Contexto Demográfico</h4>
+        <p>${narrative.context.demographic}</p>
+      </div>
+      <div class="subsection">
+        <h4>Contexto Económico</h4>
+        <p>${narrative.context.economic}</p>
+      </div>
+      <div class="subsection">
+        <h4>Contexto Educativo</h4>
+        <p>${narrative.context.educational}</p>
+      </div>
+      <div class="subsection">
+        <h4>Marco Temporal</h4>
+        <p>${narrative.timeframe}</p>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h3>Análisis de Riesgos</h3>
+      <ul>
+        ${narrative.risks.map(risk => `<li>${risk}</li>`).join('')}
+      </ul>
+    </div>
+    
+    <div class="section">
+      <h3>Datos Proyectados Completos</h3>
+      <table class="indicator-table">
+        <thead>
+          <tr>
+            <th>Año</th>
+            ${Object.keys(scenario.data[0]?.values || {}).map(ind => `<th>${ind}</th>`).join('')}
+          </tr>
+        </thead>
+        <tbody>
+          ${scenario.data.slice(-10).map(d => `
+            <tr>
+              <td><strong>${d.year}</strong></td>
+              ${Object.values(d.values).map(val => `<td>${val.toLocaleString()}</td>`).join('')}
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `
+}
+
+const generateIndicatorRows = (scenario) => {
+  if (!scenario.data || scenario.data.length < 2) return ''
+  
+  const currentData = scenario.data[scenario.data.length - 11] // Año actual aproximado
+  const futureData = scenario.data[scenario.data.length - 1]   // Último año proyectado
+  
+  if (!currentData || !futureData) return ''
+  
+  return Object.keys(currentData.values).map(indicator => {
+    const current = currentData.values[indicator]
+    const future = futureData.values[indicator]
+    const variation = ((future - current) / current * 100).toFixed(1)
+    
+    return `
+      <tr>
+        <td>${indicator}</td>
+        <td>${current.toLocaleString()}</td>
+        <td>${future.toLocaleString()}</td>
+        <td style="color: ${variation > 0 ? 'green' : 'red'}">${variation}%</td>
+      </tr>
+    `
+  }).join('')
+}
+
+// 3. Función principal de exportación actualizada
+const exportScenario = () => {
+  const format = exportOptions.value.format
+  
+  switch (format) {
+    case 'pdf':
+      exportToPDF()
+      break
+    case 'png':
+      exportChartAsPNG()
+      break
+    case 'csv':
+      exportDataAsCSV()
+      break
+    case 'json':
+      exportDataAsJSON()
+      break
+    default:
+      exportToPDF()
+  }
 }
 
 const getScenarioIcon = (type) => {

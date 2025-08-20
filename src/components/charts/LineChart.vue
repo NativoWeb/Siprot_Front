@@ -1,3 +1,4 @@
+<!-- LineChart.vue - Versión corregida -->
 <template>
   <div class="w-full h-full relative">
     <canvas ref="chartCanvas" class="w-full h-full"></canvas>
@@ -12,7 +13,7 @@
         >
           <div
             class="w-3 h-3 rounded"
-            :style="{ backgroundColor: colors[index] || '#3B82F6' }"
+            :style="{ backgroundColor: getSerieColor(index) }"
           ></div>
           <span class="text-gray-700">{{ serie.name }}</span>
         </div>
@@ -38,7 +39,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue'
+import { ref, onMounted, watch, nextTick, onUnmounted, computed } from 'vue'
 
 const props = defineProps({
   data: {
@@ -71,6 +72,18 @@ let chartDimensions = {
   minYear: 0,
   maxYear: 0,
   maxValue: 0
+}
+
+// Computed para asegurar que siempre tengamos colores válidos
+const validColors = computed(() => {
+  console.log('[LineChart] Colores recibidos:', props.colors)
+  return props.colors && props.colors.length > 0 ? props.colors : ['#3B82F6', '#10B981', '#EF4444', '#F59E0B', '#8B5CF6']
+})
+
+const getSerieColor = (index) => {
+  const color = validColors.value[index % validColors.value.length]
+  console.log(`[LineChart] Color para serie ${index}:`, color)
+  return color
 }
 
 const formatNumber = (value) => {
@@ -201,8 +214,11 @@ const drawAxes = (ctx) => {
 const drawDataLines = (ctx) => {
   const { padding, chartWidth, chartHeight, minYear, maxYear, maxValue } = chartDimensions
 
+  console.log('[LineChart] Dibujando líneas. Series:', props.series.length, 'Colores:', validColors.value)
+
   props.series.forEach((serie, index) => {
-    const color = props.colors[index] || '#3B82F6'
+    const color = getSerieColor(index)
+    console.log(`[LineChart] Dibujando serie ${index} (${serie.name}) con color:`, color)
     
     // Filtrar datos válidos para esta serie
     const validData = props.data.filter(d => {
@@ -210,7 +226,10 @@ const drawDataLines = (ctx) => {
       return value !== undefined && value !== null && !isNaN(value)
     })
 
-    if (validData.length === 0) return
+    if (validData.length === 0) {
+      console.log(`[LineChart] No hay datos válidos para la serie ${serie.name}`)
+      return
+    }
 
     // Dibujar línea
     ctx.strokeStyle = color
@@ -312,7 +331,7 @@ const handleMouseMove = (event) => {
       const tooltipData = props.series.map((serie, index) => ({
         name: serie.name,
         value: getNestedValue(yearData, serie.key),
-        color: props.colors[index] || '#3B82F6'
+        color: getSerieColor(index)
       }))
 
       tooltip.value = {
@@ -336,6 +355,7 @@ const handleMouseLeave = () => {
 
 onMounted(() => {
   nextTick(() => {
+    console.log('[LineChart] onMounted - Colores:', props.colors)
     drawChart()
     if (chartCanvas.value) {
       chartCanvas.value.addEventListener('mousemove', handleMouseMove)
@@ -352,6 +372,7 @@ onUnmounted(() => {
 })
 
 watch([() => props.data, () => props.series, () => props.colors], () => {
+  console.log('[LineChart] Props cambiaron - Redibujando con colores:', props.colors)
   nextTick(() => {
     drawChart()
   })
