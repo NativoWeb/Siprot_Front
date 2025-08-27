@@ -215,7 +215,8 @@
       v-if="showDetailModal"
       :document="selectedDocument"
       :is-downloading="isDownloading"
-      :can-delete-documents="canDeleteDocuments"
+      :can-edit-documents="canEditDocuments"
+      :can-replace-documents="canReplaceDocuments"
       @close="closeDetailModal"
       @download="downloadDocument"
       @edit="openEditModal"
@@ -287,6 +288,7 @@
   </div>
 </template>
 
+<!-- Sección de template permanece igual, solo mostrando los cambios en script -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from 'vue'
 import {
@@ -309,7 +311,7 @@ import DocumentDetailModal from './DocumentDetailModal.vue'
 import DocumentEditModal from './DocumentEditModal.vue'
 import DocumentReplaceModal from './DocumentReplaceModal.vue'
 import DocumentDeleteModal from './DocumentDeleteModal.vue'
-import type { Document, FilterOptions } from '@/types/document'
+import type { Document, FilterOptions } from '@/types/document.ts'
 
 // Estado
 const documents = ref<Document[]>([])
@@ -345,6 +347,8 @@ const isReplacing = ref(false)
 const isSavingMetadata = ref(false)
 const newFile = ref<File | null>(null)
 const userRole = ref<string>('')
+// ✅ Añadir estado para permisos específicos
+const userPermissions = ref<string[]>([])
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -352,12 +356,25 @@ const hasActiveFilters = computed(() => {
          filters.value.document_type || filters.value.year
 })
 
+// ✅ Corregir los permisos usando la verificación correcta
 const canDeleteDocuments = computed(() => {
-  return userRole.value === 'planeacion' || userRole.value === 'superadmin'
+  return userPermissions.value.includes('documents.delete') || 
+         userRole.value === 'superadmin' || 
+         userRole.value === 'planeacion'
 })
 
 const canEditDocuments = computed(() => {
-  return userRole.value === 'planeacion' || userRole.value === 'superadmin'
+  return userPermissions.value.includes('documents.update') || 
+         userRole.value === 'superadmin' || 
+         userRole.value === 'planeacion'
+})
+
+// ✅ Nuevo computed para permisos de creación (reemplazar archivo)
+const canReplaceDocuments = computed(() => {
+  return userPermissions.value.includes('documents.create') || 
+         userPermissions.value.includes('documents.update') ||
+         userRole.value === 'superadmin' || 
+         userRole.value === 'planeacion'
 })
 
 // Métodos
@@ -367,9 +384,58 @@ const getUserInfo = async () => {
     if (userInfo) {
       const user = JSON.parse(userInfo)
       userRole.value = user.role || ''
+      
+      // ✅ Obtener permisos del usuario
+      await fetchUserPermissions()
     }
   } catch (error) {
     console.error('Error al obtener información del usuario:', error)
+  }
+}
+
+// ✅ Nuevo método para obtener permisos del usuario
+const fetchUserPermissions = async () => {
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) return
+
+    const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
+    if (!userInfo.id) return
+
+    const response = await fetch(`http://localhost:8000/permissions/user/${userInfo.id}/permissions`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      userPermissions.value = data.permissions.map((p: any) => p.name)
+      console.log('Permisos del usuario:', userPermissions.value)
+    } else {
+      console.warn('No se pudieron obtener los permisos del usuario')
+    }
+  } catch (error) {
+    console.error('Error al obtener permisos:', error)
+  }
+}
+
+// ✅ Método alternativo para verificar permiso específico
+const checkUserPermission = async (permissionName: string) => {
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) return false
+
+    const response = await fetch(`http://localhost:8000/permissions/check/${permissionName}`, {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+
+    if (response.ok) {
+      const data = await response.json()
+      return data.granted
+    }
+    return false
+  } catch (error) {
+    console.error('Error al verificar permiso:', error)
+    return false
   }
 }
 
@@ -761,11 +827,17 @@ watch(() => filters.value.search, () => {
   searchTimeout = setTimeout(() => fetchDocuments(), 500)
 })
 
-// Lifecycle
+// ✅ Lifecycle corregido
 onMounted(async () => {
   await getUserInfo()
   await fetchFilterOptions()
   await fetchDocuments()
+  
+  // Debug: mostrar información del usuario y permisos
+  console.log('Rol del usuario:', userRole.value)
+  console.log('Puede editar documentos:', canEditDocuments.value)
+  console.log('Puede eliminar documentos:', canDeleteDocuments.value)
+  console.log('Puede reemplazar documentos:', canReplaceDocuments.value)
 })
 </script>
 
