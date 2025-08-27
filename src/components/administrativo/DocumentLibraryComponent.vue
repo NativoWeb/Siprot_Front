@@ -288,7 +288,6 @@
   </div>
 </template>
 
-<!-- Sección de template permanece igual, solo mostrando los cambios en script -->
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, reactive } from 'vue'
 import {
@@ -347,8 +346,8 @@ const isReplacing = ref(false)
 const isSavingMetadata = ref(false)
 const newFile = ref<File | null>(null)
 const userRole = ref<string>('')
-// ✅ Añadir estado para permisos específicos
 const userPermissions = ref<string[]>([])
+const permissionsLoaded = ref(false)
 
 // Computed
 const hasActiveFilters = computed(() => {
@@ -356,51 +355,109 @@ const hasActiveFilters = computed(() => {
          filters.value.document_type || filters.value.year
 })
 
-// ✅ Corregir los permisos usando la verificación correcta
 const canDeleteDocuments = computed(() => {
-  return userPermissions.value.includes('documents.delete') || 
-         userRole.value === 'superadmin' || 
-         userRole.value === 'planeacion'
+  if (userRole.value === 'superadmin' || userRole.value === 'planeacion') {
+    return true
+  }
+  
+  if (permissionsLoaded.value) {
+    return userPermissions.value.includes('documents.delete')
+  }
+  
+  return false
 })
 
 const canEditDocuments = computed(() => {
-  return userPermissions.value.includes('documents.update') || 
-         userRole.value === 'superadmin' || 
-         userRole.value === 'planeacion'
+  if (userRole.value === 'superadmin' || userRole.value === 'planeacion') {
+    return true
+  }
+  
+  if (permissionsLoaded.value) {
+    return userPermissions.value.includes('documents.update')
+  }
+  
+  return false
 })
 
-// ✅ Nuevo computed para permisos de creación (reemplazar archivo)
 const canReplaceDocuments = computed(() => {
-  return userPermissions.value.includes('documents.create') || 
-         userPermissions.value.includes('documents.update') ||
-         userRole.value === 'superadmin' || 
-         userRole.value === 'planeacion'
+  if (userRole.value === 'superadmin' || userRole.value === 'planeacion') {
+    return true
+  }
+  
+  if (permissionsLoaded.value) {
+    return userPermissions.value.includes('documents.create') || 
+           userPermissions.value.includes('documents.update')
+  }
+  
+  return false
 })
 
 // Métodos
 const getUserInfo = async () => {
   try {
+    console.log('[v0] 🔍 Iniciando getUserInfo...')
+    
+    // Primero intentar obtener user_info completo
     const userInfo = localStorage.getItem('user_info')
     if (userInfo) {
       const user = JSON.parse(userInfo)
       userRole.value = user.role || ''
-      
-      // ✅ Obtener permisos del usuario
+      console.log('[v0] ✅ user_info encontrado. Rol:', userRole.value)
       await fetchUserPermissions()
+      return
     }
+    
+    // Si no hay user_info, intentar obtener solo el rol
+    const role = localStorage.getItem('role')
+    if (role) {
+      userRole.value = role
+      console.log('[v0] ⚠️ Solo rol encontrado (sin user_info). Rol:', userRole.value)
+      
+      // Para rol planeacion, asignar permisos por defecto
+      if (role === 'planeacion') {
+        userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
+        console.log('[v0] 🔧 Asignando permisos por defecto para planeacion:', userPermissions.value)
+      }
+      
+      permissionsLoaded.value = true
+      return
+    }
+    
+    console.log('[v0] ❌ No se encontró información de usuario ni rol')
+    permissionsLoaded.value = true
+    
   } catch (error) {
-    console.error('Error al obtener información del usuario:', error)
+    console.error('[v0] ❌ Error al obtener información del usuario:', error)
+    permissionsLoaded.value = true
   }
 }
 
-// ✅ Nuevo método para obtener permisos del usuario
 const fetchUserPermissions = async () => {
   try {
+    console.log('[v0] 🔄 Iniciando fetchUserPermissions...')
+    
     const token = localStorage.getItem('access_token')
-    if (!token) return
+    if (!token) {
+      console.warn('[v0] ⚠️ No hay token de acceso')
+      permissionsLoaded.value = true
+      return
+    }
 
     const userInfo = JSON.parse(localStorage.getItem('user_info') || '{}')
-    if (!userInfo.id) return
+    if (!userInfo.id) {
+      console.warn('[v0] ⚠️ No hay ID de usuario en user_info')
+      
+      // Fallback: si es planeacion, asignar permisos por defecto
+      if (userRole.value === 'planeacion') {
+        userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
+        console.log('[v0] 🔧 Usando permisos por defecto para planeacion (sin ID):', userPermissions.value)
+      }
+      
+      permissionsLoaded.value = true
+      return
+    }
+
+    console.log('[v0] 🔄 Obteniendo permisos para usuario ID:', userInfo.id)
 
     const response = await fetch(`http://localhost:8000/permissions/user/${userInfo.id}/permissions`, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -409,33 +466,29 @@ const fetchUserPermissions = async () => {
     if (response.ok) {
       const data = await response.json()
       userPermissions.value = data.permissions.map((p: any) => p.name)
-      console.log('Permisos del usuario:', userPermissions.value)
+      console.log('[v0] ✅ Permisos del usuario cargados desde API:', userPermissions.value)
     } else {
-      console.warn('No se pudieron obtener los permisos del usuario')
+      console.warn('[v0] ⚠️ No se pudieron obtener los permisos del usuario. Status:', response.status)
+      if (userRole.value === 'planeacion') {
+        userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
+        console.log('[v0] 🔧 Usando permisos por defecto para planeacion (API falló):', userPermissions.value)
+      }
     }
   } catch (error) {
-    console.error('Error al obtener permisos:', error)
-  }
-}
-
-// ✅ Método alternativo para verificar permiso específico
-const checkUserPermission = async (permissionName: string) => {
-  try {
-    const token = localStorage.getItem('access_token')
-    if (!token) return false
-
-    const response = await fetch(`http://localhost:8000/permissions/check/${permissionName}`, {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
-
-    if (response.ok) {
-      const data = await response.json()
-      return data.granted
+    console.error('[v0] ❌ Error al obtener permisos:', error)
+    if (userRole.value === 'planeacion') {
+      userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
+      console.log('[v0] 🔧 Usando permisos por defecto para planeacion (excepción):', userPermissions.value)
     }
-    return false
-  } catch (error) {
-    console.error('Error al verificar permiso:', error)
-    return false
+  } finally {
+    permissionsLoaded.value = true
+    console.log('[v0] 🎯 Estado final de permisos:')
+    console.log('[v0]   - Rol:', userRole.value)
+    console.log('[v0]   - Permisos cargados:', permissionsLoaded.value)
+    console.log('[v0]   - Permisos específicos:', userPermissions.value)
+    console.log('[v0]   - Puede editar documentos:', canEditDocuments.value)
+    console.log('[v0]   - Puede eliminar documentos:', canDeleteDocuments.value)
+    console.log('[v0]   - Puede reemplazar documentos:', canReplaceDocuments.value)
   }
 }
 
@@ -628,8 +681,7 @@ const saveMetadata = async (updatedDocument: Document) => {
     const token = localStorage.getItem('access_token');
     if (!token) throw new Error('No autorizado. Inicie sesión.');
 
-    // Validación de campos requeridos
-    const errors = [];
+    const errors: string[] = [];
     if (!updatedDocument.title?.trim()) errors.push('El título es requerido');
     if (!updatedDocument.year || isNaN(Number(updatedDocument.year))) errors.push('Año inválido');
     if (!updatedDocument.sector?.trim()) errors.push('Sector es requerido');
@@ -640,7 +692,6 @@ const saveMetadata = async (updatedDocument: Document) => {
       throw new Error(errors.join('\n'));
     }
 
-    // Crear FormData en lugar de JSON
     const formData = new FormData();
     formData.append('title', updatedDocument.title.trim());
     formData.append('year', String(updatedDocument.year));
@@ -655,8 +706,7 @@ const saveMetadata = async (updatedDocument: Document) => {
     const response = await fetch(`http://localhost:8000/documents/${updatedDocument.id}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${token}`,
-        // No establecer Content-Type, el navegador lo hará automáticamente con FormData
+        'Authorization': `Bearer ${token}`
       },
       body: formData
     });
@@ -696,11 +746,9 @@ const replaceDocumentFile = async (file: File) => {
       throw new Error('No estás autenticado. Por favor inicia sesión.');
     }
 
-    // Crear FormData y adjuntar archivo
     const formData = new FormData();
     formData.append('file', file);
 
-    // Mostrar información del archivo para depuración
     console.log('Enviando archivo:', {
       name: file.name,
       type: file.type,
@@ -713,13 +761,11 @@ const replaceDocumentFile = async (file: File) => {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`
-          // No establecer Content-Type, el navegador lo hará automáticamente con FormData
         },
         body: formData
       }
     );
 
-    // Manejar respuesta del servidor
     if (!response.ok) {
       let errorMessage = 'Error al reemplazar el documento';
       
@@ -741,25 +787,20 @@ const replaceDocumentFile = async (file: File) => {
       throw new Error(errorMessage);
     }
 
-    // Procesar respuesta exitosa
     const updatedDoc = await response.json();
     console.log('Documento actualizado:', updatedDoc);
 
-    // Actualizar la lista de documentos manteniendo el orden
     documents.value = documents.value.map(doc => 
       doc.id === updatedDoc.id ? { ...doc, ...updatedDoc } : doc
     );
 
-    // Mostrar notificación de éxito
     showSuccess(`Archivo reemplazado: ${updatedDoc.original_filename}`);
     
-    // Cerrar el modal de reemplazo
     closeReplaceModal();
 
   } catch (error: any) {
     console.error('Error en replaceDocumentFile:', error);
     
-    // Mostrar error específico al usuario
     let userErrorMessage = 'Error al reemplazar el archivo';
     
     if (error.message.includes('Tipo de archivo no permitido')) {
@@ -820,24 +861,30 @@ const showError = (message: string) => {
   setTimeout(() => { showErrorNotification.value = false }, 5000)
 }
 
-// Watchers
 let searchTimeout: any
 watch(() => filters.value.search, () => {
   clearTimeout(searchTimeout)
   searchTimeout = setTimeout(() => fetchDocuments(), 500)
 })
 
-// ✅ Lifecycle corregido
 onMounted(async () => {
+  console.log('[v0] 🚀 Iniciando carga de componente DocumentLibrary')
+  console.log('[v0] 📋 Contenido de localStorage:')
+  console.log('[v0]   - access_token:', localStorage.getItem('access_token') ? 'Presente' : 'Ausente')
+  console.log('[v0]   - role:', localStorage.getItem('role'))
+  console.log('[v0]   - user_info:', localStorage.getItem('user_info'))
+  
   await getUserInfo()
   await fetchFilterOptions()
   await fetchDocuments()
   
-  // Debug: mostrar información del usuario y permisos
-  console.log('Rol del usuario:', userRole.value)
-  console.log('Puede editar documentos:', canEditDocuments.value)
-  console.log('Puede eliminar documentos:', canDeleteDocuments.value)
-  console.log('Puede reemplazar documentos:', canReplaceDocuments.value)
+  console.log('[v0] 📊 Estado final del componente:')
+  console.log('[v0]   - Rol del usuario:', userRole.value)
+  console.log('[v0]   - Permisos cargados:', permissionsLoaded.value)
+  console.log('[v0]   - Permisos específicos:', userPermissions.value)
+  console.log('[v0]   - Puede editar documentos:', canEditDocuments.value)
+  console.log('[v0]   - Puede eliminar documentos:', canDeleteDocuments.value)
+  console.log('[v0]   - Puede reemplazar documentos:', canReplaceDocuments.value)
 })
 </script>
 
@@ -847,6 +894,8 @@ onMounted(async () => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Added standard line-clamp property for compatibility */
+  line-clamp: 2;
 }
 
 .line-clamp-3 {
@@ -854,5 +903,7 @@ onMounted(async () => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Added standard line-clamp property for compatibility */
+  line-clamp: 3;
 }
 </style>
