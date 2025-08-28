@@ -9,7 +9,7 @@
       
       <div class="flex-shrink-0">
         <div v-if="!isLoggedIn">
-           Estado no logeado 
+          <!-- Estado no logeado -->
           <RouterLink
             v-if="isLoginPage"
             to="/"
@@ -274,10 +274,32 @@
   <main class="mt-16 sm:mt-20 lg:mt-24 m-auto w-[95%] sm:w-[90%] lg:w-[85%] xl:w-[80%] flex flex-col items-center justify-center">
     <RouterView/>
   </main>
+  
+  <!-- Added simple notification system for token expiration -->
+  <div v-if="showTokenExpiredAlert" class="fixed top-4 right-4 z-50 bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 rounded shadow-lg max-w-sm">
+    <div class="flex items-center">
+      <div class="flex-shrink-0">
+        <svg class="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+        </svg>
+      </div>
+      <div class="ml-3">
+        <h3 class="text-sm font-medium">Sesión Expirada</h3>
+        <p class="text-sm">Tu sesión ha expirado. Por favor, inicia sesión nuevamente.</p>
+      </div>
+      <div class="ml-auto pl-3">
+        <button @click="closeTokenAlert" class="text-yellow-500 hover:text-yellow-600">
+          <svg class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414z" clip-rule="evenodd" />
+          </svg>
+        </button>
+      </div>
+    </div>
+  </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+<script setup>
+import { ref, computed, onMounted, watch, onUnmounted } from 'vue'
 import { RouterLink, RouterView, useRouter, useRoute } from 'vue-router'
 import { jwtDecode } from 'jwt-decode'
 
@@ -292,7 +314,7 @@ const openDropdowns = ref({
   auditoria: false
 })
 
-const toggleDropdown = (key: keyof typeof openDropdowns.value) => {
+const toggleDropdown = (key) => {
   for (const k in openDropdowns.value) {
     if (k === key) {
       openDropdowns.value[k] = !openDropdowns.value[k];
@@ -302,40 +324,60 @@ const toggleDropdown = (key: keyof typeof openDropdowns.value) => {
   }
 }
 
-// Estado de autenticación y rol - VERSIÓN MEJORADA
-const role = ref<string | null>(null)
+const role = ref(null)
 const tokenValid = ref(false)
+const showTokenExpiredAlert = ref(false)
 
-// Función mejorada para obtener el rol del token
 const getRoleFromToken = () => {
   const token = localStorage.getItem('access_token')
   
   if (token) {
     try {
-      const decodedToken: any = jwtDecode(token)
+      const decodedToken = jwtDecode(token)
       
-      // 🔥 VERIFICAR EXPIRACIÓN DEL TOKEN
+      // Verificar expiración del token
       const currentTime = Date.now() / 1000
       if (decodedToken.exp && decodedToken.exp < currentTime) {
         console.log("🚨 Token expirado en HeaderComponent")
+        
+        // Mostrar alerta de token expirado
+        showTokenExpiredAlert.value = true
+        
+        // Limpiar datos de sesión
         localStorage.removeItem('access_token')
         localStorage.removeItem('role')
         role.value = null
         tokenValid.value = false
+        
+        // Redirigir al login después de mostrar la alerta
+        setTimeout(() => {
+          showTokenExpiredAlert.value = false
+          router.push('/iniciar-sesion')
+        }, 5000) // 5 segundos para que el usuario vea la alerta
+        
         return
       }
       
       role.value = decodedToken.role
       tokenValid.value = true
-      localStorage.setItem('role', decodedToken.role) // Sincronizar con localStorage
+      localStorage.setItem('role', decodedToken.role)
       
       console.log("✅ HeaderComponent - Token válido, rol:", role.value)
     } catch (error) {
       console.error("❌ Error decodificando token en HeaderComponent:", error)
+      
+      // Mostrar alerta de sesión inválida
+      showTokenExpiredAlert.value = true
+      
       localStorage.removeItem('access_token')
       localStorage.removeItem('role')
       role.value = null
       tokenValid.value = false
+      
+      setTimeout(() => {
+        showTokenExpiredAlert.value = false
+        router.push('/iniciar-sesion')
+      }, 5000)
     }
   } else {
     role.value = null
@@ -344,11 +386,16 @@ const getRoleFromToken = () => {
   }
 }
 
+const closeTokenAlert = () => {
+  showTokenExpiredAlert.value = false
+  router.push('/iniciar-sesion')
+}
+
 // Computed properties
 const isLoggedIn = computed(() => tokenValid.value && role.value !== null)
 const isLoginPage = computed(() => route.path === '/iniciar-sesion')
 
-// Función para cerrar sesión (directa, sin composable)
+// Función para cerrar sesión
 const logout = () => {
   localStorage.removeItem('access_token')
   localStorage.removeItem('role')
@@ -357,8 +404,7 @@ const logout = () => {
   router.push('/iniciar-sesion')
 }
 
-// 🔥 NUEVA FUNCIONALIDAD: Escuchar cambios en localStorage (para múltiples pestañas)
-const handleStorageChange = (event: StorageEvent) => {
+const handleStorageChange = (event) => {
   if (event.key === 'access_token' || event.key === 'role') {
     getRoleFromToken()
   }
@@ -366,18 +412,14 @@ const handleStorageChange = (event: StorageEvent) => {
 
 window.addEventListener('storage', handleStorageChange)
 
-// Limpiar el event listener al desmontar
-import { onUnmounted } from 'vue'
 onUnmounted(() => {
   window.removeEventListener('storage', handleStorageChange)
 })
 
-// Cargar el rol al montar el componente
 onMounted(() => {
   getRoleFromToken()
 })
 
-// 🔥 NUEVA FUNCIONALIDAD: Escuchar cambios en la ruta para actualizar el estado
 watch(() => route.path, () => {
   getRoleFromToken()
 })

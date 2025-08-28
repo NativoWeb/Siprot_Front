@@ -147,17 +147,27 @@ const documentTypes = ref<string[]>([
 
 const validateAndSave = () => {
   if (!props.document.title?.trim()) {
-    alert('Por favor complete el título del documento')
+    alert('El título es requerido')
     return
   }
   
-  if (!props.document.year || isNaN(props.document.year)) {
-    alert('El año debe ser un número válido')
+  if (!props.document.year || isNaN(Number(props.document.year))) {
+    alert('Año inválido')
     return
   }
 
-  if (!props.document.document_type) {
-    alert('Por favor seleccione un tipo de documento')
+  if (!props.document.document_type?.trim()) {
+    alert('Tipo de documento es requerido')
+    return
+  }
+
+  if (!props.document.sector?.trim()) {
+    alert('Sector es requerido')
+    return
+  }
+
+  if (!props.document.core_line?.trim()) {
+    alert('Línea medular es requerida')
     return
   }
 

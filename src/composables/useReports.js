@@ -57,6 +57,11 @@ export function useReports() {
       return null
     }
   }
+      }
+    } catch (err) {
+      return null
+    }
+  }
 
   const logout = () => {
     localStorage.clear()
