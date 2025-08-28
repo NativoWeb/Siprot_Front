@@ -1,27 +1,150 @@
 <script setup>
 import { onMounted, computed, ref } from 'vue'
 import { useReports } from '../../composables/useReports'
+import ModalViewReport from './ModalViewReport.vue' // Importar el componente modal
 
 const {
   reportes,
   listarMisReportes,
+  descargarReporte,
+  verReporte, // Agregar la nueva función
   loading,
   error
 } = useReports()
 
-const filtroTipo = ref('')
+// ... todas las variables reactivas existentes ...
+const tabActiva = ref('todos')
 const filtroEstado = ref('')
+const paginaActual = ref(1)
+const reportesPorPagina = ref(10)
+
+// Estados para el modal PDF
+const modalVisible = ref(false)
+const reporteActual = ref(null)
+const pdfUrl = ref(null)
+const loadingPDF = ref(false)
+const errorPDF = ref(null)
+
+// ... todas las funciones computadas existentes ...
+const tabs = [
+  { id: 'todos', label: 'Todos', icon: 'fas fa-th-large' },
+  { id: 'indicadores', label: 'Indicadores', icon: 'fas fa-chart-bar' },
+  { id: 'prospectiva', label: 'Prospectiva', icon: 'fas fa-crystal-ball' },
+  { id: 'oferta_educativa', label: 'Oferta Educativa', icon: 'fas fa-graduation-cap' },
+  { id: 'consolidado', label: 'Consolidado', icon: 'fas fa-file-alt' }
+]
+
+const contadoresPorTipo = computed(() => {
+  const contadores = {
+    todos: reportes.value.length,
+    indicadores: 0,
+    prospectiva: 0,
+    oferta_educativa: 0,
+    consolidado: 0
+  }
+  
+  reportes.value.forEach(reporte => {
+    if (contadores[reporte.tipo] !== undefined) {
+      contadores[reporte.tipo]++
+    }
+  })
+  
+  return contadores
+})
 
 const reportesFiltrados = computed(() => {
   return reportes.value.filter(reporte => {
-    const coincideTipo = !filtroTipo.value || reporte.tipo === filtroTipo.value
+    const coincideTipo = tabActiva.value === 'todos' || reporte.tipo === tabActiva.value
     const coincideEstado = !filtroEstado.value || reporte.estado === filtroEstado.value
     return coincideTipo && coincideEstado
   })
 })
 
-const aplicarFiltros = () => {
-  // Computed ya se encarga
+const totalPaginas = computed(() => {
+  return Math.ceil(reportesFiltrados.value.length / reportesPorPagina.value)
+})
+
+const reportesPaginados = computed(() => {
+  const inicio = (paginaActual.value - 1) * reportesPorPagina.value
+  const fin = inicio + reportesPorPagina.value
+  return reportesFiltrados.value.slice(inicio, fin)
+})
+
+const numerosPaginas = computed(() => {
+  const paginas = []
+  const total = totalPaginas.value
+  const actual = paginaActual.value
+  
+  if (total <= 7) {
+    for (let i = 1; i <= total; i++) {
+      paginas.push(i)
+    }
+  } else {
+    if (actual <= 4) {
+      for (let i = 1; i <= 5; i++) {
+        paginas.push(i)
+      }
+      paginas.push('...')
+      paginas.push(total)
+    } else if (actual >= total - 3) {
+      paginas.push(1)
+      paginas.push('...')
+      for (let i = total - 4; i <= total; i++) {
+        paginas.push(i)
+      }
+    } else {
+      paginas.push(1)
+      paginas.push('...')
+      for (let i = actual - 1; i <= actual + 1; i++) {
+        paginas.push(i)
+      }
+      paginas.push('...')
+      paginas.push(total)
+    }
+  }
+  
+  return paginas
+})
+
+const estadisticas = computed(() => {
+  const stats = {
+    completado: 0,
+    generando: 0,
+    error: 0
+  }
+  
+  reportesFiltrados.value.forEach(reporte => {
+    if (stats[reporte.estado] !== undefined) {
+      stats[reporte.estado]++
+    }
+  })
+  
+  return stats
+})
+
+// ... todas las funciones existentes de paginación y filtros ...
+const cambiarTab = (tabId) => {
+  tabActiva.value = tabId
+  filtroEstado.value = ''
+  paginaActual.value = 1
+}
+
+const cambiarPagina = (pagina) => {
+  if (pagina === '...' || pagina === paginaActual.value) return
+  if (pagina < 1 || pagina > totalPaginas.value) return
+  paginaActual.value = pagina
+}
+
+const paginaAnterior = () => {
+  if (paginaActual.value > 1) {
+    paginaActual.value--
+  }
+}
+
+const paginaSiguiente = () => {
+  if (paginaActual.value < totalPaginas.value) {
+    paginaActual.value++
+  }
 }
 
 const cargarReportes = async () => {
@@ -30,6 +153,85 @@ const cargarReportes = async () => {
   } catch (err) {
     console.error('Error cargando reportes:', err)
   }
+}
+
+// Funciones para el modal PDF
+const abrirModalPDF = async (reporte) => {
+  if (reporte.estado !== 'completado') {
+    alert('El reporte no está disponible para visualizar')
+    return
+  }
+
+  reporteActual.value = reporte
+  modalVisible.value = true
+  await cargarPDF(reporte)
+}
+
+const cargarPDF = async (reporte) => {
+  try {
+    loadingPDF.value = true
+    errorPDF.value = null
+    
+    // Limpiar URL anterior si existe
+    if (pdfUrl.value) {
+      window.URL.revokeObjectURL(pdfUrl.value)
+      pdfUrl.value = null
+    }
+    
+    const url = await verReporte(reporte.id)
+    pdfUrl.value = url
+  } catch (err) {
+    console.error('Error cargando PDF:', err)
+    errorPDF.value = err.message || 'Error al cargar el PDF'
+  } finally {
+    loadingPDF.value = false
+  }
+}
+
+const cerrarModalPDF = () => {
+  modalVisible.value = false
+  reporteActual.value = null
+  errorPDF.value = null
+  
+  // Limpiar URL del blob
+  if (pdfUrl.value) {
+    window.URL.revokeObjectURL(pdfUrl.value)
+    pdfUrl.value = null
+  }
+}
+
+const recargarPDF = async (reporte) => {
+  await cargarPDF(reporte)
+}
+
+const descargarDesdeModal = async (reporte) => {
+  try {
+    await descargarReporte(reporte.id)
+  } catch (err) {
+    console.error('Error al descargar:', err)
+    alert(`Error al descargar el reporte: ${err.message}`)
+  }
+}
+
+// ... resto de funciones existentes (formateo, descarga, etc.) ...
+const descargandoReportes = ref(new Set())
+
+const descargarReporteId = async (reporte) => {
+  try {
+    descargandoReportes.value.add(reporte.id)
+    console.log('Iniciando descarga del reporte:', reporte.id)
+    await descargarReporte(reporte.id)
+    console.log('Descarga completada para reporte:', reporte.id)
+  } catch (error) {
+    console.error('Error al descargar el reporte:', error)
+    alert(`Error al descargar el reporte #${reporte.id}: ${error.message}`)
+  } finally {
+    descargandoReportes.value.delete(reporte.id)
+  }
+}
+
+const estaDescargando = (reporteId) => {
+  return descargandoReportes.value.has(reporteId)
 }
 
 const formatearFecha = (fechaStr) => {
@@ -71,6 +273,12 @@ const obtenerIconoTipo = (tipo) => {
   return iconos[tipo] || 'fas fa-file'
 }
 
+const eliminarReporte = (reporte) => {
+  if (confirm(`¿Estás seguro de eliminar el reporte #${reporte.id}?`)) {
+    console.log('Eliminando reporte:', reporte.id)
+  }
+}
+
 onMounted(async () => {
   await cargarReportes()
 })
@@ -78,15 +286,14 @@ onMounted(async () => {
 
 <template>
   <div class="lista-reportes">
-    <!-- Header mejorado -->
+    <!-- Todo el contenido existente permanece igual hasta las acciones de las cards -->
+    
+    <!-- Header Principal -->
     <div class="header-section">
       <div class="header-content">
         <div class="title-group">
           <i class="fas fa-folder-open title-icon"></i>
           <h2 class="section-title">Mis Reportes</h2>
-          <span class="reportes-count" v-if="reportes.length">
-            {{ reportesFiltrados.length }} de {{ reportes.length }}
-          </span>
         </div>
         <button @click="cargarReportes" class="btn-refresh" :disabled="loading">
           <i :class="['fas fa-sync-alt', { 'rotating': loading }]"></i>
@@ -95,45 +302,93 @@ onMounted(async () => {
       </div>
     </div>
 
-    <!-- Filtros mejorados -->
-    <div class="filtros-section">
-      <div class="filtros-container">
-        <div class="filtro-item">
-          <label class="filtro-label">
-            <i class="fas fa-filter"></i>
-            Tipo de Reporte
-          </label>
-          <div class="select-wrapper">
-            <select v-model="filtroTipo" @change="aplicarFiltros" class="filtro-select">
-              <option value="">Todos los tipos</option>
-              <option value="indicadores">📊 Indicadores</option>
-              <option value="prospectiva">🔮 Prospectiva</option>
-              <option value="oferta_educativa">🎓 Oferta Educativa</option>
-              <option value="consolidado">📋 Consolidado</option>
-            </select>
-            <i class="fas fa-chevron-down select-arrow"></i>
-          </div>
+    <!-- Estadísticas Rápidas -->
+    <div class="stats-section" v-if="reportes.length > 0">
+      <div class="stat-card">
+        <div class="stat-icon completado">
+          <i class="fas fa-check-circle"></i>
         </div>
-        
-        <div class="filtro-item">
-          <label class="filtro-label">
-            <i class="fas fa-traffic-light"></i>
-            Estado
+        <div class="stat-info">
+          <span class="stat-value">{{ estadisticas.completado }}</span>
+          <span class="stat-label">Completados</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon error">
+          <i class="fas fa-exclamation-circle"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ estadisticas.error }}</span>
+          <span class="stat-label">Con Error</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon total">
+          <i class="fas fa-file-alt"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ reportesFiltrados.length }}</span>
+          <span class="stat-label">Total en Vista</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs de Navegación -->
+    <div class="tabs-container">
+      <div class="tabs-nav">
+        <button 
+          v-for="tab in tabs" 
+          :key="tab.id"
+          @click="cambiarTab(tab.id)"
+          :class="['tab-button', { active: tabActiva === tab.id }]"
+        >
+          <i :class="tab.icon"></i>
+          <span class="tab-label">{{ tab.label }}</span>
+          <span class="tab-count">{{ contadoresPorTipo[tab.id] }}</span>
+        </button>
+      </div>
+
+      <!-- Filtro de Estado -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <label class="filter-label">
+            <i class="fas fa-filter"></i>
+            Filtrar por estado:
           </label>
-          <div class="select-wrapper">
-            <select v-model="filtroEstado" @change="aplicarFiltros" class="filtro-select">
-              <option value="">Todos los estados</option>
-              <option value="generando">⏳ Generando</option>
-              <option value="completado">✅ Completado</option>
-              <option value="error">❌ Error</option>
-            </select>
-            <i class="fas fa-chevron-down select-arrow"></i>
+          <div class="filter-buttons">
+            <button 
+              @click="filtroEstado = ''"
+              :class="['filter-btn', { active: !filtroEstado }]"
+            >
+              Todos
+            </button>
+            <button 
+              @click="filtroEstado = 'completado'"
+              :class="['filter-btn', 'success', { active: filtroEstado === 'completado' }]"
+            >
+              <i class="fas fa-check"></i>
+              Completados
+            </button>
+            <button 
+              @click="filtroEstado = 'generando'"
+              :class="['filter-btn', 'warning', { active: filtroEstado === 'generando' }]"
+            >
+              <i class="fas fa-clock"></i>
+              Generando
+            </button>
+            <button 
+              @click="filtroEstado = 'error'"
+              :class="['filter-btn', 'danger', { active: filtroEstado === 'error' }]"
+            >
+              <i class="fas fa-times"></i>
+              Error
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Loading mejorado -->
+    <!-- Loading State -->
     <div v-if="loading && reportes.length === 0" class="loading-state">
       <div class="loading-spinner">
         <div class="spinner-ring"></div>
@@ -142,24 +397,27 @@ onMounted(async () => {
       <p>Por favor espera mientras obtenemos tus reportes</p>
     </div>
 
-    <!-- Estado vacío -->
+    <!-- Empty State -->
     <div v-else-if="reportesFiltrados.length === 0 && !loading" class="empty-state">
       <div class="empty-icon">
         <i class="fas fa-folder-open"></i>
       </div>
       <h3>No hay reportes disponibles</h3>
-      <p v-if="filtroTipo || filtroEstado">
-        No se encontraron reportes con los filtros aplicados
+      <p v-if="filtroEstado">
+        No se encontraron reportes con el estado "{{ filtroEstado }}"
+      </p>
+      <p v-else-if="tabActiva !== 'todos'">
+        No tienes reportes de tipo "{{ tabs.find(t => t.id === tabActiva)?.label }}"
       </p>
       <p v-else>
         Aún no tienes reportes generados
       </p>
     </div>
 
-    <!-- Lista de reportes mejorada -->
+    <!-- Lista de Reportes -->
     <div v-else class="reportes-grid">
       <div 
-        v-for="reporte in reportesFiltrados" 
+        v-for="reporte in reportesPaginados" 
         :key="reporte.id"
         class="reporte-card"
       >
@@ -177,8 +435,8 @@ onMounted(async () => {
           <div class="estado-container">
             <span :class="['estado-badge', reporte.estado]">
               <i :class="{
-                'fas fa-clock': reporte.estado === 'generando',
                 'fas fa-check-circle': reporte.estado === 'completado',
+                'fas fa-clock': reporte.estado === 'generando',
                 'fas fa-exclamation-circle': reporte.estado === 'error'
               }"></i>
               {{ reporte.estado.charAt(0).toUpperCase() + reporte.estado.slice(1) }}
@@ -208,25 +466,11 @@ onMounted(async () => {
                 <span class="info-value">{{ formatearTamaño(reporte.tamaño_archivo) }}</span>
               </div>
             </div>
-            
-            <div class="info-item" v-if="reporte.updated_at">
-              <div class="info-icon">
-                <i class="fas fa-clock"></i>
-              </div>
-              <div class="info-content">
-                <span class="info-label">Actualizado</span>
-                <span class="info-value">{{ formatearFecha(reporte.updated_at) }}</span>
-              </div>
-            </div>
           </div>
         </div>
 
         <!-- Parámetros del reporte -->
         <div v-if="reporte.parametros" class="card-parametros">
-          <h4 class="parametros-title">
-            <i class="fas fa-cog"></i>
-            Parámetros
-          </h4>
           <div class="parametros-content">
             <div class="parametro-chip" v-if="reporte.parametros.fecha_inicio">
               <i class="fas fa-calendar-week"></i>
@@ -247,20 +491,29 @@ onMounted(async () => {
           <button 
             class="action-btn primary" 
             v-if="reporte.estado === 'completado'"
-            title="Descargar reporte"
+            @click="descargarReporteId(reporte)"
+            :disabled="estaDescargando(reporte.id)"
+            :title="estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar reporte'"
           >
-            <i class="fas fa-download"></i>
-            Descargar
+            <i v-if="estaDescargando(reporte.id)" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-download"></i>
+            <span>{{ estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar' }}</span>
           </button>
+          
+          <!-- BOTÓN VER MODIFICADO -->
           <button 
             class="action-btn secondary" 
-            title="Ver detalles"
+            v-if="reporte.estado === 'completado'"
+            @click="abrirModalPDF(reporte)"
+            title="Ver PDF"
           >
             <i class="fas fa-eye"></i>
-            Ver
+            Ver PDF
           </button>
+          
           <button 
             class="action-btn danger" 
+            @click="eliminarReporte(reporte)"
             title="Eliminar reporte"
           >
             <i class="fas fa-trash"></i>
@@ -268,14 +521,75 @@ onMounted(async () => {
         </div>
       </div>
     </div>
+
+    <!-- Paginación -->
+    <div v-if="reportesFiltrados.length > 0 && totalPaginas > 1" class="paginacion-container">
+      <div class="paginacion">
+        <!-- Botón Anterior -->
+        <button 
+          @click="paginaAnterior"
+          :disabled="paginaActual === 1"
+          class="btn-paginacion anterior"
+        >
+          <i class="fas fa-chevron-left"></i>
+          Anterior
+        </button>
+
+        <!-- Números de página -->
+        <div class="numeros-pagina">
+          <button 
+            v-for="(pagina, index) in numerosPaginas" 
+            :key="index"
+            @click="cambiarPagina(pagina)"
+            :class="['btn-numero', { 
+              active: pagina === paginaActual,
+              dots: pagina === '...'
+            }]"
+            :disabled="pagina === '...'"
+          >
+            {{ pagina }}
+          </button>
+        </div>
+
+        <!-- Botón Siguiente -->
+        <button 
+          @click="paginaSiguiente"
+          :disabled="paginaActual === totalPaginas"
+          class="btn-paginacion siguiente"
+        >
+          Siguiente
+          <i class="fas fa-chevron-right"></i>
+        </button>
+      </div>
+      
+      <!-- Información de paginación -->
+      <div class="paginacion-info">
+        Mostrando {{ (paginaActual - 1) * reportesPorPagina + 1 }} - 
+        {{ Math.min(paginaActual * reportesPorPagina, reportesFiltrados.length) }} 
+        de {{ reportesFiltrados.length }} reportes
+      </div>
+    </div>
+
+    <!-- MODAL PARA VER PDF -->
+    <ModalViewReport
+      :is-visible="modalVisible"
+      :reporte="reporteActual"
+      :loading="loadingPDF"
+      :error="errorPDF"
+      :pdf-url="pdfUrl"
+      @close="cerrarModalPDF"
+      @descargar="descargarDesdeModal"
+      @recargar="recargarPDF"
+    />
   </div>
 </template>
 
 <style scoped>
 /* Variables CSS */
 .lista-reportes {
-  --primary-color: #3b82f6;
-  --primary-hover: #2563eb;
+  --primary-color: #00af00;
+  --primary-hover: #008f00;
+  --primary-light: #e6f7e6;
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
@@ -332,15 +646,6 @@ onMounted(async () => {
   margin: 0;
 }
 
-.reportes-count {
-  background: var(--primary-color);
-  color: white;
-  padding: 0.5rem 1rem;
-  border-radius: 50px;
-  font-size: 0.875rem;
-  font-weight: 600;
-}
-
 .btn-refresh {
   display: flex;
   align-items: center;
@@ -377,29 +682,155 @@ onMounted(async () => {
   to { transform: rotate(360deg); }
 }
 
-/* Filtros Section */
-.filtros-section {
+/* Estadísticas Section */
+.stats-section {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.stat-card {
   background: white;
   border-radius: var(--border-radius);
-  padding: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow);
+}
+
+.stat-icon {
+  width: 3rem;
+  height: 3rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.stat-icon.completado {
+  background: rgb(16 185 129 / 0.1);
+  color: var(--success-color);
+}
+
+.stat-icon.generando {
+  background: rgb(245 158 11 / 0.1);
+  color: var(--warning-color);
+}
+
+.stat-icon.error {
+  background: rgb(239 68 68 / 0.1);
+  color: var(--danger-color);
+}
+
+.stat-icon.total {
+  background: var(--primary-light);
+  color: var(--primary-color);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--gray-900);
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: var(--gray-500);
+}
+
+/* Tabs Container */
+.tabs-container {
+  background: white;
+  border-radius: var(--border-radius);
+  padding: 1rem;
   margin-bottom: 2rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--gray-100);
 }
 
-.filtros-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-}
-
-.filtro-item {
+.tabs-nav {
   display: flex;
-  flex-direction: column;
   gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid var(--gray-100);
 }
 
-.filtro-label {
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--border-radius);
+  font-weight: 600;
+  color: var(--gray-600);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+  position: relative;
+}
+
+.tab-button:hover {
+  background: var(--gray-50);
+  color: var(--gray-900);
+}
+
+.tab-button.active {
+  background: var(--primary-light);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.tab-label {
+  font-size: 0.875rem;
+}
+
+.tab-count {
+  background: var(--gray-200);
+  color: var(--gray-700);
+  padding: 0.125rem 0.5rem;
+  border-radius: 50px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.tab-button.active .tab-count {
+  background: var(--primary-color);
+  color: white;
+}
+
+/* Filter Bar */
+.filter-bar {
+  padding-top: 1rem;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.filter-label {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -408,42 +839,60 @@ onMounted(async () => {
   font-size: 0.875rem;
 }
 
-.select-wrapper {
-  position: relative;
+.filter-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
-.filtro-select {
-  width: 100%;
-  padding: 0.75rem 2.5rem 0.75rem 1rem;
-  border: 2px solid var(--gray-200);
-  border-radius: var(--border-radius);
+.filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem;
   background: white;
-  font-size: 0.875rem;
-  color: var(--gray-700);
+  border: 2px solid var(--gray-200);
+  border-radius: 50px;
+  font-size: 0.813rem;
+  font-weight: 600;
+  color: var(--gray-600);
   cursor: pointer;
   transition: all 0.2s ease;
-  appearance: none;
 }
 
-.filtro-select:focus {
-  outline: none;
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 3px rgb(59 130 246 / 0.1);
+.filter-btn:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
 }
 
-.select-arrow {
-  position: absolute;
-  right: 1rem;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--gray-400);
-  pointer-events: none;
+.filter-btn.active {
+  background: var(--gray-900);
+  border-color: var(--gray-900);
+  color: white;
+}
+
+.filter-btn.success.active {
+  background: var(--success-color);
+  border-color: var(--success-color);
+}
+
+.filter-btn.warning.active {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+}
+
+.filter-btn.danger.active {
+  background: var(--danger-color);
+  border-color: var(--danger-color);
 }
 
 /* Loading State */
 .loading-state {
   text-align: center;
   padding: 4rem 2rem;
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
 }
 
 .loading-spinner {
@@ -479,6 +928,9 @@ onMounted(async () => {
 .empty-state {
   text-align: center;
   padding: 4rem 2rem;
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
 }
 
 .empty-icon {
@@ -500,7 +952,7 @@ onMounted(async () => {
 /* Reportes Grid */
 .reportes-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
   gap: 1.5rem;
 }
 
@@ -511,6 +963,8 @@ onMounted(async () => {
   border: 1px solid var(--gray-100);
   overflow: hidden;
   transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
 }
 
 .reporte-card:hover {
@@ -523,36 +977,36 @@ onMounted(async () => {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1.5rem 1.5rem 1rem;
+  padding: 1.25rem;
   border-bottom: 1px solid var(--gray-100);
 }
 
 .tipo-info {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .tipo-icon {
-  width: 3rem;
-  height: 3rem;
+  width: 2.5rem;
+  height: 2.5rem;
   background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
   color: white;
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
+  font-size: 1.125rem;
 }
 
 .tipo-text {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: 0.125rem;
 }
 
 .reporte-titulo {
-  font-size: 1.125rem;
+  font-size: 1rem;
   font-weight: 700;
   color: var(--gray-900);
   margin: 0;
@@ -564,16 +1018,11 @@ onMounted(async () => {
   font-weight: 500;
 }
 
-.estado-container {
-  display: flex;
-  align-items: center;
-}
-
 .estado-badge {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
   border-radius: 50px;
   font-size: 0.75rem;
   font-weight: 600;
@@ -598,30 +1047,31 @@ onMounted(async () => {
 
 /* Card Info */
 .card-info {
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.25rem;
+  flex: 1;
 }
 
 .info-grid {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .info-icon {
-  width: 2rem;
-  height: 2rem;
+  width: 1.75rem;
+  height: 1.75rem;
   background: var(--gray-100);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   color: var(--gray-600);
-  font-size: 0.875rem;
+  font-size: 0.75rem;
 }
 
 .info-content {
@@ -639,25 +1089,16 @@ onMounted(async () => {
 }
 
 .info-value {
-  font-size: 0.875rem;
+  font-size: 0.813rem;
   color: var(--gray-900);
   font-weight: 500;
 }
 
 /* Card Parámetros */
 .card-parametros {
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1.25rem;
   background: var(--gray-50);
-}
-
-.parametros-title {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  font-size: 0.875rem;
-  color: var(--gray-700);
-  margin: 0 0 0.75rem 0;
-  font-weight: 600;
+  border-top: 1px solid var(--gray-100);
 }
 
 .parametros-content {
@@ -669,9 +1110,9 @@ onMounted(async () => {
 .parametro-chip {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.375rem;
   background: white;
-  padding: 0.5rem 0.75rem;
+  padding: 0.375rem 0.625rem;
   border-radius: 50px;
   font-size: 0.75rem;
   color: var(--gray-700);
@@ -682,7 +1123,7 @@ onMounted(async () => {
 .card-actions {
   display: flex;
   gap: 0.5rem;
-  padding: 1rem 1.5rem;
+  padding: 1rem 1.25rem;
   border-top: 1px solid var(--gray-100);
   background: var(--gray-50);
 }
@@ -690,10 +1131,10 @@ onMounted(async () => {
 .action-btn {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  gap: 0.375rem;
+  padding: 0.5rem 0.875rem;
   border-radius: var(--border-radius);
-  font-size: 0.875rem;
+  font-size: 0.813rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -703,6 +1144,7 @@ onMounted(async () => {
 .action-btn.primary {
   background: var(--primary-color);
   color: white;
+  flex: 1;
 }
 
 .action-btn.primary:hover {
@@ -714,6 +1156,7 @@ onMounted(async () => {
   background: white;
   color: var(--gray-700);
   border-color: var(--gray-200);
+  flex: 1;
 }
 
 .action-btn.secondary:hover {
@@ -732,7 +1175,116 @@ onMounted(async () => {
   border-color: var(--danger-color);
 }
 
+/* Estilos de Paginación */
+.paginacion-container {
+  margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  align-items: center;
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: white;
+  padding: 0.75rem 1rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-sm);
+  border: 1px solid var(--gray-100);
+}
+
+.btn-paginacion {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-paginacion:hover:not(:disabled) {
+  background: var(--gray-50);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+}
+
+.btn-paginacion:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-50);
+}
+
+.numeros-pagina {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-numero {
+  min-width: 2.5rem;
+  height: 2.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: 2px solid var(--gray-200);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  font-weight: 600;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-numero:hover:not(:disabled):not(.active) {
+  background: var(--gray-50);
+  border-color: var(--gray-300);
+  transform: translateY(-1px);
+}
+
+.btn-numero.active {
+  background: var(--primary-color);
+  border-color: var(--primary-color);
+  color: white;
+}
+
+.btn-numero.dots {
+  cursor: default;
+  border: none;
+  background: transparent;
+  color: var(--gray-400);
+}
+
+.btn-numero.dots:hover {
+  transform: none;
+  background: transparent;
+}
+
+.paginacion-info {
+  font-size: 0.875rem;
+  color: var(--gray-600);
+  text-align: center;
+}
+
 /* Responsive Design */
+@media (max-width: 1024px) {
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .reportes-grid {
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  }
+}
+
 @media (max-width: 768px) {
   .lista-reportes {
     padding: 1rem;
@@ -751,20 +1303,66 @@ onMounted(async () => {
     justify-content: center;
   }
   
+  .btn-refresh {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .stats-section {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .tabs-nav {
+    overflow-x: scroll;
+    scrollbar-width: thin;
+  }
+  
+  .tabs-nav::-webkit-scrollbar {
+    height: 4px;
+  }
+  
+  .tabs-nav::-webkit-scrollbar-track {
+    background: var(--gray-100);
+  }
+  
+  .tabs-nav::-webkit-scrollbar-thumb {
+    background: var(--gray-300);
+    border-radius: 2px;
+  }
+  
   .reportes-grid {
     grid-template-columns: 1fr;
   }
   
-  .filtros-container {
-    grid-template-columns: 1fr;
+  .filter-group {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .filter-buttons {
+    justify-content: space-between;
   }
 }
 
 @media (max-width: 480px) {
+  .stats-section {
+    grid-template-columns: 1fr;
+  }
+  
+  .tab-button {
+    padding: 0.5rem 1rem;
+    font-size: 0.813rem;
+  }
+  
   .card-header {
     flex-direction: column;
     gap: 1rem;
     align-items: stretch;
+  }
+  
+  .estado-container {
+    display: flex;
+    justify-content: center;
   }
   
   .card-actions {
@@ -773,6 +1371,28 @@ onMounted(async () => {
   
   .action-btn {
     justify-content: center;
+    width: 100%;
   }
+  
+  .filter-btn {
+    flex: 1;
+    justify-content: center;
+  }
+}
+
+/* Animaciones adicionales */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.reporte-card {
+  animation: fadeIn 0.3s ease;
 }
 </style>
