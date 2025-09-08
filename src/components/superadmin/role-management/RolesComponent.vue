@@ -1,589 +1,527 @@
 <template>
-  <div class="container mx-auto py-8 px-4 max-w-7xl">
-    <!-- Encabezado y descripción -->
+  <div class="roles-management p-6 bg-gray-50 min-h-screen">
+    <!-- Header -->
     <div class="mb-8">
-      <h1 class="text-3xl font-bold text-gray-900">Roles del Sistema</h1>
-      <p class="mt-2 text-gray-600">
-        Visualización de roles predefinidos y sus permisos asociados en el sistema SIPROT-IA.
-      </p>
+      <h1 class="text-3xl font-bold text-gray-900 mb-2">Gestión de Roles y Permisos</h1>
+      <p class="text-gray-600">Administra roles, permisos individuales y visualiza estadísticas de usuarios</p>
     </div>
 
-    <!-- Estadísticas de roles -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+    <!-- Estadísticas de Usuarios por Rol -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       <div 
-        v-for="stat in roleStats" 
-        :key="stat.name" 
-        class="bg-white rounded-lg shadow p-6 border-l-4"
-        :class="stat.colorClass"
+        v-for="role in rolesStats" 
+        :key="role.name"
+        class="bg-white rounded-lg shadow-md p-6 border-l-4"
+        :class="getRoleColorClass(role.name)"
       >
-        <div class="flex items-center">
-          <div class="p-3 rounded-full" :class="stat.bgClass">
-            <component :is="stat.icon" class="h-6 w-6" :class="stat.iconClass" />
+        <div class="flex items-center justify-between">
+          <div>
+            <h3 class="text-lg font-semibold text-gray-900 capitalize">{{ role.display_name }}</h3>
+            <p class="text-3xl font-bold mt-2" :class="getRoleTextColor(role.name)">{{ role.count }}</p>
+            <p class="text-sm text-gray-500">usuarios activos</p>
           </div>
-          <div class="ml-4">
-            <p class="text-sm font-medium text-gray-500">{{ stat.name }}</p>
-            <p class="text-2xl font-semibold text-gray-900">{{ stat.count }}</p>
+          <div class="text-4xl opacity-20">
+            <i :class="getRoleIcon(role.name)"></i>
           </div>
         </div>
-        <p class="mt-2 text-sm text-gray-600">{{ stat.description }}</p>
       </div>
     </div>
 
-    <!-- Filtros y búsqueda -->
-    <div class="bg-white rounded-lg shadow mb-8 p-4">
-      <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div class="relative flex-grow max-w-md">
-          <input
-            v-model="searchTerm"
-            type="text"
-            placeholder="Buscar roles..."
-            class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500"
-          />
-          <div class="absolute left-3 top-2.5 text-gray-400">
-            <SearchIcon class="h-5 w-5" />
-          </div>
-        </div>
-        
-        <div class="flex flex-wrap gap-2">
-          <button 
-            v-for="category in categories" 
-            :key="category.value"
-            @click="toggleCategory(category.value)"
-            class="px-4 py-2 text-sm rounded-full transition-colors"
+    <!-- Tabs para alternar entre gestión por rol y por usuario -->
+    <div class="mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="-mb-px flex space-x-8">
+          <button
+            @click="activeTab = 'roles'"
             :class="[
-              selectedCategories.includes(category.value) 
-                ? category.activeClass 
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              'py-2 px-1 border-b-2 font-medium text-sm',
+              activeTab === 'roles' 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
             ]"
           >
-            {{ category.label }}
+            Permisos por Rol
+          </button>
+          <button
+            @click="activeTab = 'users'"
+            :class="[
+              'py-2 px-1 border-b-2 font-medium text-sm',
+              activeTab === 'users' 
+                ? 'border-blue-500 text-blue-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+            ]"
+          >
+            Permisos Individuales
+          </button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Gestión de Permisos por Rol -->
+    <div v-if="activeTab === 'roles'" class="bg-white rounded-lg shadow-md">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Permisos por Rol</h2>
+        <p class="text-gray-600 mt-1">Gestiona los permisos específicos para cada rol</p>
+      </div>
+
+      <!-- Selector de Rol -->
+      <div class="p-6 border-b border-gray-200">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Seleccionar Rol:</label>
+        <select 
+          v-model="selectedRole" 
+          @change="loadRolePermissions"
+          class="w-full md:w-64 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+        >
+          <option value="">Seleccione un rol...</option>
+          <option v-for="role in availableRoles" :key="role" :value="role">
+            {{ getRoleDisplayName(role) }}
+          </option>
+        </select>
+      </div>
+
+      <!-- Permisos del Rol Seleccionado -->
+      <div v-if="selectedRole" class="p-6">
+        <h3 class="text-lg font-semibold text-gray-900 mb-4">
+          Permisos para {{ getRoleDisplayName(selectedRole) }}
+        </h3>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div 
+            v-for="(permissions, resource) in groupedPermissions" 
+            :key="resource"
+            class="border border-gray-200 rounded-lg p-4"
+          >
+            <h4 class="font-semibold text-gray-800 mb-3 capitalize">{{ resource }}</h4>
+            <div class="space-y-2">
+              <label 
+                v-for="permission in permissions" 
+                :key="permission.name"
+                class="flex items-center space-x-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  :checked="rolePermissions.includes(permission.name)"
+                  @change="togglePermission(permission.name)"
+                  class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span class="text-sm text-gray-700">{{ permission.description }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Botones de Acción -->
+        <div class="mt-6 flex space-x-4">
+          <button
+            @click="saveRolePermissions"
+            :disabled="saving"
+            class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {{ saving ? 'Guardando...' : 'Guardar Cambios' }}
+          </button>
+          <button
+            @click="resetPermissions"
+            class="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700"
+          >
+            Restablecer
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Lista de roles -->
-    <div class="bg-white rounded-lg shadow overflow-hidden">
-      <div class="p-6 border-b">
-        <h2 class="text-xl font-semibold text-gray-900">Roles Predefinidos</h2>
-        <p class="text-gray-500 text-sm mt-1">
-          {{ filteredRoles.length }} roles encontrados
-        </p>
+    <!-- Gestión de Permisos Individuales por Usuario -->
+    <div v-if="activeTab === 'users'" class="bg-white rounded-lg shadow-md">
+      <div class="p-6 border-b border-gray-200">
+        <h2 class="text-xl font-semibold text-gray-900">Permisos Individuales por Usuario</h2>
+        <p class="text-gray-600 mt-1">Asigna permisos específicos a usuarios individuales</p>
       </div>
 
-      <div class="divide-y divide-gray-200">
-        <div 
-          v-for="role in filteredRoles" 
-          :key="role.id" 
-          class="p-6 hover:bg-gray-50 transition-colors"
-        >
-          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-            <div class="flex items-center">
-              <div 
-                class="p-2 rounded-lg mr-4"
-                :class="getRoleBadgeClass(role.category)"
-              >
-                <component :is="getRoleIcon(role.category)" class="h-6 w-6" />
-              </div>
-              <div>
-                <h3 class="text-lg font-medium text-gray-900 flex items-center">
-                  {{ role.name }}
-                  <span 
-                    v-if="role.isDefault" 
-                    class="ml-2 px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-800"
-                  >
-                    Predeterminado
-                  </span>
-                </h3>
-                <p class="text-gray-500 text-sm">{{ role.description }}</p>
-              </div>
-            </div>
-            
-            <div class="flex items-center space-x-2">
-              <span 
-                class="px-3 py-1 text-xs rounded-full"
-                :class="getRoleLevelClass(role.accessLevel)"
-              >
-                {{ role.accessLevel }}
-              </span>
-              <button 
-                @click="toggleRoleDetails(role.id)"
-                class="p-2 rounded-full hover:bg-gray-200 transition-colors"
-              >
-                <ChevronDownIcon 
-                  class="h-5 w-5 text-gray-500 transition-transform duration-200"
-                  :class="{ 'rotate-180': expandedRoles.includes(role.id) }"
-                />
-              </button>
-            </div>
-          </div>
+      <!-- Lista de Usuarios -->
+      <div class="p-6">
+        <div v-if="loadingUsers" class="text-center py-8">
+          <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <p class="mt-2 text-gray-600">Cargando usuarios...</p>
+        </div>
 
-          <!-- Detalles expandibles -->
+        <div v-else class="space-y-4">
           <div 
-            v-if="expandedRoles.includes(role.id)"
-            class="mt-6 pl-14 md:pl-16 animate-fadeIn"
+            v-for="user in users" 
+            :key="user.id"
+            class="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
           >
-            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
-              <h4 class="font-medium text-gray-900 mb-3">Permisos del Rol</h4>
-              
-              <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div 
-                  v-for="(permissions, module) in role.permissions" 
-                  :key="module"
-                  class="bg-white p-4 rounded border border-gray-200"
-                >
-                  <h5 class="font-medium text-gray-900 mb-2">{{ module }}</h5>
-                  <ul class="space-y-2">
-                    <li 
-                      v-for="(value, permission) in permissions" 
-                      :key="permission"
-                      class="flex items-center text-sm"
-                    >
-                      <CheckCircleIcon 
-                        v-if="value" 
-                        class="h-5 w-5 text-green-500 mr-2" 
-                      />
-                      <XCircleIcon 
-                        v-else 
-                        class="h-5 w-5 text-gray-300 mr-2" 
-                      />
-                      <span :class="{ 'text-gray-400': !value }">
-                        {{ permission }}
-                      </span>
-                    </li>
-                  </ul>
+            <div class="flex items-center justify-between mb-3">
+              <div class="flex items-center space-x-3">
+                <div class="w-10 h-10 bg-gray-300 rounded-full flex items-center justify-center">
+                  <i class="fas fa-user text-gray-600"></i>
+                </div>
+                <div>
+                  <h4 class="font-semibold text-gray-900">{{ user.name || user.email }}</h4>
+                  <p class="text-sm text-gray-600">{{ user.email }}</p>
+                  <span 
+                    class="inline-block px-2 py-1 text-xs rounded-full"
+                    :class="getRoleColorClass(user.role) + ' bg-opacity-10'"
+                  >
+                    {{ getRoleDisplayName(user.role) }}
+                  </span>
                 </div>
               </div>
+              <div class="flex items-center space-x-2">
+                <button
+                  @click="toggleUserPermissions(user.id)"
+                  class="px-3 py-1 text-sm bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                  {{ expandedUsers.includes(user.id) ? 'Ocultar' : 'Ver Permisos' }}
+                </button>
+              </div>
+            </div>
 
-              <div class="mt-4 flex flex-col sm:flex-row sm:justify-between gap-4">
-                <div>
-                  <h4 class="font-medium text-gray-900 mb-1">Información adicional</h4>
-                  <ul class="text-sm text-gray-600 space-y-1">
-                    <li><span class="font-medium">Creado:</span> {{ role.createdAt }}</li>
-                    <li><span class="font-medium">Última modificación:</span> {{ role.updatedAt }}</li>
-                    <li><span class="font-medium">ID del rol:</span> {{ role.id }}</li>
-                  </ul>
+            <!-- Permisos del Usuario (expandible) -->
+            <div v-if="expandedUsers.includes(user.id)" class="mt-4 border-t pt-4">
+              <div class="mb-4">
+                <h5 class="font-medium text-gray-800 mb-2">Permisos por Rol ({{ getRoleDisplayName(user.role) }}):</h5>
+                <div v-if="loadingUserPermissions[user.id]" class="text-center py-4">
+                  <div class="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
                 </div>
-                
-                <div class="flex flex-wrap gap-2">
-                  <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center">
-                    <DocumentDuplicateIcon class="h-4 w-4 mr-2" />
-                    Ver detalles
-                  </button>
-                  <button class="px-4 py-2 bg-white border border-gray-300 rounded-lg text-sm hover:bg-gray-50 transition-colors flex items-center">
-                    <UsersIcon class="h-4 w-4 mr-2" />
-                    Ver usuarios
-                  </button>
+                <div v-else class="flex flex-wrap gap-2">
+                  <span 
+                    v-for="permission in userRolePermissions[user.id] || []" 
+                    :key="permission.name"
+                    class="px-2 py-1 text-xs bg-gray-100 text-gray-700 rounded"
+                  >
+                    {{ permission.description }}
+                  </span>
                 </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+    </div>
+
+    <!-- Notificaciones -->
+    <div v-if="notification.show" class="fixed top-4 right-4 z-50">
+      <div 
+        :class="[
+          'px-6 py-4 rounded-lg shadow-lg text-white',
+          notification.type === 'success' ? 'bg-green-500' : 'bg-red-500'
+        ]"
+      >
+        {{ notification.message }}
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
-import { 
-  UserIcon, 
-  ShieldCheckIcon, 
-  UserGroupIcon, 
-  AcademicCapIcon,
-  SearchIcon,
-  ChevronDownIcon,
-  CheckCircleIcon,
-  XCircleIcon,
-  DocumentDuplicateIcon,
-  UsersIcon
-} from '@heroicons/vue/outline';
+import { ref, onMounted, computed } from 'vue'
 
-// Estado
-const searchTerm = ref('');
-const expandedRoles = ref([]);
-const selectedCategories = ref([]);
+// Estado reactivo
+const activeTab = ref('roles')
+const rolesStats = ref([])
+const selectedRole = ref('')
+const rolePermissions = ref([])
+const allPermissions = ref([])
+const availableRoles = ref(['superadmin', 'administrativo', 'planeacion', 'instructor'])
+const saving = ref(false)
+const loading = ref(false)
+const notification = ref({ show: false, message: '', type: 'success' })
 
-// Categorías de roles
-const categories = [
-  { label: 'Administrativo', value: 'administrative', activeClass: 'bg-red-100 text-red-800' },
-  { label: 'Gestión', value: 'management', activeClass: 'bg-blue-100 text-blue-800' },
-  { label: 'Operativo', value: 'operational', activeClass: 'bg-green-100 text-green-800' },
-  { label: 'Educativo', value: 'educational', activeClass: 'bg-purple-100 text-purple-800' }
-];
+const users = ref([])
+const loadingUsers = ref(false)
+const expandedUsers = ref([])
+const userRolePermissions = ref({})
+const loadingUserPermissions = ref({})
 
-// Datos de ejemplo
-const roles = [
-  {
-    id: '1',
-    name: 'Superadmin',
-    description: 'Control total del sistema con acceso a todas las funcionalidades',
-    category: 'administrative',
-    accessLevel: 'Nivel 1',
-    isDefault: false,
-    createdAt: '01/01/2025',
-    updatedAt: '15/05/2025',
-    permissions: {
-      'Usuarios': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Eliminar': true,
-        'Cambiar roles': true
-      },
-      'Configuración': {
-        'Ver': true,
-        'Modificar': true,
-        'Reiniciar sistema': true
-      },
-      'Reportes': {
-        'Ver': true,
-        'Crear': true,
-        'Exportar': true,
-        'Compartir': true
-      }
-    }
-  },
-  {
-    id: '2',
-    name: 'Planeación',
-    description: 'Gestión de documentos estratégicos y análisis de datos',
-    category: 'management',
-    accessLevel: 'Nivel 2',
-    isDefault: true,
-    createdAt: '01/01/2025',
-    updatedAt: '10/05/2025',
-    permissions: {
-      'Documentos': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Eliminar': true,
-        'Aprobar': true
-      },
-      'Análisis': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Compartir': true
-      },
-      'Reportes': {
-        'Ver': true,
-        'Crear': true,
-        'Exportar': true,
-        'Compartir': true
-      }
-    }
-  },
-  {
-    id: '3',
-    name: 'Directivo',
-    description: 'Visualización de indicadores y toma de decisiones estratégicas',
-    category: 'management',
-    accessLevel: 'Nivel 2',
-    isDefault: true,
-    createdAt: '01/01/2025',
-    updatedAt: '05/05/2025',
-    permissions: {
-      'Indicadores': {
-        'Ver': true,
-        'Exportar': true,
-        'Compartir': true,
-        'Comentar': true,
-        'Editar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Exportar': true,
-        'Compartir': true,
-        'Crear': false
-      },
-      'Documentos': {
-        'Ver': true,
-        'Aprobar': true,
-        'Comentar': true,
-        'Editar': false,
-        'Eliminar': false
-      }
-    }
-  },
-  {
-    id: '4',
-    name: 'Instructor',
-    description: 'Consulta de documentos y reportes estratégicos',
-    category: 'educational',
-    accessLevel: 'Nivel 3',
-    isDefault: true,
-    createdAt: '01/01/2025',
-    updatedAt: '20/04/2025',
-    permissions: {
-      'Biblioteca': {
-        'Ver': true,
-        'Descargar': true,
-        'Marcar favoritos': true,
-        'Editar': false,
-        'Eliminar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Descargar': true,
-        'Comentar': false,
-        'Crear': false,
-        'Editar': false
-      },
-      'DOFA': {
-        'Ver': true,
-        'Comentar': false,
-        'Editar': false,
-        'Crear': false
-      }
-    }
-  },
-  {
-    id: '5',
-    name: 'Analista',
-    description: 'Procesamiento y análisis de datos institucionales',
-    category: 'operational',
-    accessLevel: 'Nivel 2',
-    isDefault: false,
-    createdAt: '15/02/2025',
-    updatedAt: '01/06/2025',
-    permissions: {
-      'Datos': {
-        'Ver': true,
-        'Analizar': true,
-        'Exportar': true,
-        'Importar': true,
-        'Eliminar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Compartir': true,
-        'Eliminar': false
-      },
-      'Indicadores': {
-        'Ver': true,
-        'Calcular': true,
-        'Actualizar': true,
-        'Crear': false,
-        'Eliminar': false
-      }
-    }
-  },
-  {
-    id: '6',
-    name: 'Coordinador',
-    description: 'Supervisión de actividades y gestión de equipos',
-    category: 'educational',
-    accessLevel: 'Nivel 2',
-    isDefault: false,
-    createdAt: '15/03/2025',
-    updatedAt: '25/05/2025',
-    permissions: {
-      'Equipos': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Eliminar': false,
-        'Asignar': true
-      },
-      'Actividades': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Aprobar': true,
-        'Eliminar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Crear': true,
-        'Exportar': true,
-        'Compartir': true,
-        'Eliminar': false
-      }
-    }
-  },
-  {
-    id: '7',
-    name: 'Auditor',
-    description: 'Revisión y verificación de procesos y actividades',
-    category: 'administrative',
-    accessLevel: 'Nivel 2',
-    isDefault: false,
-    createdAt: '10/04/2025',
-    updatedAt: '05/06/2025',
-    permissions: {
-      'Auditoría': {
-        'Ver': true,
-        'Crear': true,
-        'Editar': true,
-        'Finalizar': true,
-        'Eliminar': false
-      },
-      'Logs': {
-        'Ver': true,
-        'Exportar': true,
-        'Analizar': true,
-        'Eliminar': false,
-        'Modificar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Crear': true,
-        'Exportar': true,
-        'Compartir': true,
-        'Eliminar': false
-      }
-    }
-  },
-  {
-    id: '8',
-    name: 'Invitado',
-    description: 'Acceso limitado a información pública del sistema',
-    category: 'operational',
-    accessLevel: 'Nivel 4',
-    isDefault: true,
-    createdAt: '01/01/2025',
-    updatedAt: '01/01/2025',
-    permissions: {
-      'Documentos': {
-        'Ver': true,
-        'Descargar': false,
-        'Editar': false,
-        'Crear': false,
-        'Eliminar': false
-      },
-      'Reportes': {
-        'Ver': true,
-        'Descargar': false,
-        'Editar': false,
-        'Crear': false,
-        'Eliminar': false
-      },
-      'Sistema': {
-        'Ver': false,
-        'Configurar': false,
-        'Administrar': false,
-        'Auditar': false,
-        'Reiniciar': false
-      }
-    }
-  }
-];
-
-// Estadísticas de roles
-const roleStats = [
-  {
-    name: 'Roles Administrativos',
-    count: roles.filter(r => r.category === 'administrative').length,
-    description: 'Roles con acceso a funciones de administración del sistema',
-    icon: ShieldCheckIcon,
-    colorClass: 'border-red-500',
-    bgClass: 'bg-red-100',
-    iconClass: 'text-red-600'
-  },
-  {
-    name: 'Roles de Gestión',
-    count: roles.filter(r => r.category === 'management').length,
-    description: 'Roles enfocados en la toma de decisiones estratégicas',
-    icon: UserIcon,
-    colorClass: 'border-blue-500',
-    bgClass: 'bg-blue-100',
-    iconClass: 'text-blue-600'
-  },
-  {
-    name: 'Roles Operativos',
-    count: roles.filter(r => r.category === 'operational').length,
-    description: 'Roles para operaciones diarias del sistema',
-    icon: UserGroupIcon,
-    colorClass: 'border-green-500',
-    bgClass: 'bg-green-100',
-    iconClass: 'text-green-600'
-  },
-  {
-    name: 'Roles Educativos',
-    count: roles.filter(r => r.category === 'educational').length,
-    description: 'Roles específicos para el personal educativo',
-    icon: AcademicCapIcon,
-    colorClass: 'border-purple-500',
-    bgClass: 'bg-purple-100',
-    iconClass: 'text-purple-600'
-  }
-];
-
-// Métodos
-const toggleRoleDetails = (roleId) => {
-  if (expandedRoles.value.includes(roleId)) {
-    expandedRoles.value = expandedRoles.value.filter(id => id !== roleId);
-  } else {
-    expandedRoles.value.push(roleId);
-  }
-};
-
-const toggleCategory = (category) => {
-  if (selectedCategories.value.includes(category)) {
-    selectedCategories.value = selectedCategories.value.filter(c => c !== category);
-  } else {
-    selectedCategories.value.push(category);
-  }
-};
-
-// Funciones para clases condicionales
-const getRoleBadgeClass = (category) => {
-  switch (category) {
-    case 'administrative': return 'bg-red-100 text-red-600';
-    case 'management': return 'bg-blue-100 text-blue-600';
-    case 'operational': return 'bg-green-100 text-green-600';
-    case 'educational': return 'bg-purple-100 text-purple-600';
-    default: return 'bg-gray-100 text-gray-600';
-  }
-};
-
-const getRoleIcon = (category) => {
-  switch (category) {
-    case 'administrative': return ShieldCheckIcon;
-    case 'management': return UserIcon;
-    case 'operational': return UserGroupIcon;
-    case 'educational': return AcademicCapIcon;
-    default: return UserIcon;
-  }
-};
-
-const getRoleLevelClass = (level) => {
-  switch (level) {
-    case 'Nivel 1': return 'bg-red-100 text-red-800';
-    case 'Nivel 2': return 'bg-blue-100 text-blue-800';
-    case 'Nivel 3': return 'bg-green-100 text-green-800';
-    case 'Nivel 4': return 'bg-gray-100 text-gray-800';
-    default: return 'bg-gray-100 text-gray-800';
-  }
-};
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
 // Computed properties
-const filteredRoles = computed(() => {
-  return roles.filter(role => {
-    const matchesSearch = 
-      role.name.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      role.description.toLowerCase().includes(searchTerm.value.toLowerCase());
+const groupedPermissions = computed(() => {
+  const grouped = {}
+  allPermissions.value.forEach(permission => {
+    const resource = permission.resource || permission.name.split('.')[0]
+    if (!grouped[resource]) {
+      grouped[resource] = []
+    }
+    grouped[resource].push(permission)
+  })
+  return grouped
+})
+
+const handleAuthError = (error, context = '') => {
+  console.error(`Auth error in ${context}:`, error)
+  showNotification('Sesión expirada. Redirigiendo al login...', 'error')
+  
+  localStorage.removeItem('access_token')
+  sessionStorage.removeItem('access_token')
+  
+  // Redirigir al login después de un breve delay
+  setTimeout(() => {
+    window.location.href = '/iniciar-sesion'
+  }, 2000)
+}
+
+const getAuthHeaders = () => {
+  const token = localStorage.getItem('access_token') || 
+                sessionStorage.getItem('access_token')
+  
+  console.log('Looking for access_token:', token ? 'Found' : 'Not found')
+  
+  if (!token) {
+    console.warn('No access_token found in localStorage or sessionStorage')
+    return null
+  }
+  
+  return {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  }
+}
+
+const makeAuthenticatedRequest = async (url, options = {}) => {
+  const headers = getAuthHeaders()
+  
+  if (!headers) {
+    console.error('No authentication headers available')
+    handleAuthError(new Error('No token available'), 'makeAuthenticatedRequest')
+    return null
+  }
+  
+  console.log('Making authenticated request to:', url)
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      headers: { ...headers, ...options.headers }
+    })
     
-    const matchesCategory = 
-      selectedCategories.value.length === 0 || 
-      selectedCategories.value.includes(role.category);
+    console.log('Response status:', response.status)
     
-    return matchesSearch && matchesCategory;
-  });
-});
+    if (response.status === 401) {
+      console.error('Unauthorized response - token may be expired')
+      handleAuthError(new Error('Unauthorized'), 'makeAuthenticatedRequest')
+      return null
+    }
+    
+    if (!response.ok) {
+      console.error('Request failed with status:', response.status)
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+    
+    return response
+  } catch (error) {
+    console.error('Request failed:', error)
+    throw error
+  }
+}
+
+const calculateRolesStats = () => {
+  const stats = {}
+  
+  // Inicializar contadores para todos los roles
+  availableRoles.value.forEach(role => {
+    stats[role] = 0
+  })
+  
+  // Contar usuarios por rol
+  users.value.forEach(user => {
+    if (user.is_active && stats.hasOwnProperty(user.role)) {
+      stats[user.role]++
+    }
+  })
+  
+  // Convertir a formato esperado
+  rolesStats.value = Object.entries(stats).map(([role, count]) => ({
+    name: role,
+    display_name: getRoleDisplayName(role),
+    count: count
+  }))
+}
+
+const loadAllPermissions = async () => {
+  try {
+    const response = await makeAuthenticatedRequest(`${API_BASE_URL}/permissions/`)
+    
+    if (response && response.ok) {
+      allPermissions.value = await response.json()
+    } else if (response) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('Error loading permissions:', error)
+    showNotification('Error al cargar permisos', 'error')
+  }
+}
+
+const loadRolePermissions = async () => {
+  if (!selectedRole.value) return
+  
+  try {
+    const response = await makeAuthenticatedRequest(`${API_BASE_URL}/permissions/roles/${selectedRole.value}/permissions`)
+    
+    if (response && response.ok) {
+      const permissions = await response.json()
+      rolePermissions.value = permissions.map(p => p.name)
+    } else if (response) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('Error loading role permissions:', error)
+    showNotification('Error al cargar permisos del rol', 'error')
+  }
+}
+
+const loadUsers = async () => {
+  loadingUsers.value = true
+  try {
+    const response = await makeAuthenticatedRequest(`${API_BASE_URL}/users/`)
+    
+    if (response && response.ok) {
+      users.value = await response.json()
+      // Calcular estadísticas después de cargar usuarios
+      calculateRolesStats()
+    } else if (response) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('Error loading users:', error)
+    showNotification('Error al cargar usuarios', 'error')
+  } finally {
+    loadingUsers.value = false
+  }
+}
+
+const loadUserPermissions = async (userId) => {
+  loadingUserPermissions.value[userId] = true
+  try {
+    const response = await makeAuthenticatedRequest(`${API_BASE_URL}/permissions/user/${userId}/permissions`)
+    
+    if (response && response.ok) {
+      const data = await response.json()
+      userRolePermissions.value[userId] = data.permissions || []
+    } else if (response) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('Error loading user permissions:', error)
+    showNotification('Error al cargar permisos del usuario', 'error')
+  } finally {
+    loadingUserPermissions.value[userId] = false
+  }
+}
+
+const toggleUserPermissions = async (userId) => {
+  const index = expandedUsers.value.indexOf(userId)
+  if (index > -1) {
+    expandedUsers.value.splice(index, 1)
+  } else {
+    expandedUsers.value.push(userId)
+    if (!userRolePermissions.value[userId]) {
+      await loadUserPermissions(userId)
+    }
+  }
+}
+
+const saveRolePermissions = async () => {
+  if (!selectedRole.value) return
+  
+  saving.value = true
+  try {
+    // Nota: Este endpoint necesitaría ser implementado en el backend
+    // Por ahora solo mostramos un mensaje
+    showNotification('Funcionalidad de guardado pendiente de implementar en backend', 'error')
+  } catch (error) {
+    console.error('Error saving permissions:', error)
+    showNotification('Error al guardar permisos', 'error')
+  } finally {
+    saving.value = false
+  }
+}
+
+const togglePermission = (permissionName) => {
+  const index = rolePermissions.value.indexOf(permissionName)
+  if (index > -1) {
+    rolePermissions.value.splice(index, 1)
+  } else {
+    rolePermissions.value.push(permissionName)
+  }
+}
+
+const resetPermissions = () => {
+  loadRolePermissions()
+}
+
+const showNotification = (message, type = 'success') => {
+  notification.value = { show: true, message, type }
+  setTimeout(() => {
+    notification.value.show = false
+  }, 3000)
+}
+
+const getRoleDisplayName = (role) => {
+  const names = {
+    'superadmin': 'Super Administrador',
+    'administrativo': 'Administrativo',
+    'planeacion': 'Planeación',
+    'instructor': 'Instructor'
+  }
+  return names[role] || role
+}
+
+const getRoleColorClass = (role) => {
+  const colors = {
+    'superadmin': 'border-red-500',
+    'administrativo': 'border-blue-500',
+    'planeacion': 'border-green-500',
+    'instructor': 'border-yellow-500'
+  }
+  return colors[role] || 'border-gray-500'
+}
+
+const getRoleTextColor = (role) => {
+  const colors = {
+    'superadmin': 'text-red-600',
+    'administrativo': 'text-blue-600',
+    'planeacion': 'text-green-600',
+    'instructor': 'text-yellow-600'
+  }
+  return colors[role] || 'text-gray-600'
+}
+
+const getRoleIcon = (role) => {
+  const icons = {
+    'superadmin': 'fas fa-crown',
+    'administrativo': 'fas fa-briefcase',
+    'planeacion': 'fas fa-calendar-alt',
+    'instructor': 'fas fa-chalkboard-teacher'
+  }
+  return icons[role] || 'fas fa-user'
+}
+
+onMounted(() => {
+  const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
+  
+  console.log('Component mounting...')
+  console.log('access_token found:', token ? 'Yes' : 'No')
+  console.log('localStorage keys:', Object.keys(localStorage))
+  console.log('sessionStorage keys:', Object.keys(sessionStorage))
+  
+  if (!token) {
+    console.error('No access_token found - redirecting to login')
+    showNotification('No se encontró token de autenticación. Redirigiendo al login...', 'error')
+    setTimeout(() => {
+      window.location.href = '/iniciar-sesion'
+    }, 2000)
+    return
+  }
+  
+  console.log('Component mounted with valid access_token')
+  loadAllPermissions()
+  loadUsers() // Esto también calculará las estadísticas de roles
+})
 </script>
 
 <style scoped>
-.animate-fadeIn {
-  animation: fadeIn 0.3s ease-in-out;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-10px); }
-  to { opacity: 1; transform: translateY(0); }
+.roles-management {
+  font-family: 'Inter', sans-serif;
 }
 </style>

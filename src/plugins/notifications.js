@@ -41,19 +41,26 @@ const showError = (message, duration = 5000) => addNotification(message, "error"
 const showWarning = (message, duration = 4000) => addNotification(message, "warning", duration)
 const showInfo = (message, duration = 3000) => addNotification(message, "info", duration)
 
-// Función específica para token expirado
-const showTokenExpired = () => {
-  showError("Su sesión ha expirado. Será redirigido al login en 5 segundos.", 5000)
+const showTokenExpired = (router = null) => {
+  console.log("Token expired, showing notification")
+  showError("Su sesión ha expirado. Será redirigido al login.", 8000)
 
   // Limpiar localStorage
   localStorage.removeItem("access_token")
   localStorage.removeItem("role")
   localStorage.removeItem("user_info")
 
-  // Redirigir después de 5 segundos
-  setTimeout(() => {
-    window.location.href = "/login"
-  }, 5000)
+  if (router) {
+    setTimeout(() => {
+      console.log("Redirecting to login via router")
+      router.push("/iniciar-sesion")
+    }, 3000)
+  } else {
+    setTimeout(() => {
+      console.log("Redirecting to login via window.location")
+      window.location.href = "/iniciar-sesion"
+    }, 3000)
+  }
 }
 
 // Plugin para Vue
