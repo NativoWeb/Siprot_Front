@@ -4,7 +4,7 @@ import EconomicSectorsComponent from "../components/superadmin/catalogs-manageme
 import MedularLinesComponent from "../components/superadmin/catalogs-management/MedularLinesComponent.vue";
 import RolesComponent from "../components/superadmin/role-management/RolesComponent.vue";
 import ChangeRolComponent from "../components/superadmin/user-management/ChangeRolComponent.vue";
-import DeleteUserComponent from "../components/superadmin/user-management/DeleteUserComponent.vue";
+import DeleteUserComponent from "../components/superadmin/user-management/UserDeleteModal.vue";
 import UserListComponent from "../components/superadmin/user-management/UserListComponent.vue";
 import UserRegisterComponent from "../components/superadmin/user-management/UserRegisterComponent.vue";
 import AdminMainView from "../views/superadmin/AdminMainView.vue";

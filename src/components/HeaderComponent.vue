@@ -69,8 +69,7 @@
             class="h-full flex gap-2 sm:gap-3 lg:gap-4 items-center justify-between relative"
           >
             <li><RouterLink to="/biblioteca-documentos">Biblioteca</RouterLink></li>
-            <li><RouterLink to="/analisis">Oferta Educativa</RouterLink></li>
-            <li><RouterLink to="/perfil">Perfil</RouterLink></li>
+            <li><RouterLink to="/escenarios-prospectivos">Escenarios Prospectivos</RouterLink></li>
             <li class="cursor-pointer" @click="logout">Salir</li>
           </ul>
 
@@ -79,12 +78,10 @@
             v-else-if="role === 'administrativo'"
             class="h-full flex gap-2 sm:gap-3 lg:gap-4 items-center justify-between relative"
           >
-            <li><RouterLink to="/biblioteca-documentos">Biblioteca</RouterLink></li>
-            <li><RouterLink to="/oferta-educativa">Oferta Educativa</RouterLink></li>
-            <li><RouterLink to="/indicadores-estrategicos">Indicadores</RouterLink></li>
-            <li><RouterLink to="/reportes-ejecutivos">Reportes</RouterLink></li>
-            <li><RouterLink to="/configuracion">Configuración</RouterLink></li>
-            <li><RouterLink to="/gestion-equipos">Gestión de Equipos</RouterLink></li>
+            <li><RouterLink to="/biblioteca-documentos">Biblioteca de Documentos</RouterLink></li>
+            <li><RouterLink to="/oferta-educativa">Análisis de oferta educativa</RouterLink></li>
+            <li><RouterLink to="/escenarios-prospectivos">Escenarios Prospectivos</RouterLink></li>
+            <li><RouterLink to="/dofa">Análisis DOFA Territorial</RouterLink></li>
             <li><RouterLink to="/mis-reportes-administrativo">Mis Reportes</RouterLink></li>
             <li class="cursor-pointer" @click="logout">Salir</li>
           </ul>

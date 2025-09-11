@@ -788,7 +788,7 @@ const loadCsvFiles = async () => {
     const token = localStorage.getItem('access_token')
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
-    const response = await fetch('http://localhost:8000/documents?file_path=uploads/csv', {
+    const response = await fetch('http://localhost:8000/scenarios/csv-files', {
       headers: {
         'Authorization': `Bearer ${token}`
       }

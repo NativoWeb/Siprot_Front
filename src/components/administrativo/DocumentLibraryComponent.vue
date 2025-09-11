@@ -7,7 +7,7 @@
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 mb-4">
         <!-- Búsqueda por título -->
         <div class="xl:col-span-2">
-          <label class="block text-sm font-medium text-gray-700 mb-1">Buscar por título</label>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Buscar por título</label> 
           <div class="relative">
             <input
               v-model="filters.search"
@@ -38,8 +38,7 @@
           <label class="block text-sm font-medium text-gray-700 mb-1">Línea Medular</label>
           <select
             v-model="filters.core_line"
-            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-bl
-            ue-500"
+            class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
           >
             <option value="">Todas las líneas</option>
             <option v-for="line in filterOptions.core_lines" :key="line" :value="line">
@@ -171,6 +170,7 @@
           <button
             @click="viewDocument(document)"
             class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-800 focus:outline-none"
+            :disabled="!canViewDocuments"
           >
             <EyeIcon class="h-4 w-4 mr-1" />
             Ver detalles
@@ -179,7 +179,7 @@
           <div class="flex gap-2">
             <button
               @click="downloadDocument(document)"
-              :disabled="isDownloading[document.id]"
+              :disabled="isDownloading[document.id] || !canViewDocuments"
               class="inline-flex items-center px-3 py-1.5 text-sm font-medium text-green-600 hover:text-green-800 focus:outline-none disabled:opacity-50"
               :title="`Descargar como ${document.file_extension.toUpperCase().replace('.', '')}`"
             >
@@ -393,6 +393,20 @@ const canReplaceDocuments = computed(() => {
   return false
 })
 
+const canViewDocuments = computed(() => {
+  // Allow all authenticated roles to view and download documents
+  if (userRole.value === 'superadmin' || userRole.value === 'planeacion' || 
+      userRole.value === 'instructor' || userRole.value === 'administrativo') {
+    return true
+  }
+  
+  if (permissionsLoaded.value) {
+    return userPermissions.value.includes('documents.read')
+  }
+  
+  return false
+})
+
 // Métodos
 const getUserInfo = async () => {
   try {
@@ -414,10 +428,13 @@ const getUserInfo = async () => {
       userRole.value = role
       console.log('⚠️ Solo rol encontrado (sin user_info). Rol:', userRole.value)
       
-      // Para rol planeacion, asignar permisos por defecto
+      // Para roles con permisos de lectura, asignar permisos por defecto
       if (role === 'planeacion') {
         userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
         console.log('🔧 Asignando permisos por defecto para planeacion:', userPermissions.value)
+      } else if (role === 'instructor' || role === 'administrativo') {
+        userPermissions.value = ['documents.read']
+        console.log('🔧 Asignando permisos por defecto para', role + ':', userPermissions.value)
       }
       
       permissionsLoaded.value = true
@@ -448,10 +465,13 @@ const fetchUserPermissions = async () => {
     if (!userInfo.id) {
       console.warn('⚠️ No hay ID de usuario en user_info')
       
-      // Fallback: si es planeacion, asignar permisos por defecto
+      // Fallback: asignar permisos por defecto según el rol
       if (userRole.value === 'planeacion') {
         userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
         console.log('🔧 Usando permisos por defecto para planeacion (sin ID):', userPermissions.value)
+      } else if (userRole.value === 'instructor' || userRole.value === 'administrativo') {
+        userPermissions.value = ['documents.read']
+        console.log('🔧 Usando permisos por defecto para', userRole.value, '(sin ID):', userPermissions.value)
       }
       
       permissionsLoaded.value = true
@@ -470,16 +490,24 @@ const fetchUserPermissions = async () => {
       console.log('✅ Permisos del usuario cargados desde API:', userPermissions.value)
     } else {
       console.warn('⚠️ No se pudieron obtener los permisos del usuario. Status:', response.status)
+      // Fallback: asignar permisos por defecto según el rol
       if (userRole.value === 'planeacion') {
         userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
         console.log('🔧 Usando permisos por defecto para planeacion (API falló):', userPermissions.value)
+      } else if (userRole.value === 'instructor' || userRole.value === 'administrativo') {
+        userPermissions.value = ['documents.read']
+        console.log('🔧 Usando permisos por defecto para', userRole.value, '(API falló):', userPermissions.value)
       }
     }
   } catch (error) {
     console.error('❌ Error al obtener permisos:', error)
+    // Fallback: asignar permisos por defecto según el rol
     if (userRole.value === 'planeacion') {
       userPermissions.value = ['documents.create', 'documents.read', 'documents.update', 'documents.delete']
       console.log('🔧 Usando permisos por defecto para planeacion (excepción):', userPermissions.value)
+    } else if (userRole.value === 'instructor' || userRole.value === 'administrativo') {
+      userPermissions.value = ['documents.read']
+      console.log('🔧 Usando permisos por defecto para', userRole.value, '(excepción):', userPermissions.value)
     }
   } finally {
     permissionsLoaded.value = true
@@ -487,6 +515,7 @@ const fetchUserPermissions = async () => {
     console.log('  - Rol:', userRole.value)
     console.log('  - Permisos cargados:', permissionsLoaded.value)
     console.log('  - Permisos específicos:', userPermissions.value)
+    console.log('  - Puede ver documentos:', canViewDocuments.value)
     console.log('  - Puede editar documentos:', canEditDocuments.value)
     console.log('  - Puede eliminar documentos:', canDeleteDocuments.value)
     console.log('  - Puede reemplazar documentos:', canReplaceDocuments.value)
@@ -527,7 +556,7 @@ const fetchDocuments = async () => {
     if (filters.value.document_type) params.append('document_type', filters.value.document_type)
     if (filters.value.year) params.append('year', filters.value.year)
 
-    const url = `http://localhost:8000/documents${params.toString() ? '?' + params.toString() : ''}`
+    const url = `http://localhost:8000/documents/${params.toString() ? '?' + params.toString() : ''}`
     
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${token}` }
@@ -594,7 +623,6 @@ const downloadDocument = async (document: Document | null) => {
   if (isDownloading[document.id]) return
   
   isDownloading[document.id] = true
-  
   try {
     const token = localStorage.getItem('access_token')
     if (!token) throw new Error('No autorizado. Inicie sesión.')
@@ -878,11 +906,12 @@ onMounted(async () => {
   await getUserInfo()
   await fetchFilterOptions()
   await fetchDocuments()
-  
+
   console.log('📊 Estado final del componente:')
   console.log('  - Rol del usuario:', userRole.value)
   console.log('  - Permisos cargados:', permissionsLoaded.value)
   console.log('  - Permisos específicos:', userPermissions.value)
+  console.log('  - Puede ver documentos:', canViewDocuments.value)
   console.log('  - Puede editar documentos:', canEditDocuments.value)
   console.log('  - Puede eliminar documentos:', canDeleteDocuments.value)
   console.log('  - Puede reemplazar documentos:', canReplaceDocuments.value)

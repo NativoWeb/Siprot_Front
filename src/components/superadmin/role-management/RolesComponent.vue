@@ -6,6 +6,15 @@
       <p class="text-gray-600">Administra roles, permisos individuales y visualiza estadísticas de usuarios</p>
     </div>
 
+    <!-- Connection Status -->
+    <div v-if="connectionStatus === 'checking'" class="text-center py-8">
+      <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+      <p class="mt-2 text-gray-600">Verificando conexión...</p>
+    </div>
+    <div v-else-if="connectionStatus === 'failed'" class="text-center py-8">
+      <p class="text-red-600">Error de conexión: {{ apiError }}</p>
+    </div>
+
     <!-- Estadísticas de Usuarios por Rol -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
       <div 
@@ -234,6 +243,10 @@ const loadingUserPermissions = ref({})
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
+// Estado de conexión
+const connectionStatus = ref('checking')
+const apiError = ref(null)
+
 // Computed properties
 const groupedPermissions = computed(() => {
   const grouped = {}
@@ -278,6 +291,14 @@ const getAuthHeaders = () => {
 }
 
 const makeAuthenticatedRequest = async (url, options = {}) => {
+  if (connectionStatus.value === 'failed') {
+    console.log('Connection previously failed, retesting...')
+    const connected = await testConnection()
+    if (!connected) {
+      return null
+    }
+  }
+  
   const headers = getAuthHeaders()
   
   if (!headers) {
@@ -304,12 +325,21 @@ const makeAuthenticatedRequest = async (url, options = {}) => {
     
     if (!response.ok) {
       console.error('Request failed with status:', response.status)
+      const errorText = await response.text()
+      console.error('Error response body:', errorText)
       throw new Error(`HTTP ${response.status}: ${response.statusText}`)
     }
     
     return response
   } catch (error) {
     console.error('Request failed:', error)
+    
+    if (error.message.includes('Failed to fetch')) {
+      connectionStatus.value = 'failed'
+      apiError.value = `Conexión perdida con ${API_BASE_URL}`
+      showNotification('Se perdió la conexión con el servidor', 'error')
+    }
+    
     throw error
   }
 }
@@ -497,13 +527,61 @@ const getRoleIcon = (role) => {
   return icons[role] || 'fas fa-user'
 }
 
-onMounted(() => {
+const testConnection = async () => {
+  console.log('Testing API connection to:', API_BASE_URL)
+  connectionStatus.value = 'checking'
+  apiError.value = null
+  
+  try {
+    // Test basic connectivity first
+    const response = await fetch(`${API_BASE_URL}/`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    
+    console.log('Basic connectivity test - Status:', response.status)
+    
+    if (response.ok) {
+      connectionStatus.value = 'connected'
+      console.log('API connection successful')
+      return true
+    } else {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+    }
+  } catch (error) {
+    console.error('API connection failed:', error)
+    connectionStatus.value = 'failed'
+    apiError.value = error.message
+    
+    // More specific error messages
+    if (error.message.includes('Failed to fetch')) {
+      apiError.value = `No se puede conectar al servidor en ${API_BASE_URL}. Verifica que el backend esté corriendo.`
+    } else if (error.message.includes('CORS')) {
+      apiError.value = 'Error de CORS. Verifica la configuración del backend.'
+    }
+    
+    showNotification(`Error de conexión: ${apiError.value}`, 'error')
+    return false
+  }
+}
+
+onMounted(async () => {
   const token = localStorage.getItem('access_token') || sessionStorage.getItem('access_token')
   
   console.log('Component mounting...')
+  console.log('API_BASE_URL:', API_BASE_URL)
   console.log('access_token found:', token ? 'Yes' : 'No')
   console.log('localStorage keys:', Object.keys(localStorage))
   console.log('sessionStorage keys:', Object.keys(sessionStorage))
+  
+  const connected = await testConnection()
+  
+  if (!connected) {
+    console.error('Cannot connect to API - stopping initialization')
+    return
+  }
   
   if (!token) {
     console.error('No access_token found - redirecting to login')
@@ -514,9 +592,9 @@ onMounted(() => {
     return
   }
   
-  console.log('Component mounted with valid access_token')
+  console.log('Component mounted with valid access_token and API connection')
   loadAllPermissions()
-  loadUsers() // Esto también calculará las estadísticas de roles
+  loadUsers()
 })
 </script>
 

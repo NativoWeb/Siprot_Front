@@ -40,9 +40,6 @@ const loginUser = async () => {
     if (data.user.role === 'superadmin') {
       console.log('Intentando redirigir a: AdminMainView');
       router.push({ name: 'AdminMainView' })
-    } else if (data.user.role === 'instructor') {
-      console.log('Intentando redirigir a: Documents');
-      router.push({ name: 'Documents' }) // O la ruta inicial para instructor
     } else {
       console.log('Intentando redirigir a: / (ruta por defecto)');
       router.push('/') 
