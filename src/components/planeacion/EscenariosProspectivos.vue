@@ -442,6 +442,7 @@ import {
 import LineChart from '../charts/LineChart.vue'
 import BarChart from '../charts/BarChart.vue'
 
+
 const props = defineProps({
   userRole: {
     type: String,
@@ -788,7 +789,7 @@ const loadCsvFiles = async () => {
     const token = localStorage.getItem('access_token')
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
-    const response = await fetch('http://localhost:8000/documents?file_path=uploads/csv', {
+    const response = await fetch('http://localhost:8000/scenarios/csv-files', {
       headers: {
         'Authorization': `Bearer ${token}`
       }
@@ -804,10 +805,10 @@ const loadCsvFiles = async () => {
       doc.file_extension === '.csv' || doc.file_extension === '.xlsx'
     )
     
-    console.log(`[v0] Cargados ${csvFiles.value.length} archivos CSV/XLSX desde uploads/csv`)
+    console.log(`Cargados ${csvFiles.value.length} archivos CSV/XLSX desde uploads/csv`)
     
   } catch (error) {
-    console.error('[v0] Error loading CSV files:', error)
+    console.error('Error loading CSV files:', error)
     csvError.value = `Error al cargar archivos: ${error.message}`
     showError(error.message)
     // Fallback a datos mock si hay error
@@ -918,7 +919,7 @@ const loadScenarios = async () => {
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
     const fileId = selectedCsvFile.value
-    console.log(`[v0] Generando escenarios para archivo ID: ${fileId}`)
+    console.log(`Generando escenarios para archivo ID: ${fileId}`)
 
     const scenarioTypes = ['tendencial', 'optimista', 'pesimista']
     const yearsAhead = 10
@@ -928,7 +929,7 @@ const loadScenarios = async () => {
     scenarioTypes.forEach(type => url.searchParams.append('scenario_types', type))
     url.searchParams.append('years_ahead', yearsAhead.toString())
     
-    console.log(`[v0] URL con parámetros:`, url.toString())
+    console.log(`URL con parámetros:`, url.toString())
 
     // Llamada a la API para generar escenarios desde el archivo CSV
     const response = await fetch(url.toString(), {
@@ -939,11 +940,11 @@ const loadScenarios = async () => {
       }
     })
     
-    console.log(`[v0] Response status:`, response.status)
+    console.log(`Response status:`, response.status)
     
     if (response.ok) {
       const scenarioData = await response.json()
-      console.log(`[v0] Datos recibidos del backend:`, scenarioData)
+      console.log(`Datos recibidos del backend:`, scenarioData)
       
       // Procesar y validar datos de escenarios
       const processedScenarios = {}
@@ -958,9 +959,9 @@ const loadScenarios = async () => {
             data: sortedData
           }
           
-          console.log(`[v0] Escenario ${scenarioType}: ${sortedData.length} puntos de datos`)
-          console.log(`[v0] Rango de años: ${sortedData[0]?.year} - ${sortedData[sortedData.length - 1]?.year}`)
-          console.log(`[v0] Indicadores disponibles:`, Object.keys(sortedData[0]?.values || {}))
+          console.log(`Escenario ${scenarioType}: ${sortedData.length} puntos de datos`)
+          console.log(`Rango de años: ${sortedData[0]?.year} - ${sortedData[sortedData.length - 1]?.year}`)
+          console.log(`Indicadores disponibles:`, Object.keys(sortedData[0]?.values || {}))
         }
       }
       
@@ -974,7 +975,7 @@ const loadScenarios = async () => {
       showSuccess(`Escenarios generados exitosamente. Total de escenarios: ${Object.keys(processedScenarios).length}`)
     } else {
       const errorData = await response.json()
-      console.error('[v0] Error response:', errorData)
+      console.error('Error response:', errorData)
       
       // Mostrar detalles específicos del error con sugerencias
       let errorMessage = 'Error al generar escenarios'
@@ -998,7 +999,7 @@ const loadScenarios = async () => {
       throw new Error(errorMessage)
     }
   } catch (error) {
-    console.error('[v0] Error loading scenarios:', error)
+    console.error('Error loading scenarios:', error)
     showError(`Error al generar escenarios: ${error.message}`)
     // Fallback a datos mock
     await loadMockScenarios()
@@ -1520,11 +1521,11 @@ const getScenarioIcon = (type) => {
 
 const getIndicatorData = (indicator) => {
   const scenario = scenarios.value[selectedScenario.value]
-  console.log(`[v0] getIndicatorData - scenario:`, scenario)
-  console.log(`[v0] getIndicatorData - indicator:`, indicator)
+  console.log(`getIndicatorData - scenario:`, scenario)
+  console.log(`getIndicatorData - indicator:`, indicator)
   
   if (!scenario || !scenario.data) {
-    console.log(`[v0] getIndicatorData - no scenario or data found`)
+    console.log(`getIndicatorData - no scenario or data found`)
     return []
   }
 
@@ -1540,23 +1541,23 @@ const getIndicatorData = (indicator) => {
 
   // Usar el mapeo o el indicador original si no existe mapeo
   const mappedIndicator = indicatorMapping[indicator] || indicator
-  console.log(`[v0] getIndicatorData - mapped indicator: ${indicator} -> ${mappedIndicator}`)
+  console.log(`getIndicatorData - mapped indicator: ${indicator} -> ${mappedIndicator}`)
 
   // Verificar qué indicadores están disponibles en los datos
   if (scenario.data.length > 0) {
-    console.log(`[v0] getIndicatorData - available indicators:`, Object.keys(scenario.data[0].values || {}))
+    console.log(`getIndicatorData - available indicators:`, Object.keys(scenario.data[0].values || {}))
   }
   
   const data = scenario.data.slice(-5).map(d => {
     const value = d.values[mappedIndicator] || d.values[indicator] || 0
-    console.log(`[v0] getIndicatorData - year ${d.year}, indicator ${mappedIndicator}, value:`, value)
+    console.log(`getIndicatorData - year ${d.year}, indicator ${mappedIndicator}, value:`, value)
     return {
       year: d.year,
       value: value
     }
   })
   
-  console.log(`[v0] getIndicatorData - resultado final:`, data)
+  console.log(`getIndicatorData - resultado final:`, data)
   return data
 }
 

@@ -14,13 +14,15 @@ export const isTokenExpired = (token) => {
   }
 }
 
-// Función para hacer peticiones autenticadas con manejo de token expirado
-export const makeAuthenticatedRequest = async (url, options = {}) => {
+export const makeAuthenticatedRequest = async (url, options = {}, router = null) => {
   const token = localStorage.getItem("access_token")
 
+  console.log("Making authenticated request to:", url)
+  
   // Verificar si el token existe y no está expirado
   if (!token || isTokenExpired(token)) {
-    showTokenExpired()
+    console.log("Token is missing or expired")
+    showTokenExpired(router)
     throw new Error("Token expirado")
   }
 
@@ -39,7 +41,8 @@ export const makeAuthenticatedRequest = async (url, options = {}) => {
 
     // Si la respuesta es 401, el token expiró en el servidor
     if (response.status === 401) {
-      showTokenExpired()
+      console.log("Server returned 401, token expired")
+      showTokenExpired(router)
       throw new Error("Token expirado")
     }
 
@@ -52,7 +55,8 @@ export const makeAuthenticatedRequest = async (url, options = {}) => {
 
     // Para otros errores, verificar si podría ser token expirado
     if (error.message.includes("401") || error.message.includes("Unauthorized")) {
-      showTokenExpired()
+      console.log("Request failed with auth error")
+      showTokenExpired(router)
       throw new Error("Token expirado")
     }
 
@@ -60,15 +64,40 @@ export const makeAuthenticatedRequest = async (url, options = {}) => {
   }
 }
 
-// Función para verificar token periódicamente
-export const startTokenValidation = () => {
+export const startTokenValidation = (router = null) => {
+  console.log("Starting token validation interval")
+
   const checkToken = () => {
     const token = localStorage.getItem("access_token")
     if (token && isTokenExpired(token)) {
-      showTokenExpired()
+      console.log("Token validation failed, token expired")
+      showTokenExpired(router)
     }
   }
 
-  // Verificar cada 30 segundos
-  return setInterval(checkToken, 30000)
+  return setInterval(checkToken, 10000) // Check every 10 seconds
+}
+
+export const validateTokenOnRouteChange = (router) => {
+  console.log("Setting up route change token validation")
+
+  router.beforeEach((to, from, next) => {
+    const token = localStorage.getItem("access_token")
+
+    // Skip validation for login page
+    if (to.path === "/iniciar-sesion") {
+      next()
+      return
+    }
+
+    // Check if token exists and is valid for protected routes
+    if (token && isTokenExpired(token)) {
+      console.log("Token expired during route change")
+      showTokenExpired(router)
+      next("/iniciar-sesion")
+      return
+    }
+
+    next()
+  })
 }

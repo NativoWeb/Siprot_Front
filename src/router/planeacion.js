@@ -24,7 +24,7 @@ export default [
     path: "/oferta-educativa",
     name: "EducationalOffer",
     component: () => import("../components/planeacion/EducationalOffer.vue"),
-    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"]},
+    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion"]},
   },
   {
     path: "/dofa",
@@ -36,7 +36,7 @@ export default [
     path: "/escenarios-prospectivos",
     name: "ProspectiveAnalysis",
     component: () => import("../components/planeacion/EscenariosProspectivos.vue"),
-    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion"]},
+    meta:{ requiresAuth: true, roles: ["administrativo", "superadmin", "planeacion", "instructor"] },
   },
   {
     path: "/mis-reportes-planeacion",

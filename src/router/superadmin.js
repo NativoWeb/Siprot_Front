@@ -1,10 +1,10 @@
+import AuditComponent from "../components/superadmin/catalogs-management/AuditComponent.vue";
 import DocumentsTypeComponent from "../components/superadmin/catalogs-management/DocumentsTypeComponent.vue";
 import EconomicSectorsComponent from "../components/superadmin/catalogs-management/EconomicSectorsComponent.vue";
 import MedularLinesComponent from "../components/superadmin/catalogs-management/MedularLinesComponent.vue";
-import ProspectivesComponent from "../components/superadmin/catalogs-management/ProspectivesComponent.vue";
 import RolesComponent from "../components/superadmin/role-management/RolesComponent.vue";
 import ChangeRolComponent from "../components/superadmin/user-management/ChangeRolComponent.vue";
-import DeleteUserComponent from "../components/superadmin/user-management/DeleteUserComponent.vue";
+import DeleteUserComponent from "../components/superadmin/user-management/UserDeleteModal.vue";
 import UserListComponent from "../components/superadmin/user-management/UserListComponent.vue";
 import UserRegisterComponent from "../components/superadmin/user-management/UserRegisterComponent.vue";
 import AdminMainView from "../views/superadmin/AdminMainView.vue";
@@ -56,10 +56,10 @@ const superadminRoutes = [
     component: DocumentsTypeComponent
   },
   {
-    path: '/prospectivas',
-    name: 'Prospectives',
-    component: ProspectivesComponent
-  }
+    path: '/auditorias',
+    name: 'Audits',
+    component: AuditComponent
+  },
 ]
 
 export default superadminRoutes

@@ -242,31 +242,30 @@
       </div>
     </div>
 
-    <!-- Modal simple para ver detalles del usuario -->
-    <div v-if="showDetailModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
-      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <div class="mt-3">
-          <h3 class="text-lg font-medium text-gray-900 mb-4">Detalles del Usuario</h3>
-          <div v-if="userToView" class="space-y-3">
-            <div><strong>Nombre:</strong> {{ getFullName(userToView) }}</div>
-            <div><strong>Email:</strong> {{ userToView.email }}</div>
-            <div><strong>Teléfono:</strong> {{ userToView.phone_number || 'No especificado' }}</div>
-            <div><strong>Rol:</strong> {{ getRoleLabel(userToView.role) }}</div>
-            <div><strong>Estado:</strong> {{ getStatusLabel(userToView.is_active) }}</div>
-            <div><strong>Fecha de registro:</strong> {{ formatDate(userToView.created_at) }}</div>
-            <div v-if="userToView.additional_notes"><strong>Notas:</strong> {{ userToView.additional_notes }}</div>
-          </div>
-          <div class="flex justify-end mt-6">
-            <button
-              @click="closeDetailModal"
-              class="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400 transition-colors duration-150"
-            >
-              Cerrar
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Modal de detalles usando componente separado -->
+    <UserDetailModal
+      :show="showDetailModal"
+      :user="userToView"
+      @close="closeDetailModal"
+    />
+
+    <!-- Modal de edición usando componente separado -->
+    <UserEditModal
+      :show="showEditModal"
+      :user="userToEdit"
+      :isUpdating="isUpdating"
+      @close="closeEditModal"
+      @update="handleUserUpdate"
+    />
+
+    <!-- Modal de eliminación usando componente separado -->
+    <UserDeleteModal
+      :show="showDeleteModal"
+      :user="userToDelete"
+      @close="closeDeleteModal"
+      @deleted="handleUserDeleted"
+      @error="handleDeleteError"
+    />
 
     <!-- Notificaciones -->
     <div 
@@ -327,6 +326,9 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
+import UserDetailModal from './UserDetailModal.vue'
+import UserEditModal from './UserEditModal.vue'
+import UserDeleteModal from './UserDeleteModal.vue'
 
 interface User {
   id: number;
@@ -341,7 +343,6 @@ interface User {
   updated_at: string;
 }
 
-// Estado
 const users = ref<User[]>([])
 const searchTerm = ref('')
 const roleFilter = ref('all')
@@ -351,15 +352,19 @@ const itemsPerPage = ref(10)
 const isLoading = ref(false)
 const errorMessage = ref('')
 
-// Estado para modales
 const showDetailModal = ref(false)
 const userToView = ref<User | null>(null)
+const showEditModal = ref(false)
+const showDeleteModal = ref(false)
+const userToEdit = ref<User | null>(null)
+const userToDelete = ref<User | null>(null)
+const isUpdating = ref(false)
+const isDeleting = ref(false)
 
-// Estado para notificaciones
-const showNotification = ref(false)
-const showErrorNotification = ref(false)
 const notificationMessage = ref('')
+const showNotification = ref(false)
 const errorNotificationMessage = ref('')
+const showErrorNotification = ref(false)
 
 const fetchUsers = async () => {
   isLoading.value = true
@@ -400,17 +405,14 @@ const fetchUsers = async () => {
   }
 }
 
-// Función para refrescar usuarios
 const refreshUsers = () => {
   fetchUsers()
 }
 
-// Cargar datos al montar el componente
 onMounted(() => {
   fetchUsers()
 })
 
-// Filtrado de usuarios
 const filteredUsers = computed(() => {
   return users.value.filter(user => {
     const fullName = `${user.first_name || ''} ${user.last_name || ''}`.toLowerCase()
@@ -427,7 +429,6 @@ const filteredUsers = computed(() => {
   })
 })
 
-// Paginación
 const totalPages = computed(() => {
   return Math.ceil(filteredUsers.value.length / itemsPerPage.value)
 })
@@ -477,7 +478,6 @@ const goToPage = (page: number) => {
   currentPage.value = page
 }
 
-// Funciones de utilidad
 const getInitials = (firstName: string | null, lastName: string | null) => {
   const firstInitial = firstName ? firstName.charAt(0) : ''
   const lastInitial = lastName ? lastName.charAt(0) : ''
@@ -540,7 +540,6 @@ const formatDate = (dateString: string) => {
   }
 }
 
-// Funciones de notificación
 const showSuccess = (message: string) => {
   notificationMessage.value = message
   showNotification.value = true
@@ -568,13 +567,82 @@ const closeDetailModal = () => {
 }
 
 const editUser = (user: User) => {
-  alert(`Funcionalidad de edición para ${user.email} - Implementar modal de edición`)
+  userToEdit.value = user
+  showEditModal.value = true
+}
+
+const closeEditModal = () => {
+  showEditModal.value = false
+  userToEdit.value = null
+}
+
+const handleUserUpdate = async (formData: any) => {
+  if (!userToEdit.value) return
+  
+  isUpdating.value = true
+  
+  try {
+    const token = localStorage.getItem('access_token')
+    if (!token) {
+      throw new Error('No autorizado. Inicie sesión.')
+    }
+
+    const res = await fetch(`http://localhost:8000/users/${userToEdit.value.id}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(formData)
+    })
+
+    if (!res.ok) {
+      if (res.status === 401) {
+        localStorage.removeItem('access_token')
+        throw new Error('Sesión expirada. Inicie sesión nuevamente.')
+      }
+      const errorData = await res.json()
+      throw new Error(errorData.detail || 'Error al actualizar usuario')
+    }
+
+    const updatedUser = await res.json()
+    
+    const index = users.value.findIndex(u => u.id === userToEdit.value!.id)
+    if (index !== -1) {
+      users.value[index] = updatedUser
+    }
+    
+    showSuccess('Usuario actualizado correctamente')
+    closeEditModal()
+  } catch (error: any) {
+    console.error('Error al actualizar usuario:', error)
+    showError(error.message || 'Error al actualizar usuario')
+  } finally {
+    isUpdating.value = false
+  }
+}
+
+const handleUserDeleted = () => {
+  fetchUsers()
+  showSuccess('Usuario eliminado correctamente')
+}
+
+const handleDeleteError = (errorMessage: string) => {
+  showError(errorMessage)
 }
 
 const confirmDeleteUser = (user: User) => {
-  if (confirm(`¿Está seguro de que desea desactivar al usuario ${user.email}?`)) {
-    alert('Funcionalidad de eliminación - Implementar lógica de desactivación')
+  if (user.role === 'superadmin') {
+    showError('No se puede desactivar un usuario superadmin')
+    return
   }
+  userToDelete.value = user
+  showDeleteModal.value = true
+}
+
+const closeDeleteModal = () => {
+  showDeleteModal.value = false
+  userToDelete.value = null
 }
 </script>
 

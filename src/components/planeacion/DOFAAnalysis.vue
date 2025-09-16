@@ -500,24 +500,24 @@ const loadDofaData = async () => {
     isLoading.value = true
     error.value = null
     
-    console.log('[v0] Attempting to load DOFA data...')
-    console.log('[v0] Token:', localStorage.getItem('access_token')?.substring(0, 20) + '...')
+    console.log('Attempting to load DOFA data...')
+    console.log('Token:', localStorage.getItem('access_token')?.substring(0, 20) + '...')
     
     const response = await fetch(`${API_BASE_URL}/dofa/matrix`, {
       headers: getAuthHeaders()
     })
     
-    console.log('[v0] Response status:', response.status)
-    console.log('[v0] Response headers:', Object.fromEntries(response.headers.entries()))
+    console.log('Response status:', response.status)
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()))
     
     if (!response.ok) {
       const errorText = await response.text()
-      console.log('[v0] Error response body:', errorText)
+      console.log('Error response body:', errorText)
       throw new Error(`Error ${response.status}: ${response.statusText}`)
     }
     
     const data = await response.json()
-    console.log('[v0] DOFA data received:', data)
+    console.log('DOFA data received:', data)
     
     // Organize data by category
     dofaData.value = {
@@ -527,7 +527,7 @@ const loadDofaData = async () => {
       A: data.amenazas || []
     }
   } catch (err) {
-    console.error('[v0] Error loading DOFA data:', err)
+    console.error('Error loading DOFA data:', err)
     error.value = err instanceof Error ? err.message : 'Error desconocido'
   } finally {
     isLoading.value = false
@@ -716,7 +716,7 @@ const exportToPDF = async () => {
 
 // Initialize component
 onMounted(() => {
-  console.log('[v0] Component mounted, loading DOFA data...')
+  console.log('Component mounted, loading DOFA data...')
   loadDofaData()
 })
 </script>

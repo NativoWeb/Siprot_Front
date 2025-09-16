@@ -1,5 +1,5 @@
 <script setup lang="ts">
-  import BarChat from '../charts/BarChart.vue'
+  import BarChart from '../charts/BarChart.vue'
 </script>
 
 <template>

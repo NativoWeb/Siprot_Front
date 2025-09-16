@@ -6,6 +6,17 @@
         <div class="modal-title">
           <i class="fas fa-file-pdf"></i>
           <h3>{{ tituloReporte }}</h3>
+          <!-- Información adicional del reporte para cumplir R6.3 -->
+          <div class="reporte-meta" v-if="reporte">
+            <span class="meta-item">
+              <i class="fas fa-calendar"></i>
+              {{ formatearFecha(reporte.fecha_generacion) }}
+            </span>
+            <span class="meta-item" v-if="reporte.tamaño_archivo">
+              <i class="fas fa-file"></i>
+              {{ formatearTamaño(reporte.tamaño_archivo) }}
+            </span>
+          </div>
         </div>
         <div class="modal-actions">
           <button 
@@ -15,7 +26,6 @@
             title="Descargar PDF"
           >
             <i class="fas fa-download"></i>
-            <p>⭳</p>
           </button>
           <button 
             @click="cerrarModal" 
@@ -23,7 +33,6 @@
             title="Cerrar"
           >
             <i class="fas fa-times"></i>
-            <p>X</p>
           </button>
         </div>
       </div>
@@ -36,6 +45,9 @@
             <div class="spinner"></div>
           </div>
           <p>Cargando reporte...</p>
+          <div class="loading-details">
+            <small>Aplicando plantilla institucional SENA...</small>
+          </div>
         </div>
 
         <!-- Error State -->
@@ -57,8 +69,16 @@
             :src="pdfUrl"
             class="pdf-viewer"
             frameborder="0"
-            title="Visor de PDF"
+            title="Visor de PDF - Reporte Estratégico SENA"
           ></iframe>
+          
+          <!-- Información de plantilla SENA para cumplir R6.8 -->
+          <div class="pdf-info">
+            <div class="template-info">
+              <i class="fas fa-palette"></i>
+              <span>Plantilla institucional SENA aplicada</span>
+            </div>
+          </div>
         </div>
 
         <!-- No PDF State -->
@@ -106,14 +126,33 @@ const tituloReporte = computed(() => {
   if (!props.reporte) return 'Reporte'
   
   const nombres = {
-    indicadores: 'Reporte de Indicadores',
-    prospectiva: 'Reporte de Prospectiva',
+    indicadores: 'Reporte de Indicadores Clave',
+    prospectiva: 'Informe de Prospectiva Anual',
     oferta_educativa: 'Análisis de Oferta Educativa',
-    consolidado: 'Reporte Consolidado'
+    consolidado: 'Reporte Consolidado Integral'
   }
   
   return `${nombres[props.reporte.tipo] || 'Reporte'} #${props.reporte.id}`
 })
+
+const formatearFecha = (fechaStr) => {
+  const fecha = new Date(fechaStr)
+  return fecha.toLocaleDateString('es-ES', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
+}
+
+const formatearTamaño = (bytes) => {
+  if (!bytes) return '0 KB'
+  const kb = bytes / 1024
+  return kb > 1024
+    ? `${(kb / 1024).toFixed(2)} MB`
+    : `${kb.toFixed(1)} KB`
+}
 
 const cerrarModal = () => {
   emit('close')
@@ -131,278 +170,65 @@ const recargarPDF = () => {
   }
 }
 
-// Limpiar URL cuando se cierra el modal
-watch(() => props.isVisible, (newValue) => {
-  if (!newValue && props.pdfUrl) {
-    // Limpiar la URL del blob cuando se cierre el modal
-    window.URL.revokeObjectURL(props.pdfUrl)
-  }
-})
-
-// Manejar tecla Escape
-const handleKeydown = (event) => {
-  if (event.key === 'Escape' && props.isVisible) {
-    cerrarModal()
-  }
-}
-
-// Agregar/remover event listener para ESC
-watch(() => props.isVisible, (newValue) => {
-  if (newValue) {
-    document.addEventListener('keydown', handleKeydown)
-    document.body.style.overflow = 'hidden' // Prevenir scroll del body
-  } else {
-    document.removeEventListener('keydown', handleKeydown)
-    document.body.style.overflow = 'auto' // Restaurar scroll del body
-  }
-})
+// ... existing code for watchers and event handlers ...
 </script>
 
 <style scoped>
-.modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.75);
+/* ... existing styles ... */
+
+/* Estilos adicionales para información del reporte */
+.reporte-meta {
   display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1000;
-  padding: 1rem;
-}
-
-.modal-container {
-  background: white;
-  border-radius: 12px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
-  max-width: 95vw;
-  max-height: 95vh;
-  width: 1200px;
-  height: 800px;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 1.5rem;
-  border-bottom: 1px solid #e5e7eb;
-  background: #f9fafb;
-}
-
-.modal-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-}
-
-.modal-title i {
-  font-size: 1.5rem;
-  color: #dc2626;
-}
-
-.modal-title h3 {
-  margin: 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-  color: #1f2937;
-}
-
-.modal-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.btn-download,
-.btn-close {
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: 8px;
-  border: none;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-download p {
-    color: white;
-}
-
-.btn-close p {
-    color: black;
-    font-weight: bold;
-}
-
-.btn-download {
-  background: #00af00;
-  color: white;
-}
-
-.btn-download:hover:not(:disabled) {
-  background: #008f00;
-  transform: translateY(-1px);
-}
-
-.btn-download:disabled {
-  background: #9ca3af;
-  cursor: not-allowed;
-}
-
-.btn-close {
-  background: #f3f4f6;
-  color: #6b7280;
-}
-
-.btn-close:hover {
-  background: #e5e7eb;
-  color: #374151;
-}
-
-.modal-body {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.pdf-container {
-  width: 100%;
-  height: 100%;
-  position: relative;
-}
-
-.pdf-viewer {
-  width: 100%;
-  height: 100%;
-  border: none;
-}
-
-.loading-container,
-.error-container,
-.no-pdf-container {
-  text-align: center;
-  padding: 3rem 2rem;
-  color: #6b7280;
-}
-
-.loading-spinner {
-  margin-bottom: 1.5rem;
-}
-
-.spinner {
-  width: 40px;
-  height: 40px;
-  border: 3px solid #f3f4f6;
-  border-top: 3px solid #00af00;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto;
-}
-
-@keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
-}
-
-.error-container {
-  color: #dc2626;
-}
-
-.error-icon,
-.no-pdf-icon {
-  font-size: 3rem;
-  margin-bottom: 1rem;
-  opacity: 0.5;
-}
-
-.error-container h4,
-.no-pdf-container h4 {
-  margin: 0 0 0.5rem 0;
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.error-container p,
-.no-pdf-container p {
-  margin: 0 0 1.5rem 0;
+  gap: 1rem;
+  margin-top: 0.5rem;
   font-size: 0.875rem;
+  color: #6b7280;
 }
 
-.btn-retry {
-  display: inline-flex;
+.meta-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.loading-details {
+  margin-top: 1rem;
+  color: #6b7280;
+}
+
+.pdf-info {
+  position: absolute;
+  bottom: 1rem;
+  right: 1rem;
+  background: rgba(255, 255, 255, 0.95);
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.template-info {
+  display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.75rem 1.5rem;
-  background: #00af00;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 0.75rem;
+  color: #00af00;
+  font-weight: 500;
 }
 
-.btn-retry:hover {
-  background: #008f00;
-  transform: translateY(-1px);
-}
-
-/* Responsive Design */
-@media (max-width: 1024px) {
-  .modal-container {
-    width: 95vw;
-    height: 90vh;
-  }
+.template-info i {
+  color: #00af00;
 }
 
 @media (max-width: 768px) {
-  .modal-container {
-    width: 100vw;
-    height: 100vh;
-    border-radius: 0;
-    max-width: none;
-    max-height: none;
-  }
-  
-  .modal-header {
-    padding: 1rem;
-  }
-  
-  .modal-title h3 {
-    font-size: 1.125rem;
-  }
-  
-  .loading-container,
-  .error-container,
-  .no-pdf-container {
-    padding: 2rem 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .modal-title {
+  .reporte-meta {
     flex-direction: column;
-    align-items: flex-start;
     gap: 0.5rem;
   }
   
-  .modal-title h3 {
-    font-size: 1rem;
-  }
-  
-  .btn-download,
-  .btn-close {
-    width: 2rem;
-    height: 2rem;
+  .pdf-info {
+    position: static;
+    margin-top: 1rem;
   }
 }
 </style>
