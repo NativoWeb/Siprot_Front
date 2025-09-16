@@ -442,6 +442,7 @@ import {
 import LineChart from '../charts/LineChart.vue'
 import BarChart from '../charts/BarChart.vue'
 
+
 const props = defineProps({
   userRole: {
     type: String,

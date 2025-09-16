@@ -6,12 +6,13 @@ import { jwtDecode } from 'jwt-decode'
 import GenerateReport from '../../components/administrativo/GenerateReport.vue'
 import ReportList from '../../components/administrativo/ReportList.vue'
 
+// All hooks must be called at the top level
 const router = useRouter()
 const activeTab = ref('generar')
 const mostrarModalGenerar = ref(false)
-
-// Sistema de Toast Global
 const toasts = ref([])
+
+// Variables that are not hooks
 let toastIdCounter = 0
 
 // Función para agregar un toast
@@ -60,6 +61,24 @@ provide('toast', {
   removeToast
 })
 
+const onReporteGenerado = (reporte) => {
+  // Cambiar a la pestaña de "Mis Reportes" después de generar
+  setTimeout(() => {
+    activeTab.value = 'mis-reportes'
+  }, 2000) // Esperar 2 segundos para que el usuario vea el toast de éxito
+}
+
+const onReporteEliminado = (reporteId) => {
+  console.log('Reporte eliminado:', reporteId)
+  // Agregar toast de eliminación
+  addToast(
+    'success',
+    'Reporte Eliminado',
+    `El reporte #${reporteId} ha sido eliminado exitosamente`,
+    3000
+  )
+}
+
 onMounted(() => {
   const token = localStorage.getItem('access_token')
   if (!token) {
@@ -86,24 +105,6 @@ onMounted(() => {
     router.push('/iniciar-sesion')
   }
 })
-
-const onReporteGenerado = (reporte) => {
-  // Cambiar a la pestaña de "Mis Reportes" después de generar
-  setTimeout(() => {
-    activeTab.value = 'mis-reportes'
-  }, 2000) // Esperar 2 segundos para que el usuario vea el toast de éxito
-}
-
-const onReporteEliminado = (reporteId) => {
-  console.log('Reporte eliminado:', reporteId)
-  // Agregar toast de eliminación
-  addToast(
-    'success',
-    'Reporte Eliminado',
-    `El reporte #${reporteId} ha sido eliminado exitosamente`,
-    3000
-  )
-}
 </script>
 
 <template>

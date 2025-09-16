@@ -1,14 +1,383 @@
+<script setup>
+import { ref, inject, onMounted, computed } from 'vue'
+import { useReports } from '/src/composables/useReports'
+import EducationalOffer from '../planeacion/EducationalOffer.vue'
+import DOFAAnalysis from '../planeacion/DOFAAnalysis.vue'
+import EscenariosProspectivos from '../planeacion/EscenariosProspectivos.vue'
+
+// All hooks must be called at the top level first
+const emit = defineEmits(['reporte-generado'])
+const props = defineProps(['cambiarTab'])
+
+const loading = ref(false)
+const reporteGenerado = ref(null)
+const mostrarModal = ref(false)
+const toasts = ref([])
+
+const educationalOfferRef = ref(null)
+const dofaAnalysisRef = ref(null)
+const escenariosProspectivosRef = ref(null)
+
+const datosModulos = ref({
+  oferta_educativa: {
+    programas: [],
+    estadisticas: {},
+    cargando: false
+  },
+  dofa: {
+    matriz: { D: [], O: [], F: [], A: [] },
+    estadisticas: {},
+    cargando: false
+  },
+  escenarios: {
+    scenarios: {},
+    selectedScenario: 'tendencial',
+    cargando: false
+  }
+})
+
+// Inyectar las funciones de toast del componente padre
+const toast = inject('toast', {
+  addToast: () => {},
+  updateToast: () => {},
+  removeToast: () => {}
+})
+
+// useReports hook called at top level
+const {
+  generarReporte,
+  resetFormData,
+  error,
+  isAuthenticated,
+  logout
+} = useReports()
+
+
+// Non-hook variables and constants
+const tiposReporte = ref([
+  {
+    tipo: 'indicadores',
+    nombre: 'Reporte de Indicadores Clave',
+    descripcion: 'Consolida indicadores de oferta educativa, DOFA y escenarios prospectivos con datos actualizados.',
+    tiempo_estimado: '2-3 min',
+    opciones_disponibles: ['Datos en tiempo real', 'Análisis de tendencias', 'Estado semáforo'],
+    fuentes_datos: ['oferta_educativa', 'dofa', 'escenarios']
+  },
+  {
+    tipo: 'prospectiva',
+    nombre: 'Informe de Prospectiva Anual',
+    descripcion: 'Análisis prospectivo basado en escenarios reales y matriz DOFA actualizada.',
+    tiempo_estimado: '3-4 min',
+    opciones_disponibles: ['Escenarios reales', 'Análisis DOFA integrado', 'Recomendaciones estratégicas'],
+    fuentes_datos: ['escenarios', 'dofa']
+  },
+  {
+    tipo: 'oferta_educativa',
+    nombre: 'Análisis de Oferta Educativa',
+    descripcion: 'Evaluación completa basada en datos reales de programas educativos y su impacto.',
+    tiempo_estimado: '2-3 min',
+    opciones_disponibles: ['Programas actuales', 'Cobertura real', 'Métricas de calidad'],
+    fuentes_datos: ['oferta_educativa']
+  },
+  {
+    tipo: 'consolidado',
+    nombre: 'Reporte Consolidado Integral',
+    descripcion: 'Reporte completo que integra datos reales de todos los módulos del sistema.',
+    tiempo_estimado: '4-5 min',
+    opciones_disponibles: ['Todos los módulos', 'Análisis integral', 'Conclusiones basadas en datos reales'],
+    fuentes_datos: ['oferta_educativa', 'dofa', 'escenarios']
+  }
+])
+
+const indicadoresReales = computed(() => {
+  const indicadores = []
+  
+  // Indicadores de Oferta Educativa
+  if (datosModulos.value.oferta_educativa.programas.length > 0) {
+    const programas = datosModulos.value.oferta_educativa.programas
+    const totalProgramas = programas.length
+    const sectoresUnicos = [...new Set(programas.map(p => p.sector))].length
+    const nivelesUnicos = [...new Set(programas.map(p => p.level))].length
+    
+    indicadores.push(
+      {
+        id: 'total_programas',
+        nombre: 'Total de Programas Educativos',
+        categoria: 'Oferta Educativa',
+        valor_actual: totalProgramas,
+        unidad: 'programas',
+        estado_semaforo: totalProgramas > 20 ? 'verde' : totalProgramas > 10 ? 'amarillo' : 'rojo',
+        fuente: 'oferta_educativa'
+      },
+      {
+        id: 'diversidad_sectores',
+        nombre: 'Diversidad de Sectores',
+        categoria: 'Oferta Educativa',
+        valor_actual: sectoresUnicos,
+        unidad: 'sectores',
+        estado_semaforo: sectoresUnicos > 5 ? 'verde' : sectoresUnicos > 3 ? 'amarillo' : 'rojo',
+        fuente: 'oferta_educativa'
+      }
+    )
+  }
+  
+  // Indicadores DOFA
+  const totalItemsDofa = Object.values(datosModulos.value.dofa.matriz).reduce((sum, items) => sum + items.length, 0)
+  if (totalItemsDofa > 0) {
+    indicadores.push(
+      {
+        id: 'items_dofa',
+        nombre: 'Elementos en Matriz DOFA',
+        categoria: 'Análisis Estratégico',
+        valor_actual: totalItemsDofa,
+        unidad: 'elementos',
+        estado_semaforo: totalItemsDofa > 20 ? 'verde' : totalItemsDofa > 10 ? 'amarillo' : 'rojo',
+        fuente: 'dofa'
+      },
+      {
+        id: 'fortalezas_vs_debilidades',
+        nombre: 'Ratio Fortalezas/Debilidades',
+        categoria: 'Análisis Estratégico',
+        valor_actual: datosModulos.value.dofa.matriz.D.length > 0 ? 
+          (datosModulos.value.dofa.matriz.F.length / datosModulos.value.dofa.matriz.D.length).toFixed(2) : 0,
+        unidad: 'ratio',
+        estado_semaforo: datosModulos.value.dofa.matriz.F.length > datosModulos.value.dofa.matriz.D.length ? 'verde' : 'amarillo',
+        fuente: 'dofa'
+      }
+    )
+  }
+  
+  // Indicadores de Escenarios
+  const totalEscenarios = Object.keys(datosModulos.value.escenarios.scenarios).length
+  if (totalEscenarios > 0) {
+    indicadores.push({
+      id: 'escenarios_disponibles',
+      nombre: 'Escenarios Prospectivos Disponibles',
+      categoria: 'Prospectiva',
+      valor_actual: totalEscenarios,
+      unidad: 'escenarios',
+      estado_semaforo: totalEscenarios >= 3 ? 'verde' : totalEscenarios >= 2 ? 'amarillo' : 'rojo',
+      fuente: 'escenarios'
+    })
+  }
+  
+  return indicadores
+})
+
+const escenariosReales = computed(() => {
+  return Object.entries(datosModulos.value.escenarios.scenarios).map(([key, scenario]) => ({
+    id: key,
+    nombre: scenario.scenario_name || `Escenario ${key}`,
+    tipo: scenario.scenario_type || key,
+    descripcion: scenario.description || `Análisis prospectivo ${key}`,
+    datos_disponibles: scenario.data ? scenario.data.length : 0
+  }))
+})
+
+const formData = ref({
+  tipo: '',
+  parametros: {
+    indicadores_seleccionados: [],
+    escenarios_seleccionados: [],
+    fecha_inicio: '',
+    fecha_fin: '',
+    comentarios_analista: '',
+    incluir_graficas: true,
+    incluir_dofa: true,
+    incluir_documentos_recientes: true,
+    usar_datos_tiempo_real: true,
+    incluir_estadisticas_modulos: true,
+    nivel_detalle: 'completo'
+  }
+})
+
+const cargarDatosModulos = async () => {
+  try {
+    // Cargar datos de Oferta Educativa
+    if (educationalOfferRef.value && educationalOfferRef.value.loadPrograms) {
+      datosModulos.value.oferta_educativa.cargando = true
+      await educationalOfferRef.value.loadPrograms()
+      datosModulos.value.oferta_educativa.programas = educationalOfferRef.value.programs || []
+      datosModulos.value.oferta_educativa.cargando = false
+    }
+    
+    // Cargar datos DOFA
+    if (dofaAnalysisRef.value && dofaAnalysisRef.value.loadDofaData) {
+      datosModulos.value.dofa.cargando = true
+      await dofaAnalysisRef.value.loadDofaData()
+      datosModulos.value.dofa.matriz = dofaAnalysisRef.value.dofaData || { D: [], O: [], F: [], A: [] }
+      datosModulos.value.dofa.cargando = false
+    }
+    
+    // Cargar datos de Escenarios
+    if (escenariosProspectivosRef.value && escenariosProspectivosRef.value.loadScenarios) {
+      datosModulos.value.escenarios.cargando = true
+      await escenariosProspectivosRef.value.loadScenarios()
+      datosModulos.value.escenarios.scenarios = escenariosProspectivosRef.value.scenarios || {}
+      datosModulos.value.escenarios.cargando = false
+    }
+    
+    console.log('Datos de módulos cargados:', datosModulos.value)
+  } catch (error) {
+    console.error('Error cargando datos de módulos:', error)
+    toast.addToast('error', 'Error', 'No se pudieron cargar los datos de los módulos', 5000)
+  }
+}
+
+// Functions (not hooks)
+const setPresetPeriod = (preset) => {
+  const today = new Date()
+  const currentYear = today.getFullYear()
+  
+  switch (preset) {
+    case 'ultimo_año':
+      formData.value.parametros.fecha_inicio = `${currentYear - 1}-01-01`
+      formData.value.parametros.fecha_fin = `${currentYear - 1}-12-31`
+      break
+    case 'ultimos_5_años':
+      formData.value.parametros.fecha_inicio = `${currentYear - 5}-01-01`
+      formData.value.parametros.fecha_fin = `${currentYear - 1}-12-31`
+      break
+    case 'año_actual':
+      formData.value.parametros.fecha_inicio = `${currentYear}-01-01`
+      formData.value.parametros.fecha_fin = today.toISOString().split('T')[0]
+      break
+  }
+}
+
+const seleccionarTipo = (tipo) => {
+  formData.value.tipo = tipo
+  // Resetear parámetros específicos
+  formData.value.parametros.indicadores_seleccionados = []
+  formData.value.parametros.escenarios_seleccionados = []
+}
+
+
+const generarNuevoReporte = async () => {
+  if (!formData.value.tipo) {
+    toast.addToast('error', 'Error', 'Debe seleccionar un tipo de reporte', 3000)
+    return
+  }
+
+  loading.value = true
+  const toastId = toast.addToast(
+    'generating',
+    'Generando Reporte',
+    `Compilando ${tiposReporte.value.find(t => t.tipo === formData.value.tipo)?.nombre}...`,
+    null,
+    0
+  )
+
+  try {
+    // 🔹 Simular progreso por etapas
+    const etapas = [
+      'Recopilando datos de oferta educativa...',
+      'Analizando matriz DOFA...',
+      'Procesando escenarios prospectivos...',
+      'Generando gráficas y análisis...',
+      'Compilando reporte final...'
+    ]
+
+    for (let i = 0; i < etapas.length; i++) {
+      await new Promise(resolve => setTimeout(resolve, 400))
+      toast.updateToast(toastId, {
+        progress: (i + 1) * 20,
+        message: etapas[i]
+      })
+    }
+
+    // 🔹 Llamada al backend
+    const reporteResponse = await generarReporte({
+      tipo: formData.value.tipo,
+      parametros: formData.value.parametros
+    })
+
+    // 🔹 Toast de éxito con estadísticas si existen
+    if (reporteResponse.estadisticas_modulos) {
+      const estadisticas = reporteResponse.estadisticas_modulos
+      const resumenDatos = `Incluye ${estadisticas.oferta_educativa?.total_programas || 0} programas, ${estadisticas.dofa?.total_elementos || 0} elementos DOFA, ${estadisticas.escenarios?.total_escenarios || 0} escenarios`
+
+      toast.updateToast(toastId, {
+        type: 'success',
+        title: 'Reporte Generado',
+        message: `El reporte #${reporteResponse.id} fue creado correctamente. ${resumenDatos}`,
+        progress: null
+      })
+    } else {
+      toast.updateToast(toastId, {
+        type: 'success',
+        title: 'Reporte Generado',
+        message: `El reporte #${reporteResponse.id} fue creado correctamente (estado: ${reporteResponse.estado})`,
+        progress: null
+      })
+    }
+
+    // Auto-remover después de 5s
+    setTimeout(() => {
+      toast.removeToast(toastId)
+    }, 5000)
+
+    emit('reporte-generado', reporteResponse)
+    resetFormData()
+  } catch (error) {
+    console.error('Error generando reporte:', error)
+    toast.updateToast(toastId, {
+      type: 'error',
+      title: 'Error en Generación',
+      message: error.message || 'No se pudo generar el reporte en el servidor.',
+      progress: null
+    })
+
+    setTimeout(() => {
+      toast.removeToast(toastId)
+    }, 5000)
+  } finally {
+    loading.value = false
+  }
+}
+
+const cerrarModal = () => {
+  mostrarModal.value = false
+}
+
+onMounted(() => {
+  if (!isAuthenticated()) {
+    logout()
+    return
+  }
+  
+  cargarDatosModulos()
+})
+</script>
+
 <template>
   <div class="generar-reporte">
-      <!-- Header Section -->
-      <div class="header-section">
-        <div class="header-content">
-          <div class="title-group">
-            <i class="fas fa-plus-circle title-icon"></i>
-            <h2 class="section-title">Generar Nuevo Reporte</h2>
-          </div>
+    <!-- Componentes de módulos ocultos para acceso a datos -->
+    <div style="display: none;">
+      <EducationalOffer ref="educationalOfferRef" />
+      <DOFAAnalysis ref="dofaAnalysisRef" />
+      <EscenariosProspectivos ref="escenariosProspectivosRef" />
+    </div>
+
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="header-content">
+        <div class="title-group">
+          <i class="fas fa-plus-circle title-icon"></i>
+          <h2 class="section-title">Generar Nuevo Reporte</h2>
+        </div>
+        <!-- Indicador de estado de datos -->
+        <div class="datos-estado">
+          <span class="estado-badge" :class="{ 
+            'verde': !Object.values(datosModulos).some(m => m.cargando),
+            'amarillo': Object.values(datosModulos).some(m => m.cargando)
+          }">
+            <i class="fas fa-database"></i>
+            {{ Object.values(datosModulos).some(m => m.cargando) ? 'Cargando datos...' : 'Datos actualizados' }}
+          </span>
         </div>
       </div>
+    </div>
 
     <div class="page-container">
       <form @submit.prevent="generarNuevoReporte" class="form-container">
@@ -34,6 +403,26 @@
                 <span class="tiempo-badge">{{ tipo.tiempo_estimado }}</span>
               </div>
               <p class="tipo-descripcion">{{ tipo.descripcion }}</p>
+              <!-- Mostrar fuentes de datos -->
+              <div class="fuentes-datos">
+                <span class="fuentes-label">Fuentes de datos:</span>
+                <div class="fuentes-chips">
+                  <span 
+                    v-for="fuente in tipo.fuentes_datos" 
+                    :key="fuente"
+                    class="fuente-chip"
+                    :class="{ 
+                      'activa': !datosModulos[fuente]?.cargando && 
+                               (fuente === 'oferta_educativa' ? datosModulos[fuente].programas.length > 0 :
+                                fuente === 'dofa' ? Object.values(datosModulos[fuente].matriz).some(arr => arr.length > 0) :
+                                fuente === 'escenarios' ? Object.keys(datosModulos[fuente].scenarios).length > 0 : false)
+                    }"
+                  >
+                    <i class="fas fa-circle status-dot"></i>
+                    {{ fuente.replace('_', ' ').toUpperCase() }}
+                  </span>
+                </div>
+              </div>
               <div class="opciones-container">
                 <span 
                   v-for="opcion in tipo.opciones_disponibles" 
@@ -47,7 +436,7 @@
           </div>
         </div>
 
-        <!-- Configuración específica por tipo -->
+        <!-- Configuración específica mejorada -->
         <div v-if="formData.tipo" class="section-card configuracion-card">
           <div class="card-header">
             <h3 class="card-title">
@@ -56,12 +445,12 @@
             </h3>
           </div>
           
-          <!-- Selección de indicadores (para reportes de indicadores) -->
-          <div v-if="formData.tipo === 'indicadores'" class="form-group">
+          <!-- Selección de indicadores reales -->
+          <div v-if="formData.tipo === 'indicadores' || formData.tipo === 'consolidado'" class="form-group">
             <div class="group-header">
               <label class="group-label">
                 <i class="fas fa-list-check"></i>
-                Indicadores a Incluir
+                Indicadores a Incluir (Datos Reales)
               </label>
               <span class="selection-count" v-if="formData.parametros.indicadores_seleccionados.length">
                 {{ formData.parametros.indicadores_seleccionados.length }} seleccionados
@@ -69,7 +458,7 @@
             </div>
             <div class="indicadores-selector">
               <div 
-                v-for="indicador in indicadores" 
+                v-for="indicador in indicadoresReales" 
                 :key="indicador.id"
                 class="indicador-item"
               >
@@ -90,6 +479,11 @@
                       <i class="fas fa-tag"></i>
                       {{ indicador.categoria }}
                     </span>
+                    <!-- Mostrar fuente de datos -->
+                    <span class="indicador-fuente">
+                      <i class="fas fa-database"></i>
+                      {{ indicador.fuente.replace('_', ' ') }}
+                    </span>
                   </div>
                   <div class="indicador-valores">
                     <span class="valor-actual">{{ indicador.valor_actual }}{{ indicador.unidad }}</span>
@@ -107,13 +501,72 @@
             </div>
           </div>
 
-          <!-- Rango de fechas -->
+          <!-- Selección de escenarios reales -->
+          <div v-if="formData.tipo === 'prospectiva' || formData.tipo === 'consolidado'" class="form-group">
+            <div class="group-header">
+              <label class="group-label">
+                <i class="fas fa-crystal-ball"></i>
+                Escenarios Prospectivos a Incluir (Datos Reales)
+              </label>
+              <span class="selection-count" v-if="formData.parametros.escenarios_seleccionados.length">
+                {{ formData.parametros.escenarios_seleccionados.length }} seleccionados
+              </span>
+            </div>
+            <div class="escenarios-selector">
+              <div 
+                v-for="escenario in escenariosReales" 
+                :key="escenario.id"
+                class="escenario-item"
+              >
+                <div class="escenario-checkbox-container">
+                  <input 
+                    :id="'esc_' + escenario.id"
+                    type="checkbox" 
+                    :value="escenario.id"
+                    v-model="formData.parametros.escenarios_seleccionados"
+                    class="escenario-checkbox"
+                  />
+                  <label :for="'esc_' + escenario.id" class="checkbox-custom"></label>
+                </div>
+                <label :for="'esc_' + escenario.id" class="escenario-label">
+                  <div class="escenario-info">
+                    <span class="escenario-nombre">{{ escenario.nombre }}</span>
+                    <span class="escenario-tipo">
+                      <i class="fas fa-tag"></i>
+                      {{ escenario.tipo }}
+                    </span>
+                    <!-- Mostrar cantidad de datos disponibles -->
+                    <span class="datos-disponibles">
+                      <i class="fas fa-chart-line"></i>
+                      {{ escenario.datos_disponibles }} puntos de datos
+                    </span>
+                  </div>
+                  <div class="escenario-descripcion">
+                    {{ escenario.descripcion }}
+                  </div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Rango de fechas mejorado para cumplir R6.6 -->
           <div class="form-group">
             <div class="group-header">
               <label class="group-label">
                 <i class="fas fa-calendar-alt"></i>
                 Periodo de Análisis
               </label>
+              <div class="preset-buttons">
+                <button type="button" @click="setPresetPeriod('ultimo_año')" class="preset-btn">
+                  Último Año
+                </button>
+                <button type="button" @click="setPresetPeriod('ultimos_5_años')" class="preset-btn">
+                  Últimos 5 Años
+                </button>
+                <button type="button" @click="setPresetPeriod('año_actual')" class="preset-btn">
+                  Año Actual
+                </button>
+              </div>
             </div>
             <div class="form-row">
               <div class="input-group">
@@ -141,7 +594,7 @@
             </div>
           </div>
 
-          <!-- Comentarios del analista -->
+          <!-- Comentarios del analista mejorados para cumplir R6.6 -->
           <div class="form-group">
             <div class="group-header">
               <label class="group-label">
@@ -153,12 +606,61 @@
             <div class="textarea-container">
               <textarea 
                 v-model="formData.parametros.comentarios_analista"
-                placeholder="Agregue comentarios adicionales para el análisis que considere relevantes..."
+                placeholder="Agregue comentarios adicionales, contexto específico, o notas relevantes para el análisis que considere importantes para este reporte..."
                 class="form-textarea"
                 rows="4"
+                maxlength="500"
               ></textarea>
               <div class="textarea-counter">
                 {{ formData.parametros.comentarios_analista?.length || 0 }}/500
+              </div>
+            </div>
+          </div>
+
+          <!-- Opciones adicionales de personalización para cumplir R6.6 -->
+          <div class="form-group">
+            <div class="group-header">
+              <label class="group-label">
+                <i class="fas fa-sliders-h"></i>
+                Opciones Adicionales
+              </label>
+            </div>
+            <div class="opciones-adicionales">
+              <div class="opcion-item">
+                <input 
+                  type="checkbox" 
+                  id="incluir_graficas"
+                  v-model="formData.parametros.incluir_graficas"
+                  class="opcion-checkbox"
+                />
+                <label for="incluir_graficas" class="opcion-label">
+                  <i class="fas fa-chart-line"></i>
+                  Incluir gráficas y visualizaciones
+                </label>
+              </div>
+              <div class="opcion-item">
+                <input 
+                  type="checkbox" 
+                  id="incluir_dofa"
+                  v-model="formData.parametros.incluir_dofa"
+                  class="opcion-checkbox"
+                />
+                <label for="incluir_dofa" class="opcion-label">
+                  <i class="fas fa-th-large"></i>
+                  Incluir análisis DOFA
+                </label>
+              </div>
+              <div class="opcion-item">
+                <input 
+                  type="checkbox" 
+                  id="incluir_documentos_recientes"
+                  v-model="formData.parametros.incluir_documentos_recientes"
+                  class="opcion-checkbox"
+                />
+                <label for="incluir_documentos_recientes" class="opcion-label">
+                  <i class="fas fa-file-alt"></i>
+                  Incluir documentos recientes relevantes
+                </label>
               </div>
             </div>
           </div>
@@ -263,149 +765,6 @@
   </div>
 </template>
 
-<script setup>
-import { ref, onMounted, inject } from 'vue'
-import { useReports } from '../../composables/useReports'
-
-const emit = defineEmits(['reporte-generado'])
-const props = defineProps(['cambiarTab'])
-
-// Inyectar las funciones de toast del componente padre
-const { addToast, updateToast, removeToast } = inject('toast', {
-  addToast: () => {},
-  updateToast: () => {},
-  removeToast: () => {}
-})
-
-const {
-  loading,
-  error,
-  indicadores,
-  tiposReporte,
-  formData,
-  obtenerTiposReportes,
-  obtenerIndicadores,
-  generarReporte,
-  resetFormData,
-  esperarYDescargarReporte,
-  isAuthenticated,
-  logout
-} = useReports()
-
-const reporteGenerado = ref(null)
-const mostrarModal = ref(false)
-
-const seleccionarTipo = (tipo) => {
-  formData.tipo = tipo
-}
-
-const generarNuevoReporte = async () => {
-  let generatingToastId = null
-  
-  try {
-    // Mostrar toast de generación
-    generatingToastId = addToast(
-      'generating',
-      'Generando Reporte',
-      'Procesando tu solicitud...',
-      null,
-      0
-    )
-    
-    const solicitud = {
-      tipo: formData.tipo,
-      parametros: { ...formData.parametros }
-    }
-    
-    // Simular progreso inicial
-    setTimeout(() => updateToast(generatingToastId, { progress: 30 }), 500)
-    
-    const reporte = await generarReporte(solicitud)
-    reporteGenerado.value = reporte
-    
-    // Actualizar progreso
-    updateToast(generatingToastId, { 
-      progress: 60,
-      message: 'Preparando el documento PDF...'
-    })
-    
-    emit('reporte-generado', reporte)
-
-    // Esperar y descargar el reporte
-    updateToast(generatingToastId, { 
-      progress: 80,
-      message: 'Finalizando generación...'
-    })
-    
-    await esperarYDescargarReporte(reporte.id)
-    
-    // Cambiar el toast a éxito
-    updateToast(generatingToastId, {
-      type: 'success',
-      title: '¡Reporte Completado!',
-      message: `Reporte #${reporte.id} generado y descargado exitosamente`,
-      progress: 100
-    })
-    
-    // Mostrar toast de descarga
-    setTimeout(() => {
-      addToast(
-        'downloading',
-        'Descarga Completa',
-        'El reporte ha sido descargado en tu dispositivo',
-        5000
-      )
-    }, 1000)
-    
-    // Remover el toast de éxito después de 5 segundos
-    setTimeout(() => {
-      removeToast(generatingToastId)
-      // Limpiar el formulario después de éxito
-      resetFormData()
-    }, 5000)
-    
-  } catch (err) {
-    console.error('Error al generar reporte:', err)
-    
-    // Si hay un toast de generación, actualizarlo a error
-    if (generatingToastId) {
-      updateToast(generatingToastId, {
-        type: 'error',
-        title: 'Error al Generar',
-        message: err.message || 'Ha ocurrido un error al generar el reporte',
-        progress: null
-      })
-      
-      setTimeout(() => removeToast(generatingToastId), 5000)
-    } else {
-      // Si no hay toast de generación, crear uno de error
-      addToast(
-        'error',
-        'Error',
-        err.message || 'Ha ocurrido un error inesperado',
-        5000
-      )
-    }
-  }
-}
-
-const cerrarModal = () => {
-  mostrarModal.value = false
-  reporteGenerado.value = null
-  resetFormData()
-}
-
-onMounted(async () => {
-  if (!isAuthenticated()) {
-    logout()
-    return
-  }
-
-  await obtenerTiposReportes()
-  await obtenerIndicadores()
-})
-</script>
-
 <style scoped>
 /* Variables CSS - Mantener las existentes */
 .generar-reporte {
@@ -427,7 +786,7 @@ onMounted(async () => {
   --border-radius: 12px;
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0, 0, 0, 0.1), 0 4px 6px -4px rgb(0, 0, 0, 0.1);
 }
 
 /* Sistema de Toast Notifications */
@@ -1425,5 +1784,209 @@ onMounted(async () => {
   .modal-title {
     font-size: 1.25rem;
   }
+}
+
+/* Estilos adicionales para nuevas funcionalidades */
+.preset-buttons {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.preset-btn {
+  padding: 0.5rem 1rem;
+  background: #f3f4f6;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.preset-btn:hover {
+  background: #e5e7eb;
+  border-color: #9ca3af;
+}
+
+.escenarios-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.escenario-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: white;
+  border-radius: 8px;
+  border: 2px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.escenario-item:hover {
+  border-color: #00af00;
+  box-shadow: 0 2px 8px rgba(0, 175, 0, 0.1);
+}
+
+.escenario-label {
+  flex: 1;
+  cursor: pointer;
+}
+
+.escenario-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.escenario-nombre {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.escenario-tipo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #6b7280;
+}
+
+.escenario-descripcion {
+  font-size: 0.875rem;
+  color: #6b7280;
+  line-height: 1.4;
+}
+
+.opciones-adicionales {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f9fafb;
+  border-radius: 8px;
+}
+
+.opcion-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.opcion-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: #00af00;
+}
+
+.opcion-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 500;
+  color: #374151;
+  cursor: pointer;
+}
+
+.opcion-label i {
+  color: #00af00;
+}
+
+@media (max-width: 768px) {
+  .preset-buttons {
+    flex-direction: column;
+  }
+  
+  .preset-btn {
+    width: 100%;
+  }
+}
+
+/* Nuevos estilos para indicadores de datos */
+.datos-estado {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.fuentes-datos {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 0.5rem;
+  border: 1px solid #e9ecef;
+}
+
+.fuentes-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6c757d;
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+.fuentes-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+}
+
+.fuente-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  background: #e9ecef;
+  color: #6c757d;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.fuente-chip.activa {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-dot {
+  font-size: 0.5rem;
+}
+
+.fuente-chip.activa .status-dot {
+  color: #28a745;
+}
+
+.indicador-fuente {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  background: #e3f2fd;
+  color: #1565c0;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.datos-disponibles {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.125rem 0.375rem;
+  background: #f3e5f5;
+  color: #7b1fa2;
+  border-radius: 0.25rem;
+  font-size: 0.7rem;
+  font-weight: 500;
 }
 </style>
