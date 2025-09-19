@@ -3,7 +3,6 @@
     <div class="flex justify-between items-center py-4 px-6">
       <!-- Botón hamburguesa SIEMPRE visible para superadmin -->
       <button
-        v-if="isLoggedIn && role === 'superadmin'"
         @click="sidebarOpen = !sidebarOpen"
         class="text-2xl focus:outline-none mr-4"
       >
@@ -58,6 +57,7 @@
             <li><RouterLink to="/biblioteca-documentos">Biblioteca de Documentos</RouterLink></li>
             <li><RouterLink to="/oferta-educativa">Análisis de oferta educativa</RouterLink></li>
             <li><RouterLink to="/escenarios-prospectivos">Escenarios Prospectivos</RouterLink></li>
+            <li><RouterLink to="/indicadores-estrategicos">Indicadores Estratégicos</RouterLink></li>
             <li><RouterLink to="/dofa">Análisis DOFA Territorial</RouterLink></li>
             <li><RouterLink to="/mis-reportes-planeacion">Mis Reportes</RouterLink></li>
             <li class="cursor-pointer" @click="logout">Salir</li>
@@ -81,6 +81,7 @@
             <li><RouterLink to="/biblioteca-documentos">Biblioteca de Documentos</RouterLink></li>
             <li><RouterLink to="/oferta-educativa">Análisis de oferta educativa</RouterLink></li>
             <li><RouterLink to="/escenarios-prospectivos">Escenarios Prospectivos</RouterLink></li>
+            <li><RouterLink to="/indicadores-estrategicos">Indicadores Estratégicos</RouterLink></li>
             <li><RouterLink to="/dofa">Análisis DOFA Territorial</RouterLink></li>
             <li><RouterLink to="/mis-reportes-administrativo">Mis Reportes</RouterLink></li>
             <li class="cursor-pointer" @click="logout">Salir</li>
@@ -122,6 +123,7 @@
       <li><RouterLink to="/biblioteca-documentos">Biblioteca de Documentos</RouterLink></li>
       <li><RouterLink to="/oferta-educativa">Análisis de oferta educativa</RouterLink></li>
       <li><RouterLink to="/escenarios-prospectivos">Escenarios Prospectivos</RouterLink></li>
+      <li><RouterLink to="/indicadores-estrategicos">Indicadores Estratégicos</RouterLink></li>
       <li><RouterLink to="/dofa">Análisis DOFA Territorial</RouterLink></li>
       <li><RouterLink to="/mis-reportes-planeacion">Mis Reportes</RouterLink></li>
 

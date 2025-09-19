@@ -43,5 +43,11 @@ export default [
     name: "ReportsPlaneacion",
     component: () => import("../views/planeacion/ReportsView.vue"),
     meta: { requiresAuth: true, roles: ["planeacion", "superadmin"] },
-  }
+  },
+  {
+    path: "indicadores-estrategicos",
+    name: "StrategicIndicators",
+    component: () => import("../components/planeacion/IndicadoresEstrategicos.vue"),
+    meta: { requiresAuth: true, roles: ["planeacion", "superadmin", "administrativo"] },
+  },
 ]

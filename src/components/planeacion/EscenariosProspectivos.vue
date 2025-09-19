@@ -1,395 +1,433 @@
 <template>
-  <div class="space-y-6">
-    <!-- Header -->
-    <div class="flex justify-between items-center">
-      <div>
-        <h1 class="text-3xl font-bold">Escenarios Prospectivos</h1>
-        <p class="text-gray-600 mt-2">Exploración de futuros posibles para la planificación educativa</p>
-      </div>
-      <div class="flex gap-2">
-        <button 
-          @click="exportScenario"
-          class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 flex items-center gap-2"
-        >
-          <Download class="h-4 w-4" />
-          Exportar
-        </button>
-      </div>
-    </div>
-
-    <!-- CSV Document Selection with Pagination -->
-    <div class="bg-white rounded-lg shadow p-6">
-      <div class="flex items-center gap-2 mb-4">
-        <FileSpreadsheet class="h-5 w-5" />
-        <h2 class="text-xl font-semibold">Selección de Documentos para Análisis</h2>
-        <span class="text-sm text-gray-500">(CSV y XLSX)</span>
-      </div>
-
-      <!-- Filtros y búsqueda -->
-      <div class="bg-gray-50 rounded-lg p-4 mb-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-          <!-- Búsqueda por título -->
-          <div class="lg:col-span-2">
-            <label class="block text-sm font-medium text-gray-700 mb-1">Buscar documentos</label>
-            <div class="relative">
-              <input
-                v-model="documentFilters.search"
-                type="text"
-                placeholder="Buscar por título..."
-                class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              />
-              <Search class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
-            </div>
-          </div>
-
-          <!-- Filtro por sector -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Sector</label>
-            <select
-              v-model="documentFilters.sector"
-              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Todos los sectores</option>
-              <option v-for="sector in availableSectors" :key="sector" :value="sector">
-                {{ sector }}
-              </option>
-            </select>
-          </div>
-
-          <!-- Filtro por año -->
-          <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
-            <select
-              v-model="documentFilters.year"
-              class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              <option value="">Todos los años</option>
-              <option v-for="year in availableYears" :key="year" :value="year">
-                {{ year }}
-              </option>
-            </select>
+  <div class="min-h-screen bg-gray-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div class="flex justify-between items-center mb-8">
+        <div>
+          <h1 class="text-3xl font-bold text-gray-900">Escenarios Prospectivos</h1>
+          <p class="mt-2 text-gray-600">Exploración de futuros posibles para la planificación educativa</p>
+          <!-- Simplified debug info -->
+          <div class="text-xs text-gray-500 mt-1">
+            Rol: {{ userRole || 'No definido' }}
           </div>
         </div>
-
-        <div class="flex gap-2">
-          <button
-            @click="applyDocumentFilters"
-            class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            <Filter class="h-4 w-4 inline mr-1" />
-            Filtrar
-          </button>
-          <button
-            @click="clearDocumentFilters"
-            class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
-          >
-            <X class="h-4 w-4 inline mr-1" />
-            Limpiar
-          </button>
-        </div>
-      </div>
-
-      <!-- Loading indicator for CSV files -->
-      <div v-if="loadingCsvFiles" class="flex items-center justify-center py-8">
-        <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-        <span class="ml-2 text-gray-600">Cargando archivos...</span>
-      </div>
-
-      <!-- Lista de documentos con paginación -->
-      <div v-else-if="paginatedCsvFiles.length > 0">
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
-          <div
-            v-for="file in paginatedCsvFiles"
-            :key="file.id"
-            @click="selectCsvFile(file)"
+        
+        <div class="flex gap-3">
+          <!-- Simplified condition to match working pattern -->
+          <button 
+            v-if="userRole === 'instructor'"
+            @click="showScenariosList = !showScenariosList"
             :class="[
-              'cursor-pointer transition-all bg-white rounded-lg shadow-md hover:shadow-lg p-4 border-2',
-              selectedCsvFile === file.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
+              'px-4 py-2 rounded-lg font-medium transition-colors',
+              showScenariosList 
+                ? 'bg-green-600 text-white' 
+                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
             ]"
           >
-            <!-- Contenido de la tarjeta del documento -->
-            <div class="flex items-start justify-between mb-3">
-              <div class="flex-1">
-                <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
-                  {{ file.title }}
-                </h3>
-                <div class="flex items-center text-sm text-gray-500 mb-2">
-                  <Calendar class="h-4 w-4 mr-1" />
-                  <span>{{ file.year }}</span>
-                </div>
-                <div class="flex items-center text-xs text-gray-400 mb-2">
-                  <FileText class="h-3 w-3 mr-1" />
-                  <span>{{ file.original_filename || file.title + file.file_extension }}</span>
-                </div>
-              </div>
-              <div class="flex-shrink-0 ml-2 flex flex-col gap-1">
-                <span
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="getDocumentTypeBadgeClass(file.document_type)"
-                >
-                  {{ file.document_type }}
-                </span>
-                <span
-                  class="px-2 py-1 text-xs font-medium rounded-full"
-                  :class="getFileTypeBadgeClass(file.file_extension)"
-                >
-                  {{ file.file_extension.toUpperCase().replace('.', '') }}
-                </span>
-              </div>
-            </div>
-
-            <div class="space-y-2 mb-3">
-              <div class="flex items-center text-sm text-gray-600">
-                <Building class="h-4 w-4 mr-2 text-gray-400" />
-                <span class="font-medium">Sector:</span>
-                <span class="ml-1">{{ file.sector }}</span>
-              </div>
-              <div class="flex items-center text-sm text-gray-600">
-                <Target class="h-4 w-4 mr-2 text-gray-400" />
-                <span class="font-medium">Línea:</span>
-                <span class="ml-1">{{ file.core_line }}</span>
-              </div>
-              <div v-if="file.additional_notes" class="text-sm text-gray-600 line-clamp-2">
-                {{ file.additional_notes }}
-              </div>
-            </div>
-
-            <!-- Indicador de selección -->
-            <div v-if="selectedCsvFile === file.id" class="flex items-center text-blue-600 text-sm font-medium">
-              <CheckCircle class="h-4 w-4 mr-1" />
-              Seleccionado para análisis
-            </div>
-          </div>
-        </div>
-
-        <!-- Controles de paginación -->
-        <div class="flex items-center justify-between border-t border-gray-200 pt-4">
-          <div class="text-sm text-gray-700">
-            Mostrando {{ ((currentPage - 1) * itemsPerPage) + 1 }} a {{ Math.min(currentPage * itemsPerPage, filteredCsvFiles.length) }} 
-            de {{ filteredCsvFiles.length }} documentos
-          </div>
+            📋 Lista de escenarios
+          </button>
           
-          <div class="flex items-center gap-2">
-            <button
-              @click="goToPage(currentPage - 1)"
-              :disabled="currentPage === 1"
-              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronLeft class="h-4 w-4" />
-            </button>
-            
-            <div class="flex gap-1">
-              <button
-                v-for="page in visiblePages"
-                :key="page"
-                @click="goToPage(page)"
-                :class="[
-                  'px-3 py-2 text-sm font-medium rounded-md',
-                  page === currentPage
-                    ? 'bg-blue-600 text-white'
-                    : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
-                ]"
-              >
-                {{ page }}
-              </button>
-            </div>
-            
-            <button
-              @click="goToPage(currentPage + 1)"
-              :disabled="currentPage === totalPages"
-              class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <ChevronRight class="h-4 w-4" />
-            </button>
-          </div>
+          <!-- Hide export button when showing scenarios list -->
+          <button 
+            v-if="scenarioGenerated && !showScenariosList" 
+            @click="exportToPDF" 
+            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            ⬇️ Exportar
+          </button>
         </div>
       </div>
 
-      <!-- Estado vacío -->
-      <div v-else class="text-center py-12">
-        <FileSpreadsheet class="h-16 w-16 text-gray-300 mx-auto mb-4" />
-        <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron documentos</h3>
-        <p class="text-gray-500">
-          {{ hasActiveDocumentFilters ? 'Intenta ajustar los filtros de búsqueda.' : 'Aún no hay documentos CSV o XLSX cargados en el sistema.' }}
-        </p>
-        <p class="text-sm text-gray-400 mt-2">
-          Los archivos deben ser de tipo CSV o XLSX para poder generar escenarios prospectivos.
-        </p>
-      </div>
-      
-      <!-- Error message -->
-      <div v-if="csvError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
-        <div class="flex">
-          <AlertTriangle class="h-5 w-5 text-red-400 mr-2" />
-          <p class="text-red-700 text-sm">{{ csvError }}</p>
-        </div>
-      </div>
+    <!-- Using separate ListaEscenarios component for viewing existing scenarios -->
+    <ListaEscenarios 
+      v-if="showScenariosList"
+      @back-to-generation="showScenariosList = false"
+    />
 
-      <!-- Información del archivo seleccionado -->
-      <div v-if="selectedFileInfo" class="mt-6 bg-blue-50 rounded-lg p-4">
-        <h3 class="text-lg font-semibold text-blue-900 mb-3">Archivo seleccionado para análisis</h3>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-          <div>
-            <p><strong>Título:</strong> {{ selectedFileInfo.title }}</p>
-            <p><strong>Año:</strong> {{ selectedFileInfo.year }}</p>
-            <p><strong>Archivo:</strong> {{ selectedFileInfo.original_filename }}</p>
-          </div>
-          <div>
-            <p><strong>Sector:</strong> {{ selectedFileInfo.sector }}</p>
-            <p><strong>Línea Medular:</strong> {{ selectedFileInfo.core_line }}</p>
-            <p><strong>Tipo:</strong> {{ selectedFileInfo.document_type }}</p>
-          </div>
-        </div>
-        <div v-if="selectedFileInfo.additional_notes" class="mt-3">
-          <p><strong>Notas:</strong> {{ selectedFileInfo.additional_notes }}</p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="flex items-center justify-center h-64">
-      <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-      <span class="ml-3 text-gray-600">Generando escenarios...</span>
-    </div>
-
-    <template v-else>
-      <!-- Scenario Selection -->
+    <!-- Wrapping generation mode in conditional div -->
+    <div v-else class="space-y-6">
+      <!-- CSV Document Selection with Pagination -->
       <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center gap-2 mb-4">
-          <Settings class="h-5 w-5" />
-          <h2 class="text-xl font-semibold">Configuración de Escenarios</h2>
+          <FileSpreadsheet class="h-5 w-5" />
+          <h2 class="text-xl font-semibold">Selección de Documentos para Análisis</h2>
+          <span class="text-sm text-gray-500">(CSV y XLSX)</span>
         </div>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div
-            v-for="(scenario, key) in scenarios"
-            :key="key"
-            @click="selectedScenario = key"
-            :class="[
-              'cursor-pointer transition-all bg-white rounded-lg shadow p-4 border',
-              selectedScenario === key ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
-            ]"
-          >
-            <div class="flex items-center gap-2 mb-2">
-              <component :is="getScenarioIcon(key)" class="h-4 w-4" />
-              <span 
-                class="px-2 py-1 rounded text-xs font-medium"
-                :style="{ 
-                  backgroundColor: scenario.color + '20', 
-                  color: scenario.color 
-                }"
-              >
-                {{ scenario.scenario_name }}
-              </span>
+
+        <!-- Filtros y búsqueda -->
+        <div class="bg-gray-50 rounded-lg p-4 mb-6">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+            <!-- Búsqueda por título -->
+            <div class="lg:col-span-2">
+              <label class="block text-sm font-medium text-gray-700 mb-1">Buscar documentos</label>
+              <div class="relative">
+                <input
+                  v-model="documentFilters.search"
+                  type="text"
+                  placeholder="Buscar por título..."
+                  class="w-full pl-10 pr-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+                <Search class="absolute left-3 top-2.5 h-5 w-5 text-gray-400" />
+              </div>
             </div>
-            <p class="text-sm text-gray-600">{{ scenario.description }}</p>
-          </div>
-        </div>
-      </div>
 
-      <!-- Parameter Controls - Solo para Planeación -->
-      <div v-if="userRole === 'planeacion'" class="bg-white rounded-lg shadow p-6">
-        <h2 class="text-xl font-semibold mb-2">Parámetros del Escenario</h2>
-        <p class="text-gray-600 mb-4">Ajusta los multiplicadores para personalizar las proyecciones</p>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div v-for="(value, param) in customParameters" :key="param" class="space-y-2">
-            <label class="text-sm font-medium capitalize">
-              {{ param === 'default' ? 'General' : param }}
-            </label>
-            <input
-              type="range"
-              :value="value"
-              @input="handleParameterChange(param, $event.target.value)"
-              min="0.1"
-              max="2"
-              step="0.1"
-              class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-            />
-            <div class="text-xs text-gray-500 text-center">{{ value.toFixed(1) }}x</div>
-          </div>
-        </div>
-      </div>
+            <!-- Filtro por sector -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Sector</label>
+              <select
+                v-model="documentFilters.sector"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Todos los sectores</option>
+                <option v-for="sector in availableSectors" :key="sector" :value="sector">
+                  {{ sector }}
+                </option>
+              </select>
+            </div>
 
-      <!-- Visualizations -->
-      <div class="bg-white rounded-lg shadow">
-        <div class="border-b border-gray-200">
-          <nav class="flex space-x-8 px-6">
+            <!-- Filtro por año -->
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
+              <select
+                v-model="documentFilters.year"
+                class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Todos los años</option>
+                <option v-for="year in availableYears" :key="year" :value="year">
+                  {{ year }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="flex gap-2">
             <button
-              v-for="tab in tabs"
-              :key="tab.id"
-              @click="activeTab = tab.id"
+              @click="applyDocumentFilters"
+              class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <Filter class="h-4 w-4 inline mr-1" />
+              Filtrar
+            </button>
+            <button
+              @click="clearDocumentFilters"
+              class="px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 focus:outline-none focus:ring-2 focus:ring-gray-500"
+            >
+              <X class="h-4 w-4 inline mr-1" />
+              Limpiar
+            </button>
+          </div>
+        </div>
+
+        <!-- Loading indicator for CSV files -->
+        <div v-if="loadingCsvFiles" class="flex items-center justify-center py-8">
+          <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <span class="ml-2 text-gray-600">Cargando archivos...</span>
+        </div>
+
+        <!-- Lista de documentos con paginación -->
+        <div v-else-if="paginatedCsvFiles.length > 0">
+          <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6">
+            <div
+              v-for="file in paginatedCsvFiles"
+              :key="file.id"
+              @click="selectCsvFile(file)"
               :class="[
-                'py-4 px-1 border-b-2 font-medium text-sm',
-                activeTab === tab.id
-                  ? 'border-blue-500 text-blue-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                'cursor-pointer transition-all bg-white rounded-lg shadow-md hover:shadow-lg p-4 border-2',
+                selectedCsvFile === file.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
               ]"
             >
-              {{ tab.label }}
-            </button>
-          </nav>
+              <!-- Contenido de la tarjeta del documento -->
+              <div class="flex items-start justify-between mb-3">
+                <div class="flex-1">
+                  <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
+                    {{ file.title }}
+                  </h3>
+                  <div class="flex items-center text-sm text-gray-500 mb-2">
+                    <Calendar class="h-4 w-4 mr-1" />
+                    <span>{{ file.year }}</span>
+                  </div>
+                  <div class="flex items-center text-xs text-gray-400 mb-2">
+                    <FileText class="h-3 w-3 mr-1" />
+                    <span>{{ file.original_filename || file.title + file.file_extension }}</span>
+                  </div>
+                </div>
+                <div class="flex-shrink-0 ml-2 flex flex-col gap-1">
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="getDocumentTypeBadgeClass(file.document_type)"
+                  >
+                    {{ file.document_type }}
+                  </span>
+                  <span
+                    class="px-2 py-1 text-xs font-medium rounded-full"
+                    :class="getFileTypeBadgeClass(file.file_extension)"
+                  >
+                    {{ file.file_extension.toUpperCase().replace('.', '') }}
+                  </span>
+                </div>
+              </div>
+
+              <div class="space-y-2 mb-3">
+                <div class="flex items-center text-sm text-gray-600">
+                  <Building class="h-4 w-4 mr-2 text-gray-400" />
+                  <span class="font-medium">Sector:</span>
+                  <span class="ml-1">{{ file.sector }}</span>
+                </div>
+                <div class="flex items-center text-sm text-gray-600">
+                  <Target class="h-4 w-4 mr-2 text-gray-400" />
+                  <span class="font-medium">Línea:</span>
+                  <span class="ml-1">{{ file.core_line }}</span>
+                </div>
+                <div v-if="file.additional_notes" class="text-sm text-gray-600 line-clamp-2">
+                  {{ file.additional_notes }}
+                </div>
+              </div>
+
+              <!-- Indicador de selección -->
+              <div v-if="selectedCsvFile === file.id" class="flex items-center text-blue-600 text-sm font-medium">
+                <CheckCircle class="h-4 w-4 mr-1" />
+                Seleccionado para análisis
+              </div>
+            </div>
+          </div>
+
+          <!-- Controles de paginación -->
+          <div class="flex items-center justify-between border-t border-gray-200 pt-4">
+            <div class="text-sm text-gray-700">
+              Mostrando {{ ((currentPage - 1) * itemsPerPage) + 1 }} a {{ Math.min(currentPage * itemsPerPage, filteredCsvFiles.length) }} 
+              de {{ filteredCsvFiles.length }} documentos
+            </div>
+            
+            <div class="flex items-center gap-2">
+              <button
+                @click="goToPage(currentPage - 1)"
+                :disabled="currentPage === 1"
+                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronLeft class="h-4 w-4" />
+              </button>
+              
+              <div class="flex gap-1">
+                <button
+                  v-for="page in visiblePages"
+                  :key="page"
+                  @click="goToPage(page)"
+                  :class="[
+                    'px-3 py-2 text-sm font-medium rounded-md',
+                    page === currentPage
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 bg-white border border-gray-300 hover:bg-gray-50'
+                  ]"
+                >
+                  {{ page }}
+                </button>
+              </div>
+              
+              <button
+                @click="goToPage(currentPage + 1)"
+                :disabled="currentPage === totalPages"
+                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <ChevronRight class="h-4 w-4" />
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div class="p-6">
-          <div v-if="activeTab === 'trends'">
-              <h3 class="text-lg font-semibold mb-4">
-                Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
-              </h3>
-              <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">  <!-- Cambiado de h-96 a h-120 -->
-                <LineChart
-                  :data="scenarios[selectedScenario].data"
-                  :series="trendSeries"
-                  :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
-                />
-              </div>
-              <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
-                <!-- ... contenido igual ... -->
-              </div>
-            </div>
+        <!-- Estado vacío -->
+        <div v-else class="text-center py-12">
+          <FileSpreadsheet class="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <h3 class="text-lg font-medium text-gray-900 mb-2">No se encontraron documentos</h3>
+          <p class="text-gray-500">
+            {{ hasActiveDocumentFilters ? 'Intenta ajustar los filtros de búsqueda.' : 'Aún no hay documentos CSV o XLSX cargados en el sistema.' }}
+          </p>
+          <p class="text-sm text-gray-400 mt-2">
+            Los archivos deben ser de tipo CSV o XLSX para poder generar escenarios prospectivos.
+          </p>
+        </div>
+        
+        <!-- Error message -->
+        <div v-if="csvError" class="mt-4 p-3 bg-red-50 border border-red-200 rounded-md">
+          <div class="flex">
+            <AlertTriangle class="h-5 w-5 text-red-400 mr-2" />
+            <p class="text-red-700 text-sm">{{ csvError }}</p>
+          </div>
+        </div>
 
-            <!-- Comparison Tab -->
-            <div v-if="activeTab === 'comparison'">
-              <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
-              <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">  <!-- Cambiado de h-96 a h-120 -->
-                <LineChart
-                  :data="comparisonChartData.data"
-                  :series="comparisonChartSeries"
-                  :colors="Object.values(scenarios).map(s => s.color)"
-                />
-              </div>
-              <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
-                <!-- ... contenido igual ... -->
-              </div>
+        <!-- Información del archivo seleccionado -->
+        <div v-if="selectedFileInfo" class="mt-6 bg-blue-50 rounded-lg p-4">
+          <h3 class="text-lg font-semibold text-blue-900 mb-3">Archivo seleccionado para análisis</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+            <div>
+              <p><strong>Título:</strong> {{ selectedFileInfo.title }}</p>
+              <p><strong>Año:</strong> {{ selectedFileInfo.year }}</p>
+              <p><strong>Archivo:</strong> {{ selectedFileInfo.original_filename }}</p>
             </div>
+            <div>
+              <p><strong>Sector:</strong> {{ selectedFileInfo.sector }}</p>
+              <p><strong>Línea Medular:</strong> {{ selectedFileInfo.core_line }}</p>
+              <p><strong>Tipo:</strong> {{ selectedFileInfo.document_type }}</p>
+            </div>
+          </div>
+          <div v-if="selectedFileInfo.additional_notes" class="mt-3">
+            <p><strong>Notas:</strong> {{ selectedFileInfo.additional_notes }}</p>
+          </div>
+        </div>
+      </div>
 
-            <!-- Indicators Tab -->
-            <div v-if="activeTab === 'indicators'">
-              <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div
-                  v-for="indicator in indicators"
-                  :key="indicator"
-                  class="bg-gray-50 rounded-lg p-4"
+      <!-- Loading State -->
+      <div v-if="loading" class="flex items-center justify-center h-64">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span class="ml-3 text-gray-600">Generando escenarios...</span>
+      </div>
+
+      <template v-else>
+        <!-- Scenario Selection -->
+        <div class="bg-white rounded-lg shadow p-6">
+          <div class="flex items-center gap-2 mb-4">
+            <Settings class="h-5 w-5" />
+            <h2 class="text-xl font-semibold">Configuración de Escenarios</h2>
+          </div>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div
+              v-for="(scenario, key) in scenarios"
+              :key="key"
+              @click="selectedScenario = key"
+              :class="[
+                'cursor-pointer transition-all bg-white rounded-lg shadow p-4 border',
+                selectedScenario === key ? 'ring-2 ring-blue-500' : 'hover:shadow-md'
+              ]"
+            >
+              <div class="flex items-center gap-2 mb-2">
+                <component :is="getScenarioIcon(key)" class="h-4 w-4" />
+                <span 
+                  class="px-2 py-1 rounded text-xs font-medium"
+                  :style="{ 
+                    backgroundColor: scenario.color + '20', 
+                    color: scenario.color 
+                  }"
                 >
-                  <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
-                  <div class="h-64">  <!-- Cambiado de h-48 a h-64 -->
-                    <BarChart
-                      :data="getIndicatorData(indicator)"
-                      :series="[{ key: 'value', name: indicator }]"
-                      :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
-                    />
+                  {{ scenario.scenario_name }}
+                </span>
+              </div>
+              <p class="text-sm text-gray-600">{{ scenario.description }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Parameter Controls - Solo para Planeación -->
+        <div v-if="userRole === 'planeacion'" class="bg-white rounded-lg shadow p-6">
+          <h2 class="text-xl font-semibold mb-2">Parámetros del Escenario</h2>
+          <p class="text-gray-600 mb-4">Ajusta los multiplicadores para personalizar las proyecciones</p>
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div v-for="(value, param) in customParameters" :key="param" class="space-y-2">
+              <label class="text-sm font-medium capitalize">
+                {{ param === 'default' ? 'General' : param }}
+              </label>
+              <input
+                type="range"
+                :value="value"
+                @input="handleParameterChange(param, $event.target.value)"
+                min="0.1"
+                max="2"
+                step="0.1"
+                class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+              />
+              <div class="text-xs text-gray-500 text-center">{{ value.toFixed(1) }}x</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Visualizations -->
+        <div class="bg-white rounded-lg shadow">
+          <div class="border-b border-gray-200">
+            <nav class="flex space-x-8 px-6">
+              <button
+                v-for="tab in tabs"
+                :key="tab.id"
+                @click="activeTab = tab.id"
+                :class="[
+                  'py-4 px-1 border-b-2 font-medium text-sm',
+                  activeTab === tab.id
+                    ? 'border-blue-500 text-blue-600'
+                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                ]"
+              >
+                {{ tab.label }}
+              </button>
+            </nav>
+          </div>
+
+          <div class="p-6">
+            <div v-if="activeTab === 'trends'">
+                <h3 class="text-lg font-semibold mb-4">
+                  Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
+                </h3>
+                <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">  <!-- Cambiado de h-96 a h-120 -->
+                  <LineChart
+                    :data="scenarios[selectedScenario].data"
+                    :series="trendSeries"
+                    :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
+                  />
+                </div>
+                <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
+                  <div class="text-center">
+                    <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay datos disponibles para este escenario</p>
+                    <p class="text-sm">Selecciona un archivo CSV para generar las proyecciones</p>
                   </div>
                 </div>
               </div>
-              <div v-else class="h-120 flex items-center justify-center text-gray-500"> 
-              <div class="text-center">
-                <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p>No hay indicadores disponibles</p>
-                <p class="text-sm">Los indicadores se generarán automáticamente desde los datos CSV</p>
+
+              <!-- Comparison Tab -->
+              <div v-if="activeTab === 'comparison'">
+                <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
+                <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">  <!-- Cambiado de h-96 a h-120 -->
+                  <LineChart
+                    :data="comparisonChartData.data"
+                    :series="comparisonChartSeries"
+                    :colors="Object.values(scenarios).map(s => s.color)"
+                  />
+                </div>
+                <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
+                  <div class="text-center">
+                    <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p>No hay datos disponibles para comparar</p>
+                    <p class="text-sm">Selecciona un archivo CSV y genera los escenarios</p>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Indicators Tab -->
+              <div v-if="activeTab === 'indicators'">
+                <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div
+                    v-for="indicator in indicators"
+                    :key="indicator"
+                    class="bg-gray-50 rounded-lg p-4"
+                  >
+                    <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
+                    <div class="h-64">  <!-- Cambiado de h-48 a h-64 -->
+                      <BarChart
+                        :data="getIndicatorData(indicator)"
+                        :series="[{ key: 'value', name: indicator }]"
+                        :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
+                      />
+                    </div>
+                  </div>
+                </div>
+                <div v-else class="h-120 flex items-center justify-center text-gray-500"> 
+                <div class="text-center">
+                  <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No hay indicadores disponibles</p>
+                  <p class="text-sm">Los indicadores se generarán automáticamente desde los datos CSV</p>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    </template>
+      </template>
+    </div> <!-- Close generation mode div -->
+    </div> <!-- Close max-w-7xl container div -->
 
     <!-- Notificaciones -->
     <div 
@@ -429,32 +467,71 @@
         </div>
       </div>
     </div>
-  </div>
+  </div> <!-- Close main container div -->
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue'
-import { 
-  Download, Settings, TrendingUp, TrendingDown, Minus, FileSpreadsheet,
-  Search, Filter, X, Calendar, FileText, Building, CheckCircle,
-  ChevronLeft, ChevronRight, Target, AlertTriangle
-} from 'lucide-vue-next'
-import LineChart from '../charts/LineChart.vue'
-import BarChart from '../charts/BarChart.vue'
-
-
 const props = defineProps({
   userRole: {
     type: String,
     required: false,
-    default: 'directivo',
-    validator: (value) => ['directivo', 'planeacion', 'instructor'].includes(value)
+    default: 'instructor', // Set default for testing
+    validator: (value) => !value || ['directivo', 'planeacion', 'instructor', 'administrativo', 'superadmin'].includes(value)
   },
   historicalData: {
     type: Array,
     default: () => []
   }
 })
+
+console.log('[v0] User role from props:', props.userRole)
+
+import { ref, computed, onMounted, watch } from 'vue'
+import { 
+  Download, Settings, TrendingUp, TrendingDown, Minus, FileSpreadsheet,
+  Search, Filter, X, Calendar, FileText, Building, CheckCircle,
+  ChevronLeft, ChevronRight, Target, AlertTriangle, Image, Code
+} from 'lucide-vue-next'
+import LineChart from '../charts/LineChart.vue'
+import BarChart from '../charts/BarChart.vue'
+import ListaEscenarios from './ListaEscenarios.vue'
+
+// const props = defineProps({
+//   userRole: {
+//     type: String,
+//     required: false,
+//     default: null, // Changed from 'directivo' to null to force role detection
+//     validator: (value) => !value || ['directivo', 'planeacion', 'instructor', 'administrativo', 'superadmin'].includes(value)
+//   },
+//   historicalData: {
+//     type: Array,
+//     default: () => []
+//   }
+// })
+
+// const getUserRoleFromToken = () => {
+//   try {
+//     const token = localStorage.getItem('access_token')
+//     if (!token) return null
+    
+//     // Decode JWT token (simple base64 decode of payload)
+//     const payload = JSON.parse(atob(token.split('.')[1]))
+//     console.log('[v0] Token payload:', payload)
+//     return payload.role || payload.user_role || null
+//   } catch (error) {
+//     console.error('[v0] Error decoding token:', error)
+//     return null
+//   }
+// }
+
+// const userRole = computed(() => {
+//   const tokenRole = getUserRoleFromToken()
+//   const finalRole = props.userRole || tokenRole
+//   console.log('[v0] Final user role:', finalRole, '(from props:', props.userRole, ', from token:', tokenRole, ')')
+//   return finalRole
+// })
+
+// console.log('[v0] Current user role:', props.userRole)
 
 // Reactive state
 const selectedScenario = ref('tendencial')
@@ -973,6 +1050,7 @@ const loadScenarios = async () => {
       }
       
       showSuccess(`Escenarios generados exitosamente. Total de escenarios: ${Object.keys(processedScenarios).length}`)
+      scenarioGenerated.value = true;
     } else {
       const errorData = await response.json()
       console.error('Error response:', errorData)
@@ -1041,6 +1119,7 @@ const loadMockScenarios = async () => {
   
   scenarios.value = mockScenarios
   console.log('Escenarios mock cargados:', Object.keys(mockScenarios))
+  scenarioGenerated.value = true;
 }
 
 // Methods for pagination and filtering
@@ -1462,6 +1541,75 @@ const generateTechnicalContent = (scenario, narrative) => {
   `
 }
 
+const generatePresentationContent = (scenario, narrative) => {
+  return `
+    <div class="section">
+      <h3>Resumen del Escenario</h3>
+      <p style="font-size: 18px; font-weight: bold; color: ${scenario.color};">${narrative.overview}</p>
+    </div>
+    
+    <div class="section">
+      <h3>Puntos Clave</h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+        <div>
+          <h4>Oportunidades</h4>
+          <ul class="implications-list">
+            ${narrative.implications.slice(0, 2).map(impl => `<li>${impl}</li>`).join('')}
+          </ul>
+        </div>
+        <div>
+          <h4>Desafíos</h4>
+          <ul>
+            ${narrative.risks.slice(0, 2).map(risk => `<li>${risk}</li>`).join('')}
+          </ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="section">
+      <h3>Proyecciones Destacadas</h3>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+        ${generateHighlightCards(scenario)}
+      </div>
+    </div>
+    
+    <div class="section">
+      <h3>Marco Temporal</h3>
+      <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid ${scenario.color};">
+        ${narrative.timeframe}
+      </p>
+    </div>
+  `
+}
+
+const generateHighlightCards = (scenario) => {
+  if (!scenario.data || scenario.data.length < 2) return ''
+  
+  const currentData = scenario.data[scenario.data.length - 11] // Año actual aproximado
+  const futureData = scenario.data[scenario.data.length - 1]   // Último año proyectado
+  
+  if (!currentData || !futureData) return ''
+  
+  return Object.keys(currentData.values).slice(0, 4).map(indicator => {
+    const current = currentData.values[indicator]
+    const future = futureData.values[indicator]
+    const variation = ((future - current) / current * 100).toFixed(1)
+    const isPositive = variation > 0
+    
+    return `
+      <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
+        <h5 style="margin: 0 0 10px 0; color: #333;">${indicator}</h5>
+        <div style="font-size: 24px; font-weight: bold; color: ${scenario.color}; margin-bottom: 5px;">
+          ${future.toLocaleString()}
+        </div>
+        <div style="font-size: 14px; color: ${isPositive ? 'green' : 'red'};">
+          ${isPositive ? '↗' : '↘'} ${Math.abs(variation)}%
+        </div>
+      </div>
+    `
+  }).join('')
+}
+
 const generateIndicatorRows = (scenario) => {
   if (!scenario.data || scenario.data.length < 2) return ''
   
@@ -1491,9 +1639,6 @@ const exportScenario = () => {
   const format = exportOptions.value.format
   
   switch (format) {
-    case 'pdf':
-      exportToPDF()
-      break
     case 'png':
       exportChartAsPNG()
       break
@@ -1586,11 +1731,27 @@ watch([() => documentFilters.value.sector, () => documentFilters.value.year], ()
   currentPage.value = 1
 })
 
+const showScenariosList = ref(false)
+
+// const toggleViewMode = () => {
+//   viewMode.value = viewMode.value === 'list' ? 'generation' : 'list'
+// }
+
 // Lifecycle
-onMounted(() => {
-  loadCsvFiles()
-  loadScenarios()
+onMounted(async () => {
+  await loadCsvFiles()
+  await loadScenarios()
 })
+
+// Declare chartCanvas ref
+const chartCanvas = ref(null)
+
+const scenarioGenerated = ref(false)
+
+const hasResults = computed(() => {
+  return Object.keys(scenarios.value).length > 0
+})
+
 </script>
 
 <style scoped>
@@ -1610,6 +1771,10 @@ onMounted(() => {
   gap: 0.5rem;
 }
 
+.gap-3 {
+  gap: 0.75rem;
+}
+
 .gap-4 {
   gap: 1rem;
 }
@@ -1621,6 +1786,13 @@ onMounted(() => {
 .line-clamp-2 {
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.line-clamp-3 {
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
