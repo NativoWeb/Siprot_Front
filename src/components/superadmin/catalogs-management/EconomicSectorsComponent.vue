@@ -95,7 +95,13 @@
 
     <!-- Lista de sectores -->
     <div class="container mx-auto px-4 pb-12">
-      <div v-if="filteredSectors.length === 0" class="text-center py-12">
+      <!-- Added loading state -->
+      <div v-if="isLoading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <span class="ml-2 text-gray-600">Cargando sectores económicos...</span>
+      </div>
+      
+      <div v-else-if="filteredSectors.length === 0" class="text-center py-12">
         <SearchIcon class="h-16 w-16 text-gray-300 mx-auto mb-4" />
         <h3 class="text-xl font-medium text-gray-600">No se encontraron sectores</h3>
         <p class="text-gray-500 mt-2">Intenta con otros términos de búsqueda o filtros</p>
@@ -221,6 +227,28 @@
           </div>
         </div>
       </div>
+    </div> <!-- Cerrado correctamente el div contenedor -->
+    
+    <!-- Added error notification -->
+    <div v-if="showErrorNotification" class="fixed bottom-4 right-4 bg-red-50 border-l-4 border-red-400 p-4 shadow-md rounded-md z-50">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-700">{{ errorMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="showErrorNotification = false" class="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100">
+            <span class="sr-only">Cerrar</span>
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -232,6 +260,10 @@ import {
   ChevronDownIcon, 
   AcademicCapIcon
 } from '@heroicons/vue/outline'
+
+const isLoading = ref(false);
+const showErrorNotification = ref(false);
+const errorMessage = ref('');
 
 // Estado para búsqueda y filtros
 const searchTerm = ref('')
@@ -279,193 +311,82 @@ const sectorStats = [
   }
 ]
 
-// Datos de sectores económicos
-const sectors = ref([
-  {
-    id: 1,
-    name: 'Sector Primario',
-    type: 'primario',
-    description: 'Actividades que obtienen recursos directamente de la naturaleza',
-    contribution: 12.3,
-    color: '#16a34a',
-    colorLight: '#dcfce7',
-    icon: SearchIcon,
-    expanded: false,
-    stats: {
-      jobs: '2.4 millones',
-      growth: -1.2,
-      companies: '124,500'
-    },
-    subsectors: [
-      {
-        name: 'Agricultura',
-        description: 'Cultivo de plantas, frutas, verduras, hortalizas y forrajes',
-        participation: 65
-      },
-      {
-        name: 'Ganadería',
-        description: 'Cría de animales para producción de carne, leche y derivados',
-        participation: 20
-      },
-      {
-        name: 'Pesca',
-        description: 'Captura y cultivo de especies acuáticas para consumo humano',
-        participation: 5
-      },
-      {
-        name: 'Minería',
-        description: 'Extracción de minerales, metales y recursos no renovables',
-        participation: 8
-      },
-      {
-        name: 'Silvicultura',
-        description: 'Cultivo y explotación de bosques y recursos forestales',
-        participation: 2
+const sectors = ref([])
+
+const fetchEconomicSectors = async () => {
+  isLoading.value = true;
+  try {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch('http://localhost:8000/catalogs/sectors/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
       }
-    ],
-    programs: [
-      'Técnico en Producción Agropecuaria',
-      'Tecnólogo en Gestión de Recursos Naturales',
-      'Técnico en Explotación Agropecuaria Ecológica',
-      'Tecnólogo en Producción Ganadera',
-      'Técnico en Minería',
-      'Tecnólogo en Gestión de Plantaciones Forestales'
-    ]
-  },
-  {
-    id: 2,
-    name: 'Sector Secundario',
-    type: 'secundario',
-    description: 'Transformación de materias primas en productos elaborados o semielaborados',
-    contribution: 27.8,
-    color: '#2563eb',
-    colorLight: '#dbeafe',
-    icon: SearchIcon,
-    expanded: false,
-    stats: {
-      jobs: '3.8 millones',
-      growth: 2.4,
-      companies: '87,300'
-    },
-    subsectors: [
-      {
-        name: 'Industria Manufacturera',
-        description: 'Transformación mecánica, física o química de materiales en productos nuevos',
-        participation: 58
-      },
-      {
-        name: 'Construcción',
-        description: 'Edificación de infraestructuras y obras civiles',
-        participation: 32
-      },
-      {
-        name: 'Generación de Energía',
-        description: 'Producción y distribución de electricidad, gas y agua',
-        participation: 10
-      }
-    ],
-    programs: [
-      'Técnico en Confección Industrial',
-      'Tecnólogo en Construcción',
-      'Técnico en Mecánica Industrial',
-      'Tecnólogo en Mantenimiento Electromecánico',
-      'Técnico en Procesamiento de Alimentos',
-      'Tecnólogo en Gestión de la Producción Industrial'
-    ]
-  },
-  {
-    id: 3,
-    name: 'Sector Terciario',
-    type: 'terciario',
-    description: 'Servicios y actividades que no producen bienes materiales',
-    contribution: 52.6,
-    color: '#9333ea',
-    colorLight: '#f3e8ff',
-    icon: SearchIcon,
-    expanded: false,
-    stats: {
-      jobs: '8.7 millones',
-      growth: 3.7,
-      companies: '342,600'
-    },
-    subsectors: [
-      {
-        name: 'Comercio',
-        description: 'Venta y distribución de productos al por mayor y menor',
-        participation: 35
-      },
-      {
-        name: 'Transporte',
-        description: 'Traslado de personas y mercancías',
-        participation: 15
-      },
-      {
-        name: 'Turismo y Hostelería',
-        description: 'Servicios de alojamiento, alimentación y actividades turísticas',
-        participation: 12
-      },
-      {
-        name: 'Servicios Financieros',
-        description: 'Banca, seguros y actividades financieras',
-        participation: 18
-      },
-      {
-        name: 'Educación y Salud',
-        description: 'Servicios educativos y de atención sanitaria',
-        participation: 20
-      }
-    ],
-    programs: [
-      'Técnico en Ventas y Servicios',
-      'Tecnólogo en Gestión Logística',
-      'Técnico en Servicios Turísticos',
-      'Tecnólogo en Gestión Bancaria y Entidades Financieras',
-      'Técnico en Servicios de Salud',
-      'Tecnólogo en Gestión Hotelera'
-    ]
-  },
-  {
-    id: 4,
-    name: 'Sector Cuaternario',
-    type: 'cuaternario',
-    description: 'Servicios altamente intelectuales relacionados con la información y el conocimiento',
-    contribution: 7.3,
-    color: '#ea580c',
-    colorLight: '#ffedd5',
-    icon: SearchIcon,
-    expanded: false,
-    stats: {
-      jobs: '1.2 millones',
-      growth: 5.2,
-      companies: '42,800'
-    },
-    subsectors: [
-      {
-        name: 'Tecnologías de la Información',
-        description: 'Desarrollo de software, hardware y servicios informáticos',
-        participation: 45
-      },
-      {
-        name: 'Investigación y Desarrollo',
-        description: 'Actividades científicas y de innovación',
-        participation: 25
-      },
-      {
-        name: 'Consultoría y Servicios Profesionales',
-        description: 'Asesoramiento especializado a empresas y organizaciones',
-        participation: 30
-      }
-    ],
-    programs: [
-      'Técnico en Programación de Software',
-      'Tecnólogo en Análisis y Desarrollo de Sistemas',
-      'Técnico en Sistemas',
-      'Tecnólogo en Gestión de Redes',
-      'Técnico en Diseño e Integración Multimedia',
-      'Tecnólogo en Animación Digital'
-    ]
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      sectors.value = data.map(sector => ({
+        id: sector.id,
+        name: sector.name,
+        type: sector.sector_type || 'general',
+        description: sector.description || '',
+        contribution: sector.gdp_contribution || 0,
+        color: getSectorColor(sector.sector_type),
+        colorLight: getSectorColorLight(sector.sector_type),
+        icon: SearchIcon,
+        expanded: false,
+        stats: {
+          jobs: sector.jobs_generated || '0',
+          growth: sector.annual_growth || 0,
+          companies: sector.registered_companies || '0'
+        },
+        subsectors: sector.subsectors || [],
+        programs: sector.related_programs || []
+      }));
+    } else {
+      throw new Error('Error al cargar sectores económicos');
+    }
+  } catch (error) {
+    console.error('Error loading economic sectors:', error);
+    showError('Error al cargar los sectores económicos desde el servidor');
+    // Fallback to mock data
+    loadMockData();
+  } finally {
+    isLoading.value = false;
   }
-])
+};
+
+const getSectorColor = (type) => {
+  const colors = {
+    'primario': '#16a34a',
+    'secundario': '#2563eb',
+    'terciario': '#9333ea',
+    'cuaternario': '#ea580c'
+  };
+  return colors[type] || '#6b7280';
+};
+
+const getSectorColorLight = (type) => {
+  const colors = {
+    'primario': '#dcfce7',
+    'secundario': '#dbeafe',
+    'terciario': '#f3e8ff',
+    'cuaternario': '#ffedd5'
+  };
+  return colors[type] || '#f3f4f6';
+};
+
+const showError = (message) => {
+  errorMessage.value = message;
+  showErrorNotification.value = true;
+  setTimeout(() => {
+    showErrorNotification.value = false;
+  }, 5000);
+};
+
+const loadMockData = () => {
+  sectors.value = [];
+};
 
 // Funciones para manejar filtros
 const toggleSectorFilter = (sectorId) => {
@@ -514,6 +435,7 @@ const filteredSectors = computed(() => {
 
 // Simulación de renderizado de gráfico
 onMounted(() => {
+  fetchEconomicSectors();
   setTimeout(() => {
     chartRendered.value = true
     // Aquí se podría inicializar un gráfico real con una librería como Chart.js

@@ -142,15 +142,23 @@ defineEmits(['close', 'download', 'edit', 'replace'])
 
 // Función para formatear fechas
 const formatDate = (dateString: string) => {
-  return new Date(dateString).toLocaleDateString()
+  if (!dateString) return 'N/A'
+  const date = new Date(dateString)
+  return date.toLocaleString() // incluye fecha y hora
 }
 
+
 // Función para formatear el tamaño del archivo
-const formatFileSize = (bytes: number) => {
-  if (bytes === 0) return '0 Bytes'
+const formatFileSize = (bytes: number | string | null | undefined) => {
+  console.log('file_size recibido:', bytes)
+  if (!bytes) return 'N/A'
+
+  const size = Number(bytes)
+  if (isNaN(size)) return 'N/A'
+
   const k = 1024
   const sizes = ['Bytes', 'KB', 'MB', 'GB']
-  const i = Math.floor(Math.log(bytes) / Math.log(k))
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2) + ' ' + sizes[i])
+  const i = Math.floor(Math.log(size) / Math.log(k))
+  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 </script>
