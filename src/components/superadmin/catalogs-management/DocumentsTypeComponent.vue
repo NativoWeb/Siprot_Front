@@ -1,5 +1,100 @@
 <template>
   <div class="container mx-auto px-4 py-8">
+    <!-- Modal para crear/editar tipo de documento -->
+    <div v-if="showModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+      <div class="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
+        <div class="mt-3">
+          <div class="flex items-center justify-between mb-4">
+            <h3 class="text-lg font-medium text-gray-900">
+              {{ editingDocumentType ? 'Editar Tipo de Documento' : 'Nuevo Tipo de Documento' }}
+            </h3>
+            <button @click="closeModal" class="text-gray-400 hover:text-gray-600">
+              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <form @submit.prevent="submitForm" class="space-y-4">
+            <div>
+              <label for="name" class="block text-sm font-medium text-gray-700">Nombre *</label>
+              <input
+                id="name"
+                v-model="formData.name"
+                type="text"
+                required
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                placeholder="Ej: Plan de Desarrollo Institucional"
+              />
+              <p v-if="duplicateError" class="mt-1 text-sm text-red-600">Ya existe un tipo de documento con este nombre</p>
+            </div>
+            
+            <div>
+              <label for="description" class="block text-sm font-medium text-gray-700">Descripción</label>
+              <textarea
+                id="description"
+                v-model="formData.description"
+                rows="3"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+                placeholder="Descripción del tipo de documento..."
+              ></textarea>
+            </div>
+            
+            <div>
+              <label for="category" class="block text-sm font-medium text-gray-700">Categoría</label>
+              <select
+                id="category"
+                v-model="formData.category"
+                class="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="">Seleccionar categoría</option>
+                <option value="administrativo">Administrativo</option>
+                <option value="academico">Académico</option>
+                <option value="legal">Legal</option>
+                <option value="financiero">Financiero</option>
+                <option value="calidad">Sistema de Calidad</option>
+              </select>
+            </div>
+            
+            <div>
+              <label for="extensions" class="block text-sm font-medium text-gray-700">Extensiones Permitidas</label>
+              <div class="mt-2 space-y-2">
+                <label class="inline-flex items-center">
+                  <input type="checkbox" v-model="formData.extensions" value="pdf" class="form-checkbox h-4 w-4 text-green-600">
+                  <span class="ml-2 text-sm text-gray-700">PDF</span>
+                </label>
+                <label class="inline-flex items-center ml-4">
+                  <input type="checkbox" v-model="formData.extensions" value="docx" class="form-checkbox h-4 w-4 text-green-600">
+                  <span class="ml-2 text-sm text-gray-700">DOCX</span>
+                </label>
+                <label class="inline-flex items-center ml-4">
+                  <input type="checkbox" v-model="formData.extensions" value="xlsx" class="form-checkbox h-4 w-4 text-green-600">
+                  <span class="ml-2 text-sm text-gray-700">XLSX</span>
+                </label>
+              </div>
+            </div>
+            
+            <div class="flex justify-end space-x-3 pt-4">
+              <button
+                type="button"
+                @click="closeModal"
+                class="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                :disabled="isSubmitting || duplicateError"
+                class="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {{ isSubmitting ? 'Guardando...' : (editingDocumentType ? 'Actualizar' : 'Crear') }}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Encabezado y acciones principales -->
     <div class="flex flex-col md:flex-row md:items-center justify-between mb-6">
       <div>
@@ -322,7 +417,7 @@
       <div class="flex">
         <div class="flex-shrink-0">
           <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
+            <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 001.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
           </svg>
         </div>
         <div class="ml-3">
@@ -342,7 +437,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
 import ModalComponent from '../../modals/ModalComponent.vue';
 
 const isLoading = ref(false);
@@ -355,7 +450,83 @@ const categoryFilter = ref('');
 const statusFilter = ref('');
 const showModal = ref(false);
 
+// Estado para modal functionality
+const editingDocumentType = ref(null);
+const isSubmitting = ref(false);
+const duplicateError = ref(false);
+
+const formData = ref({
+  name: '',
+  description: '',
+  category: '',
+  extensions: ['pdf']
+});
+
 const documentTypes = ref([]);
+
+// Duplicate name validation
+const checkDuplicate = computed(() => {
+  if (!formData.value.name) return false;
+  
+  const exists = documentTypes.value.some(doc => 
+    doc.name.toLowerCase() === formData.value.name.toLowerCase() && 
+    (!editingDocumentType.value || doc.id !== editingDocumentType.value.id)
+  );
+  
+  duplicateError.value = exists;
+  return exists;
+});
+
+// Watch for name changes to check duplicates
+watch(() => formData.value.name, () => {
+  checkDuplicate.value;
+});
+
+// Form submission logic
+const submitForm = async () => {
+  if (checkDuplicate.value) return;
+  
+  isSubmitting.value = true;
+  
+  try {
+    const documentTypeData = {
+      name: formData.value.name,
+      description: formData.value.description,
+      category: formData.value.category,
+      allowed_extensions: formData.value.extensions
+    };
+    
+    let success = false;
+    
+    if (editingDocumentType.value) {
+      success = await updateDocumentType(editingDocumentType.value.id, documentTypeData);
+    } else {
+      success = await createDocumentType(documentTypeData);
+    }
+    
+    if (success) {
+      closeModal();
+      // Show success message could be added here
+    }
+  } catch (error) {
+    console.error('Error submitting form:', error);
+  } finally {
+    isSubmitting.value = false;
+  }
+};
+
+// Modal management functions
+const closeModal = () => {
+  showModal.value = false;
+  editingDocumentType.value = null;
+  formData.value = {
+    name: '',
+    description: '',
+    category: '',
+    extensions: ['pdf']
+  };
+  duplicateError.value = false;
+};
 
 const fetchDocumentTypes = async () => {
   isLoading.value = true;
@@ -380,7 +551,8 @@ const fetchDocumentTypes = async () => {
         description: type.description || '',
         createdAt: type.created_at,
         updatedAt: type.updated_at,
-        usageCount: type.usage_count || 0
+        usageCount: type.usage_count || 0,
+        allowed_extensions: type.allowed_extensions || ['pdf']
       }));
     } else {
       throw new Error('Error al cargar tipos de documentos');
@@ -398,24 +570,36 @@ const fetchDocumentTypes = async () => {
 const createDocumentType = async (documentTypeData) => {
   try {
     const token = localStorage.getItem('access_token');
-    const response = await fetch('http://localhost:8000/catalogs/document-types/', {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user.id || 1; // Fallback a 1 si no hay user_id
+    
+    const requestData = {
+      name: documentTypeData.name,
+      description: documentTypeData.description,
+      allowed_extensions: documentTypeData.allowed_extensions,
+      is_active: true,
+      created_by: userId
+    };
+    
+    const response = await fetch('http://localhost:8000/catalogs/document-types', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'Authorization': token ? `Bearer ${token}` : ''
       },
-      body: JSON.stringify(documentTypeData)
+      body: JSON.stringify(requestData)
     });
     
     if (response.ok) {
       await fetchDocumentTypes(); // Refresh the list
       return true;
     } else {
-      throw new Error('Error al crear tipo de documento');
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Error al crear tipo de documento');
     }
   } catch (error) {
     console.error('Error creating document type:', error);
-    showError('Error al crear el tipo de documento');
+    showError(error.message || 'Error al crear el tipo de documento');
     return false;
   }
 };
@@ -582,8 +766,14 @@ const clearFilters = () => {
 };
 
 const editDocumentType = (doc) => {
-  console.log('Editar tipo de documento:', doc.id);
-  // TODO: Implement edit modal/form
+  editingDocumentType.value = doc;
+  formData.value = {
+    name: doc.name,
+    description: doc.description || '',
+    category: doc.category || '',
+    extensions: doc.allowed_extensions || ['pdf']
+  };
+  showModal.value = true;
 };
 
 const duplicateDocumentType = async (doc) => {

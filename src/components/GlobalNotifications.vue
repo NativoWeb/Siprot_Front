@@ -1,4 +1,16 @@
 <template>
+  <!-- Overlay que congela la pantalla cuando hay sesión expirada -->
+  <div 
+    v-if="hasExpiredSessionNotification" 
+    class="fixed inset-0 bg-white z-40 flex items-center justify-center"
+  >
+    <img 
+      src="../assets/Bo.webp" 
+      alt="Logo" 
+      class="max-w-2xl max-h-screen object-contain"
+    />
+  </div>
+
   <!-- Contenedor fijo en la esquina superior derecha -->
   <div class="fixed top-4 right-4 z-50 space-y-2">
     <!-- Itera sobre todas las notificaciones -->
@@ -6,7 +18,7 @@
       <!-- Contenedor de cada notificación -->
       <div
         class="max-w-md w-full bg-white shadow-lg rounded-lg pointer-events-auto ring-1 ring-black ring-opacity-5 overflow-hidden border-l-4"
-        :class="getBorderClass(notification.type)" <!-- Borde de color según el tipo -->
+        :class="getBorderClass(notification.type)"
       >
         <div class="p-4">
           <div class="flex items-start">
@@ -24,23 +36,24 @@
                 {{ notification.message }}
               </p>
 
-              <!-- Botón especial en caso de error de sesión expirada -->
+              <!-- Botón mejorado para sesión expirada con mejor styling -->
               <div
                 v-if="notification.type === 'error' && notification.message.includes('sesión ha expirado')"
-                class="mt-2"
+                class="mt-3"
               >
                 <button
                   @click="goToLogin"
-                  class="text-sm bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded transition-colors"
+                  class="w-full text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-md transition-colors font-medium shadow-sm"
                 >
-                  Ir al Login
+                  Volver al Inicio de Sesión
                 </button>
               </div>
             </div>
 
-            <!-- Botón de cierre (X) -->
+            <!-- Botón de cierre (X) - deshabilitado para sesión expirada -->
             <div class="ml-4 flex-shrink-0 flex">
               <button
+                v-if="!(notification.type === 'error' && notification.message.includes('sesión ha expirado'))"
                 @click="removeNotification(notification.id)"
                 class="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500"
               >
@@ -50,8 +63,8 @@
             </div>
           </div>
 
-          <!-- Barra de progreso (si la notificación tiene duración) -->
-          <div v-if="notification.duration > 0" class="mt-2">
+          <!-- Barra de progreso (si la notificación tiene duración y no es sesión expirada) -->
+          <div v-if="notification.duration > 0 && !(notification.type === 'error' && notification.message.includes('sesión ha expirado'))" class="mt-2">
             <div class="w-full bg-gray-200 rounded-full h-1">
               <div
                 class="bg-current h-1 rounded-full progress-bar"
@@ -67,7 +80,7 @@
 </template>
 
 <script>
-import { inject } from 'vue'
+import { inject, computed } from 'vue'
 import { useRouter } from 'vue-router'
 
 export default {
@@ -81,9 +94,22 @@ export default {
       removeNotification: () => {}
     })
 
-    // Redirigir al login en caso de sesión expirada
+    const hasExpiredSessionNotification = computed(() => {
+      return notificationSystem.notifications.value.some(
+        notification => notification.type === 'error' && 
+        notification.message.includes('sesión ha expirado')
+      )
+    })
+
     const goToLogin = () => {
       console.log('[v0] Redirecting to login from notification button')
+      // Limpiar todas las notificaciones
+      notificationSystem.notifications.value = []
+      // Limpiar localStorage por seguridad
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('role')
+      localStorage.removeItem('user_info')
+      // Redirigir al login
       router.push('/iniciar-sesion')
     }
 
@@ -108,8 +134,9 @@ export default {
     }
 
     return {
-      notifications: notificationSystem.notifications, // Lista reactiva de notificaciones
-      removeNotification: notificationSystem.removeNotification, // Método para cerrarlas
+      notifications: notificationSystem.notifications,
+      removeNotification: notificationSystem.removeNotification,
+      hasExpiredSessionNotification,
       goToLogin,
       getBorderClass,
       getProgressClass

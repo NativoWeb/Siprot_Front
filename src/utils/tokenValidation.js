@@ -18,7 +18,7 @@ export const makeAuthenticatedRequest = async (url, options = {}, router = null)
   const token = localStorage.getItem("access_token")
 
   console.log("Making authenticated request to:", url)
-  
+
   // Verificar si el token existe y no está expirado
   if (!token || isTokenExpired(token)) {
     console.log("Token is missing or expired")
@@ -86,6 +86,7 @@ export const validateTokenOnRouteChange = (router) => {
 
     // Skip validation for login page
     if (to.path === "/iniciar-sesion") {
+      restoreInteractions()
       next()
       return
     }
@@ -100,4 +101,9 @@ export const validateTokenOnRouteChange = (router) => {
 
     next()
   })
+}
+
+export const restoreInteractions = () => {
+  console.log("[v0] Restoring page interactions")
+  document.body.style.pointerEvents = "auto"
 }
