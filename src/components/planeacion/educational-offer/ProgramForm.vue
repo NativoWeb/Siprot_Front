@@ -27,6 +27,17 @@
         <input v-model="form.name" placeholder="Nombre del programa" class="input w-full" required />
       </div>
 
+      <!-- Added program_date field for program creation date -->
+      <div>
+        <label class="block text-sm font-medium text-gray-600">Fecha de creación</label>
+        <input 
+          v-model="form.program_date" 
+          type="date" 
+          class="input w-full" 
+          required 
+        />
+      </div>
+
       <div>
         <label class="block text-sm font-medium text-gray-600">Sector</label>
         <input v-model="form.sector" placeholder="Sector" class="input w-full" required />
@@ -89,6 +100,7 @@ export default {
       form: { 
         code: "", 
         name: "", 
+        program_date: "", // Added program_date field
         sector: "", 
         level: "",
         core_line: "", 
@@ -108,7 +120,12 @@ export default {
     editProgram: {
       handler(newProgram) {
         if (newProgram) {
-          this.form = { ...newProgram };
+          const programData = { ...newProgram };
+          if (programData.program_date) {
+            // Convert datetime to date format (YYYY-MM-DD) for input[type="date"]
+            programData.program_date = new Date(programData.program_date).toISOString().split('T')[0];
+          }
+          this.form = programData;
         } else {
           this.resetForm();
         }
@@ -116,15 +133,25 @@ export default {
       immediate: true
     }
   },
+  mounted() {
+    if (!this.editMode) {
+      this.form.program_date = new Date().toISOString().split('T')[0];
+    }
+  },
   methods: {
     async saveProgram() {
       try {
+        const formData = { ...this.form };
+        if (formData.program_date) {
+          formData.program_date = new Date(formData.program_date).toISOString();
+        }
+
         if (this.editMode) {
-          await axios.put(`http://localhost:8000/programs/${this.editProgram.id}`, this.form, {
+          await axios.put(`http://localhost:8000/programs/${this.editProgram.id}`, formData, {
             headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
           });
         } else {
-          await axios.post("http://localhost:8000/programs/", this.form, {
+          await axios.post("http://localhost:8000/programs/", formData, {
             headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
           });
         }
@@ -142,6 +169,7 @@ export default {
       this.form = { 
         code: "", 
         name: "", 
+        program_date: new Date().toISOString().split('T')[0], // Set default to today
         sector: "", 
         level: "", 
         core_line: "", 

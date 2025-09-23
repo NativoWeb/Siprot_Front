@@ -14,7 +14,7 @@
         />
       </div>
 
-      <!-- Added bulk upload component for file processing -->
+      <!-- Carga masiva -->
       <div v-if="userRole === 'planeacion'">
         <ProgramBulkUpload @uploaded="loadPrograms" />
       </div>
@@ -24,7 +24,7 @@
         <ProgramFilters :sectors="sectors" :levels="levels" v-model="filters" />
         <button
           class="ml-auto px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
-          @click="filters = { sector: '', level: '' }"
+          @click="filters = { sector: '', level: '', region: '' }; loadPrograms()"
         >
           Limpiar filtros
         </button>
@@ -33,23 +33,74 @@
       <!-- Tabla -->
       <div class="bg-white shadow-md rounded-xl p-4">
         <ProgramTable
-          :programs="filteredPrograms"
+          :programs="programs"
           :user-role="userRole"
           @updated="loadPrograms"
           @edit="handleEditProgram"
         />
       </div>
 
-      <!-- Gráficas -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-white shadow-md rounded-xl p-4">
-          <h2 class="text-lg font-semibold text-gray-700 mb-3">Distribución por Sector</h2>
-          <ProgramCharts :programs="filteredPrograms" chart-type="bar" />
-        </div>
-        <div class="bg-white shadow-md rounded-xl p-4">
-          <h2 class="text-lg font-semibold text-gray-700 mb-3">Tendencia de Programas</h2>
-          <ProgramCharts :programs="filteredPrograms" chart-type="line" />
-        </div>
+      <!-- Matriz Sector vs Línea Medular -->
+      <div class="bg-white shadow-md rounded-xl p-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">📊 Matriz Sector vs Línea Medular</h2>
+        <table v-if="Object.keys(analysisMatrix).length" class="w-full border-collapse border">
+          <thead>
+            <tr>
+              <th class="border px-3 py-2">Sector</th>
+              <th
+                v-for="coreLine in Object.keys(Object.values(analysisMatrix)[0])"
+                :key="coreLine"
+                class="border px-3 py-2"
+              >
+                {{ coreLine }}
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="(lines, sector) in analysisMatrix" :key="sector">
+              <td class="border px-3 py-2 font-semibold">{{ sector }}</td>
+              <td
+                v-for="(count, coreLine) in lines"
+                :key="coreLine"
+                class="border px-3 py-2 text-center"
+              >
+                {{ count }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else class="text-gray-500">No hay datos disponibles.</p>
+      </div>
+
+      <!-- Comparación Oferta vs Demanda -->
+      <div class="bg-white shadow-md rounded-xl p-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">📈 Comparación Oferta vs Demanda</h2>
+        <table v-if="demandComparison.length" class="w-full border-collapse border">
+          <thead>
+            <tr class="bg-gray-200">
+              <th class="border px-3 py-2">Sector</th>
+              <th class="border px-3 py-2">Programas</th>
+              <th class="border px-3 py-2">Estudiantes</th>
+              <th class="border px-3 py-2">Demanda</th>
+              <th class="border px-3 py-2">Brecha</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="d in demandComparison" :key="d.sector" class="hover:bg-gray-50">
+              <td class="border px-3 py-2 font-semibold">{{ d.sector }}</td>
+              <td class="border px-3 py-2 text-center">{{ d.programs }}</td>
+              <td class="border px-3 py-2 text-center">{{ d.current_students }}</td>
+              <td class="border px-3 py-2 text-center">{{ d.demand_value }}</td>
+              <td
+                class="border px-3 py-2 text-center"
+                :class="d.gap > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'"
+              >
+                {{ d.gap }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p v-else class="text-gray-500">No hay datos disponibles.</p>
       </div>
 
       <!-- Reportes -->
@@ -82,19 +133,14 @@ export default {
   data() {
     return {
       programs: [],
-      filters: { sector: "", level: "" },
+      filters: { sector: "", level: "", region: "" },
       userRole: localStorage.getItem("role"),
       editingProgram: null,
+      analysisMatrix: {},
+      demandComparison: []
     };
   },
   computed: {
-    filteredPrograms() {
-      if (!Array.isArray(this.programs)) return [];
-      return this.programs.filter(p =>
-        (!this.filters.sector || p.sector === this.filters.sector) &&
-        (!this.filters.level || p.level === this.filters.level)
-      );
-    },
     sectors() {
       if (!Array.isArray(this.programs)) return [];
       return [...new Set(this.programs.map(p => p.sector))];
@@ -107,14 +153,39 @@ export default {
   methods: {
     async loadPrograms() {
       try {
-        const res = await axios.get("http://localhost:8000/programs/", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        const res = await axios.get("http://localhost:8000/programs/analysis/filtered", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+          params: {
+            sector: this.filters.sector || undefined,
+            level: this.filters.level || undefined,
+            region: this.filters.region || undefined
+          }
         });
-
-        this.programs = Array.isArray(res.data) ? res.data : res.data.items || [];
+        this.programs = Array.isArray(res.data) ? res.data : [];
       } catch (err) {
         console.error("Error cargando programas:", err);
         this.programs = [];
+      }
+    },
+    async loadAnalysisMatrix() {
+      try {
+        const res = await axios.get("http://localhost:8000/programs/analysis/matrix", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+        });
+        this.analysisMatrix = res.data;
+      } catch (err) {
+        console.error("Error cargando matriz:", err);
+      }
+    },
+    async loadDemandComparison(year = new Date().getFullYear()) {
+      try {
+        const res = await axios.get("http://localhost:8000/programs/analysis/demand-comparison", {
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
+          params: { year }
+        });
+        this.demandComparison = res.data;
+      } catch (err) {
+        console.error("Error cargando comparación oferta/demanda:", err);
       }
     },
     handleEditProgram(program) {
@@ -136,6 +207,8 @@ export default {
   },
   mounted() {
     this.loadPrograms();
+    this.loadAnalysisMatrix();
+    this.loadDemandComparison();
   }
 };
 </script>
