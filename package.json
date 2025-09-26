@@ -12,7 +12,7 @@
     "@heroicons/vue": "^1.0.6",
     "@tailwindcss/vite": "^4.1.9",
     "axios": "^1.11.0",
-    "chart.js": "^4.4.9",
+    "chart.js": "^4.5.0",
     "html2canvas": "^1.4.1",
     "jwt-decode": "^4.0.0",
     "lucide-vue-next": "^0.514.0",

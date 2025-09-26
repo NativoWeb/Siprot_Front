@@ -16,6 +16,8 @@
         <li><strong>region</strong> - Región (opcional)</li>
         <li><strong>description</strong> - Descripción (opcional)</li>
         <li><strong>current_students</strong> - Estudiantes actuales (número, opcional)</li>
+        <li><strong>program_date</strong> - Fecha de creación del programa (obligatorio, formato YYYY-MM-DD)</li>
+
       </ul>
     </div>
 

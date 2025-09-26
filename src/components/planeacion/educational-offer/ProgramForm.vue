@@ -143,7 +143,7 @@ export default {
       try {
         const formData = { ...this.form };
         if (formData.program_date) {
-          formData.program_date = new Date(formData.program_date).toISOString();
+          formData.program_date = new Date(formData.program_date).toISOString(); 
         }
 
         if (this.editMode) {
