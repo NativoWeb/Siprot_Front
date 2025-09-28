@@ -20,6 +20,13 @@
         <ProgramBulkUpload @uploaded="refreshAllData" />
       </div>
 
+      <!-- Formulario para indicadores de demanda -->
+      <div v-if="userRole === 'planeacion'" class="bg-white shadow-md rounded-xl p-4">
+        <h2 class="text-lg font-semibold text-gray-700 mb-3">Registrar indicador de demanda</h2>
+        <DemandForm @saved="refreshAllData" />
+      </div>
+
+
       <!-- Filtros -->
       <div class="bg-white shadow-md rounded-xl p-4 flex flex-wrap items-center gap-4">
         <ProgramFilters :sectors="sectors" :levels="levels" v-model="filters" />
@@ -138,6 +145,7 @@ import ProgramCharts from "../planeacion/educational-offer/ProgramCharts.vue";
 import ProgramReports from "../planeacion/educational-offer/ProgramReports.vue";
 import ProgramBulkUpload from "../planeacion/educational-offer/ProgramBulkUpload.vue";
 import ProgramProjections from "../planeacion/educational-offer/ProgramProjections.vue";
+import DemandForm from "./educational-offer/DemandForm.vue";
 
 export default {
   components: { 
@@ -147,7 +155,8 @@ export default {
     ProgramCharts, 
     ProgramReports,
     ProgramBulkUpload,
-    ProgramProjections
+    ProgramProjections,
+    DemandForm,
   },
   data() {
     return {
