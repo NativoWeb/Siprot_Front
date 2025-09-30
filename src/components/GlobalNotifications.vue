@@ -102,7 +102,7 @@ export default {
     })
 
     const goToLogin = () => {
-      console.log('[v0] Redirecting to login from notification button')
+      console.log('Redirecting to login from notification button')
       // Limpiar todas las notificaciones
       notificationSystem.notifications.value = []
       // Limpiar localStorage por seguridad

@@ -231,4 +231,21 @@ const recargarPDF = () => {
     margin-top: 1rem;
   }
 }
+
+.pdf-container {
+  position: relative;
+  width: 100%;
+  height: 80vh; /* el alto ocupará el 80% de la pantalla */
+  display: flex;
+  flex-direction: column;
+}
+
+.pdf-viewer {
+  flex: 1;
+  width: 100%;
+  height: 100%;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
 </style>

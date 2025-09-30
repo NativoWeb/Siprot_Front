@@ -5,14 +5,12 @@
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Escenarios Prospectivos</h1>
           <p class="mt-2 text-gray-600">Exploración de futuros posibles para la planificación educativa</p>
-          <!-- Simplified debug info -->
           <div class="text-xs text-gray-500 mt-1">
             Rol: {{ userRole || 'No definido' }}
           </div>
         </div>
         
         <div class="flex gap-3">
-          <!-- Simplified condition to match working pattern -->
           <button 
             v-if="userRole === 'instructor'"
             @click="showScenariosList = !showScenariosList"
@@ -25,25 +23,16 @@
           >
             📋 Lista de escenarios
           </button>
-          
-          <!-- Hide export button when showing scenarios list -->
-          <button 
-            v-if="scenarioGenerated && !showScenariosList" 
-            @click="exportToPDF" 
-            class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors font-medium"
-          >
-            ⬇️ Exportar
-          </button>
         </div>
       </div>
 
-    <!-- Using separate ListaEscenarios component for viewing existing scenarios -->
+    <!-- Using separate ListaEscenarios component -->
     <ListaEscenarios 
       v-if="showScenariosList"
       @back-to-generation="showScenariosList = false"
     />
 
-    <!-- Wrapping generation mode in conditional div -->
+    <!-- Generation mode -->
     <div v-else class="space-y-6">
       <!-- CSV Document Selection with Pagination -->
       <div class="bg-white rounded-lg shadow p-6">
@@ -56,7 +45,6 @@
         <!-- Filtros y búsqueda -->
         <div class="bg-gray-50 rounded-lg p-4 mb-6">
           <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-            <!-- Búsqueda por título -->
             <div class="lg:col-span-2">
               <label class="block text-sm font-medium text-gray-700 mb-1">Buscar documentos</label>
               <div class="relative">
@@ -70,7 +58,6 @@
               </div>
             </div>
 
-            <!-- Filtro por sector -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Sector</label>
               <select
@@ -84,7 +71,6 @@
               </select>
             </div>
 
-            <!-- Filtro por año -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-1">Año</label>
               <select
@@ -117,7 +103,7 @@
           </div>
         </div>
 
-        <!-- Loading indicator for CSV files -->
+        <!-- Loading indicator -->
         <div v-if="loadingCsvFiles" class="flex items-center justify-center py-8">
           <div class="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
           <span class="ml-2 text-gray-600">Cargando archivos...</span>
@@ -135,7 +121,6 @@
                 selectedCsvFile === file.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300'
               ]"
             >
-              <!-- Contenido de la tarjeta del documento -->
               <div class="flex items-start justify-between mb-3">
                 <div class="flex-1">
                   <h3 class="text-lg font-semibold text-gray-900 mb-2 line-clamp-2">
@@ -182,7 +167,6 @@
                 </div>
               </div>
 
-              <!-- Indicador de selección -->
               <div v-if="selectedCsvFile === file.id" class="flex items-center text-blue-600 text-sm font-medium">
                 <CheckCircle class="h-4 w-4 mr-1" />
                 Seleccionado para análisis
@@ -240,9 +224,6 @@
           <p class="text-gray-500">
             {{ hasActiveDocumentFilters ? 'Intenta ajustar los filtros de búsqueda.' : 'Aún no hay documentos CSV o XLSX cargados en el sistema.' }}
           </p>
-          <p class="text-sm text-gray-400 mt-2">
-            Los archivos deben ser de tipo CSV o XLSX para poder generar escenarios prospectivos.
-          </p>
         </div>
         
         <!-- Error message -->
@@ -267,9 +248,6 @@
               <p><strong>Línea Medular:</strong> {{ selectedFileInfo.core_line }}</p>
               <p><strong>Tipo:</strong> {{ selectedFileInfo.document_type }}</p>
             </div>
-          </div>
-          <div v-if="selectedFileInfo.additional_notes" class="mt-3">
-            <p><strong>Notas:</strong> {{ selectedFileInfo.additional_notes }}</p>
           </div>
         </div>
       </div>
@@ -359,63 +337,63 @@
 
           <div class="p-6">
             <div v-if="activeTab === 'trends'">
-                <h3 class="text-lg font-semibold mb-4">
-                  Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
-                </h3>
-                <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">  <!-- Cambiado de h-96 a h-120 -->
-                  <LineChart
-                    :data="scenarios[selectedScenario].data"
-                    :series="trendSeries"
-                    :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
-                  />
+              <h3 class="text-lg font-semibold mb-4">
+                Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
+              </h3>
+              <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">
+                <LineChart
+                  :data="scenarios[selectedScenario].data"
+                  :series="trendSeries"
+                  :colors="['#3B82F6', '#10B981', '#F59E0B', '#EF4444']"
+                />
+              </div>
+              <div v-else class="h-120 flex items-center justify-center text-gray-500">
+                <div class="text-center">
+                  <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No hay datos disponibles para este escenario</p>
+                  <p class="text-sm">Selecciona un archivo CSV para generar las proyecciones</p>
                 </div>
-                <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
-                  <div class="text-center">
-                    <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No hay datos disponibles para este escenario</p>
-                    <p class="text-sm">Selecciona un archivo CSV para generar las proyecciones</p>
+              </div>
+            </div>
+
+            <!-- Comparison Tab -->
+            <div v-if="activeTab === 'comparison'">
+              <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
+              <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">
+                <LineChart
+                  :data="comparisonChartData.data"
+                  :series="comparisonChartSeries"
+                  :colors="Object.values(scenarios).map(s => s.color)"
+                />
+              </div>
+              <div v-else class="h-120 flex items-center justify-center text-gray-500">
+                <div class="text-center">
+                  <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                  <p>No hay datos disponibles para comparar</p>
+                  <p class="text-sm">Selecciona un archivo CSV y genera los escenarios</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Indicators Tab -->
+            <div v-if="activeTab === 'indicators'">
+              <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div
+                  v-for="indicator in indicators"
+                  :key="indicator"
+                  class="bg-gray-50 rounded-lg p-4"
+                >
+                  <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
+                  <div class="h-64">
+                    <BarChart
+                      :data="getIndicatorData(indicator)"
+                      :series="[{ key: 'value', name: indicator }]"
+                      :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
+                    />
                   </div>
                 </div>
               </div>
-
-              <!-- Comparison Tab -->
-              <div v-if="activeTab === 'comparison'">
-                <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
-                <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">  <!-- Cambiado de h-96 a h-120 -->
-                  <LineChart
-                    :data="comparisonChartData.data"
-                    :series="comparisonChartSeries"
-                    :colors="Object.values(scenarios).map(s => s.color)"
-                  />
-                </div>
-                <div v-else class="h-120 flex items-center justify-center text-gray-500">  <!-- Cambiado de h-96 a h-120 -->
-                  <div class="text-center">
-                    <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No hay datos disponibles para comparar</p>
-                    <p class="text-sm">Selecciona un archivo CSV y genera los escenarios</p>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Indicators Tab -->
-              <div v-if="activeTab === 'indicators'">
-                <div v-if="indicators.length > 0" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div
-                    v-for="indicator in indicators"
-                    :key="indicator"
-                    class="bg-gray-50 rounded-lg p-4"
-                  >
-                    <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
-                    <div class="h-64">  <!-- Cambiado de h-48 a h-64 -->
-                      <BarChart
-                        :data="getIndicatorData(indicator)"
-                        :series="[{ key: 'value', name: indicator }]"
-                        :colors="[scenarios[selectedScenario]?.color || '#3B82F6']"
-                      />
-                    </div>
-                  </div>
-                </div>
-                <div v-else class="h-120 flex items-center justify-center text-gray-500"> 
+              <div v-else class="h-120 flex items-center justify-center text-gray-500"> 
                 <div class="text-center">
                   <FileSpreadsheet class="h-12 w-12 mx-auto mb-4 text-gray-300" />
                   <p>No hay indicadores disponibles</p>
@@ -426,8 +404,8 @@
           </div>
         </div>
       </template>
-    </div> <!-- Close generation mode div -->
-    </div> <!-- Close max-w-7xl container div -->
+    </div>
+    </div>
 
     <!-- Notificaciones -->
     <div 
@@ -467,15 +445,25 @@
         </div>
       </div>
     </div>
-  </div> <!-- Close main container div -->
+  </div>
 </template>
 
 <script setup>
+import { ref, computed, onMounted, watch } from 'vue'
+import { 
+  Settings, TrendingUp, TrendingDown, Minus, FileSpreadsheet,
+  Search, Filter, X, Calendar, FileText, Building, CheckCircle,
+  ChevronLeft, ChevronRight, Target, AlertTriangle
+} from 'lucide-vue-next'
+import LineChart from '../charts/LineChart.vue'
+import BarChart from '../charts/BarChart.vue'
+import ListaEscenarios from './ListaEscenarios.vue'
+
 const props = defineProps({
   userRole: {
     type: String,
     required: false,
-    default: 'instructor', // Set default for testing
+    default: 'instructor',
     validator: (value) => !value || ['directivo', 'planeacion', 'instructor', 'administrativo', 'superadmin'].includes(value)
   },
   historicalData: {
@@ -484,58 +472,8 @@ const props = defineProps({
   }
 })
 
-console.log('[v0] User role from props:', props.userRole)
-
-import { ref, computed, onMounted, watch } from 'vue'
-import { 
-  Download, Settings, TrendingUp, TrendingDown, Minus, FileSpreadsheet,
-  Search, Filter, X, Calendar, FileText, Building, CheckCircle,
-  ChevronLeft, ChevronRight, Target, AlertTriangle, Image, Code
-} from 'lucide-vue-next'
-import LineChart from '../charts/LineChart.vue'
-import BarChart from '../charts/BarChart.vue'
-import ListaEscenarios from './ListaEscenarios.vue'
-
-// const props = defineProps({
-//   userRole: {
-//     type: String,
-//     required: false,
-//     default: null, // Changed from 'directivo' to null to force role detection
-//     validator: (value) => !value || ['directivo', 'planeacion', 'instructor', 'administrativo', 'superadmin'].includes(value)
-//   },
-//   historicalData: {
-//     type: Array,
-//     default: () => []
-//   }
-// })
-
-// const getUserRoleFromToken = () => {
-//   try {
-//     const token = localStorage.getItem('access_token')
-//     if (!token) return null
-    
-//     // Decode JWT token (simple base64 decode of payload)
-//     const payload = JSON.parse(atob(token.split('.')[1]))
-//     console.log('[v0] Token payload:', payload)
-//     return payload.role || payload.user_role || null
-//   } catch (error) {
-//     console.error('[v0] Error decoding token:', error)
-//     return null
-//   }
-// }
-
-// const userRole = computed(() => {
-//   const tokenRole = getUserRoleFromToken()
-//   const finalRole = props.userRole || tokenRole
-//   console.log('[v0] Final user role:', finalRole, '(from props:', props.userRole, ', from token:', tokenRole, ')')
-//   return finalRole
-// })
-
-// console.log('[v0] Current user role:', props.userRole)
-
 // Reactive state
 const selectedScenario = ref('tendencial')
-const comparisonMode = ref(false)
 const scenarios = ref({})
 const customParameters = ref({
   default: 1.0,
@@ -545,7 +483,7 @@ const customParameters = ref({
 const loading = ref(false)
 const activeTab = ref('trends')
 
-// CSV file selection state with pagination
+// CSV file selection state
 const csvFiles = ref([])
 const selectedCsvFile = ref('')
 const loadingCsvFiles = ref(false)
@@ -567,104 +505,9 @@ const showNotification = ref(false)
 const showErrorNotification = ref(false)
 const notificationMessage = ref('')
 const errorMessage = ref('')
+const showScenariosList = ref(false)
 
-const scenarioNarratives = ref({
-  tendencial: {
-    title: "Escenario Tendencial - Continuidad del Patrón Actual",
-    overview: "Este escenario proyecta la continuación de las tendencias históricas observadas en la región, manteniendo los patrones actuales de crecimiento económico, demanda educativa y desarrollo sectorial.",
-    context: {
-      demographic: "La población objetivo mantendrá un crecimiento moderado del 2-3% anual, siguiendo las tendencias demográficas regionales actuales. Las cohortes en edad formativa se mantendrán estables con ligero incremento.",
-      economic: "El contexto económico regional continuará basado en los sectores tradicionales (agropecuario, comercio, servicios básicos) con incorporación gradual de tecnología sin disrupciones significativas.",
-      educational: "La demanda formativa crecerá al ritmo histórico observado. Los programas técnicos mantendrán su relevancia actual, con ajustes menores según evolución del mercado laboral.",
-      technological: "Adopción tecnológica progresiva y predecible. Las competencias digitales básicas se incorporarán gradualmente a los currículos existentes sin cambios estructurales profundos.",
-      labor_market: "El mercado laboral mantendrá su estructura actual con crecimiento orgánico. La empleabilidad de egresados se mantendrá en niveles similares a los actuales (75-85%)."
-    },
-    implications: [
-      "Necesidad de mantener la calidad y cobertura actual de programas técnicos",
-      "Ajustes curriculares graduales basados en retroalimentación del sector productivo",
-      "Inversión sostenida en infraestructura física y tecnológica",
-      "Fortalecimiento de alianzas existentes con el sector productivo"
-    ],
-    risks: [
-      "Posible desalineación gradual con cambios tecnológicos no previstos",
-      "Riesgo de saturación en algunos programas tradicionales",
-      "Dependencia de factores externos (políticas nacionales, economía global)"
-    ],
-    timeframe: "Las proyecciones se mantienen estables durante los primeros 5 años, con variabilidad mínima en los años 6-10."
-  },
-  
-  optimista: {
-    title: "Escenario Optimista - Crecimiento Acelerado y Transformación",
-    overview: "Este escenario contempla condiciones favorables con crecimiento económico acelerado, mayor inversión en educación técnica, diversificación económica exitosa y adopción tecnológica avanzada en la región.",
-    context: {
-      demographic: "Crecimiento poblacional del 4-5% anual impulsado por migración hacia la región debido a oportunidades económicas. Aumento significativo en demanda de formación técnica especializada.",
-      economic: "Diversificación económica exitosa con desarrollo de sectores emergentes: tecnología, agroindustria avanzada, turismo sostenible y energías renovables. PIB regional crece 6-8% anual.",
-      educational: "Expansión significativa de la oferta educativa técnica (+40-50% en 10 años). Nuevos programas en tecnologías emergentes. Alianzas internacionales para transferencia de conocimiento.",
-      technological: "Adopción acelerada de Industria 4.0, IoT, automatización y tecnologías digitales. La región se convierte en referente tecnológico nacional en sectores específicos.",
-      labor_market: "Mercado laboral dinámico con alta demanda de técnicos especializados. Empleabilidad de egresados superior al 95%. Salarios competitivos que atraen talento."
-    },
-    implications: [
-      "Necesidad de expansión acelerada de infraestructura educativa",
-      "Desarrollo urgente de nuevos programas en tecnologías emergentes", 
-      "Capacitación masiva de instructores en competencias avanzadas",
-      "Inversión significativa en laboratorios y equipos especializados",
-      "Fortalecimiento de vínculos con universidades e instituciones internacionales"
-    ],
-    risks: [
-      "Riesgo de crecimiento no sostenible que genere burbuja formativa",
-      "Posible escasez de instructores calificados para nuevas tecnologías",
-      "Dependencia de inversión externa que podría ser volátil"
-    ],
-    timeframe: "Crecimiento acelerado en años 1-3, consolidación en años 4-7, y madurez del ecosistema en años 8-10."
-  },
-  
-  pesimista: {
-    title: "Escenario Pesimista - Contracción y Desafíos Estructurales", 
-    overview: "Este escenario considera condiciones adversas con desaceleración económica, reducción de inversión pública, migración hacia centros urbanos mayores y menor demanda de formación técnica especializada.",
-    context: {
-      demographic: "Estancamiento o decrecimiento poblacional (-1% a 0% anual) debido a migración hacia ciudades principales. Envejecimiento de la población y reducción de cohortes en edad formativa.",
-      economic: "Contracción económica regional del 2-3% anual. Dependencia excesiva de sectores tradicionales en declive. Limitada capacidad de inversión pública y privada.",
-      educational: "Reducción de recursos para educación técnica. Algunos programas podrían suspenderse por baja demanda. Dificultades para mantener infraestructura actualizada.",
-      technological: "Adopción tecnológica lenta y desigual. Brecha digital se amplía. Dificultades para competir con regiones más desarrolladas tecnológicamente.",
-      labor_market: "Mercado laboral contraído con limitadas oportunidades. Empleabilidad de egresados del 60-70%. Migración de talento hacia otras regiones."
-    },
-    implications: [
-      "Necesidad de optimización y racionalización de recursos",
-      "Enfoque en programas con mayor empleabilidad y demanda comprobada",
-      "Búsqueda de alternativas de financiación (cooperación, alianzas)",
-      "Estrategias de retención de talento local",
-      "Adaptación de programas a realidades económicas locales"
-    ],
-    risks: [
-      "Círculo vicioso de reducción de calidad y menor demanda",
-      "Pérdida de posicionamiento institucional en la región",
-      "Dificultades para atraer y retener personal calificado"
-    ],
-    timeframe: "Impacto gradual en años 1-2, consolidación de tendencias negativas en años 3-5, posible estabilización en niveles más bajos años 6-10."
-  }
-})
-
-// 2. Añadir computed para obtener narrativa actual
-const currentScenarioNarrative = computed(() => {
-  return scenarioNarratives.value[selectedScenario.value] || scenarioNarratives.value.tendencial
-})
-
-// 3. Función para obtener narrativa por sección
-const getNarrativeSection = (section) => {
-  const narrative = currentScenarioNarrative.value
-  return narrative.context[section] || ''
-}
-
-// 4. Función para obtener implicaciones
-const getImplications = () => {
-  return currentScenarioNarrative.value.implications || []
-}
-
-// 5. Función para obtener riesgos
-const getRisks = () => {
-  return currentScenarioNarrative.value.risks || []
-}
-
+// Computed properties
 const filteredCsvFiles = computed(() => {
   let filtered = csvFiles.value
 
@@ -759,28 +602,17 @@ const trendSeries = computed(() => {
   const firstDataPoint = currentScenario.data[0]
   const availableIndicators = Object.keys(firstDataPoint.values || {})
   
-  console.log(`[TRENDS] Indicadores disponibles:`, availableIndicators)
-  
-  // Crear series basadas en los indicadores reales disponibles
-  const series = availableIndicators.map(indicator => ({
+  return availableIndicators.map(indicator => ({
     key: `values.${indicator}`,
     name: indicator
   }))
-  
-  console.log(`[TRENDS] Series generadas:`, series)
-  return series
 })
 
-// Datos de comparación mejorados
 const comparisonChartData = computed(() => {
-  console.log('[COMPARISON] Generando datos de comparación...')
-  
   if (!scenarios.value || Object.keys(scenarios.value).length === 0) {
-    console.log('[COMPARISON] No hay escenarios disponibles')
     return { data: [], series: [] }
   }
   
-  // Obtener todos los años únicos de todos los escenarios
   const allYears = new Set()
   Object.values(scenarios.value).forEach(scenario => {
     if (scenario.data && Array.isArray(scenario.data)) {
@@ -791,22 +623,16 @@ const comparisonChartData = computed(() => {
   })
   
   if (allYears.size === 0) {
-    console.log('[COMPARISON] No se encontraron años en los datos')
     return { data: [], series: [] }
   }
   
-  console.log('[COMPARISON] Años encontrados:', Array.from(allYears).sort())
-  
-  // Crear datos combinados para cada año
   const data = Array.from(allYears).sort((a, b) => a - b).map(year => {
     const yearData = { year }
     
-    // Para cada escenario, obtener el valor del primer indicador disponible
     Object.entries(scenarios.value).forEach(([key, scenario]) => {
       if (scenario.data && Array.isArray(scenario.data)) {
         const yearScenarioData = scenario.data.find(d => d.year === year)
         if (yearScenarioData && yearScenarioData.values) {
-          // Usar el primer indicador disponible o un indicador específico
           const indicators = Object.keys(yearScenarioData.values)
           const primaryIndicator = indicators.find(ind => 
             ind.includes('poblacion') || ind.includes('Estudiantes') || ind.includes('Matriculados')
@@ -822,33 +648,14 @@ const comparisonChartData = computed(() => {
     return yearData
   })
   
-  console.log('[COMPARISON] Datos de comparación generados:', {
-    totalYears: data.length,
-    sampleData: data.slice(0, 3),
-    indicators: data.length > 0 ? Object.keys(data[0]).filter(k => k !== 'year') : []
-  })
-  
   return { data }
 })
 
 const comparisonChartSeries = computed(() => {
-  console.log('[COMPARISON] Generando series de comparación...')
-  console.log('[COMPARISON] Escenarios disponibles:', Object.keys(scenarios.value))
-  
-  const series = Object.entries(scenarios.value).map(([key, scenario]) => {
-    console.log(`[COMPARISON] Procesando escenario ${key}:`, {
-      name: scenario.scenario_name,
-      dataLength: scenario.data?.length || 0
-    })
-    
-    return {
-      key: scenario.scenario_name, // Usar el nombre del escenario como clave
-      name: scenario.scenario_name
-    }
-  })
-  
-  console.log('[COMPARISON] Series generadas:', series.length)
-  return series
+  return Object.entries(scenarios.value).map(([key, scenario]) => ({
+    key: scenario.scenario_name,
+    name: scenario.scenario_name
+  }))
 })
 
 // Tabs configuration
@@ -858,6 +665,7 @@ const tabs = [
   { id: 'indicators', label: 'Indicadores' }
 ]
 
+// Methods
 const loadCsvFiles = async () => {
   loadingCsvFiles.value = true
   csvError.value = ''
@@ -882,13 +690,10 @@ const loadCsvFiles = async () => {
       doc.file_extension === '.csv' || doc.file_extension === '.xlsx'
     )
     
-    console.log(`Cargados ${csvFiles.value.length} archivos CSV/XLSX desde uploads/csv`)
-    
   } catch (error) {
     console.error('Error loading CSV files:', error)
     csvError.value = `Error al cargar archivos: ${error.message}`
     showError(error.message)
-    // Fallback a datos mock si hay error
     loadMockCsvFiles()
   } finally {
     loadingCsvFiles.value = false
@@ -906,65 +711,9 @@ const loadMockCsvFiles = () => {
       document_type: 'Datos Históricos',
       file_extension: '.csv',
       original_filename: 'matricula_historica_2019_2023.csv',
-      additional_notes: 'Datos de matrícula por programa y año para análisis prospectivo'
-    },
-    {
-      id: 2,
-      title: 'Proyecciones Demanda Laboral Sector TIC',
-      year: 2024,
-      sector: 'Tecnología',
-      core_line: 'Desarrollo de Software',
-      document_type: 'Proyecciones',
-      file_extension: '.xlsx',
-      original_filename: 'demanda_laboral_tic_2024.xlsx',
-      additional_notes: 'Análisis de demanda laboral en el sector tecnológico'
-    },
-    {
-      id: 3,
-      title: 'Estadísticas Graduados por Programa',
-      year: 2023,
-      sector: 'Educación Técnica',
-      core_line: 'Gestión Administrativa',
-      document_type: 'Análisis',
-      file_extension: '.csv',
-      original_filename: 'graduados_por_programa_2023.csv',
-      additional_notes: 'Datos de graduados por programa técnico y año'
-    },
-    {
-      id: 4,
-      title: 'Tendencias Mercado Laboral Regional',
-      year: 2024,
-      sector: 'Economía Regional',
-      core_line: 'Desarrollo Empresarial',
-      document_type: 'Estudio Prospectivo',
-      file_extension: '.xlsx',
-      original_filename: 'tendencias_mercado_laboral_2024.xlsx',
-      additional_notes: 'Análisis de tendencias del mercado laboral regional'
-    },
-    {
-      id: 5,
-      title: 'Datos Empleabilidad Egresados',
-      year: 2023,
-      sector: 'Seguimiento Egresados',
-      core_line: 'Formación Técnica Laboral',
-      document_type: 'Datos Históricos',
-      file_extension: '.csv',
-      original_filename: 'empleabilidad_egresados_2023.csv',
-      additional_notes: 'Seguimiento de empleabilidad de egresados por programa'
-    },
-    {
-      id: 6,
-      title: 'Proyecciones Crecimiento Sectorial',
-      year: 2024,
-      sector: 'Análisis Sectorial',
-      core_line: 'Desarrollo Empresarial',
-      document_type: 'Proyecciones',
-      file_extension: '.xlsx',
-      original_filename: 'crecimiento_sectorial_2024.xlsx',
-      additional_notes: 'Proyecciones de crecimiento por sector económico'
+      additional_notes: 'Datos de matrícula por programa y año'
     }
   ]
-  console.log(`Cargados ${csvFiles.value.length} archivos CSV/XLSX de ejemplo`)
 }
 
 const selectCsvFile = (file) => {
@@ -975,16 +724,12 @@ const selectCsvFile = (file) => {
 const onCsvFileChange = async () => {
   if (!selectedCsvFile.value) return
   
-  console.log('Archivo CSV seleccionado:', selectedFileInfo.value)
   showSuccess(`Archivo seleccionado: ${selectedFileInfo.value?.title}`)
-  
-  // Recargar escenarios con los nuevos datos
   await loadScenarios()
 }
 
 const loadScenarios = async () => {
   if (!selectedCsvFile.value) {
-    // Si no hay archivo seleccionado, usar datos mock
     await loadMockScenarios()
     return
   }
@@ -996,19 +741,13 @@ const loadScenarios = async () => {
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
     const fileId = selectedCsvFile.value
-    console.log(`Generando escenarios para archivo ID: ${fileId}`)
-
     const scenarioTypes = ['tendencial', 'optimista', 'pesimista']
     const yearsAhead = 10
     
-    // Construir URL con query parameters
     const url = new URL(`http://localhost:8000/scenarios/generate/${fileId}`)
     scenarioTypes.forEach(type => url.searchParams.append('scenario_types', type))
     url.searchParams.append('years_ahead', yearsAhead.toString())
-    
-    console.log(`URL con parámetros:`, url.toString())
 
-    // Llamada a la API para generar escenarios desde el archivo CSV
     const response = await fetch(url.toString(), {
       method: 'POST',
       headers: {
@@ -1017,69 +756,36 @@ const loadScenarios = async () => {
       }
     })
     
-    console.log(`Response status:`, response.status)
-    
     if (response.ok) {
       const scenarioData = await response.json()
-      console.log(`Datos recibidos del backend:`, scenarioData)
       
-      // Procesar y validar datos de escenarios
       const processedScenarios = {}
       
       for (const [scenarioType, data] of Object.entries(scenarioData)) {
         if (data && data.data && Array.isArray(data.data)) {
-          // Ordenar datos por año para asegurar continuidad
           const sortedData = data.data.sort((a, b) => a.year - b.year)
           
           processedScenarios[scenarioType] = {
             ...data,
             data: sortedData
           }
-          
-          console.log(`Escenario ${scenarioType}: ${sortedData.length} puntos de datos`)
-          console.log(`Rango de años: ${sortedData[0]?.year} - ${sortedData[sortedData.length - 1]?.year}`)
-          console.log(`Indicadores disponibles:`, Object.keys(sortedData[0]?.values || {}))
         }
       }
       
       scenarios.value = processedScenarios
       
-      // Actualizar selectedScenario si no existe
       if (!scenarios.value[selectedScenario.value]) {
         selectedScenario.value = Object.keys(scenarios.value)[0] || 'tendencial'
       }
       
-      showSuccess(`Escenarios generados exitosamente. Total de escenarios: ${Object.keys(processedScenarios).length}`)
-      scenarioGenerated.value = true;
+      showSuccess(`Escenarios generados exitosamente. Total: ${Object.keys(processedScenarios).length}`)
     } else {
       const errorData = await response.json()
-      console.error('Error response:', errorData)
-      
-      // Mostrar detalles específicos del error con sugerencias
-      let errorMessage = 'Error al generar escenarios'
-      if (errorData.detail) {
-        if (Array.isArray(errorData.detail)) {
-          errorMessage = errorData.detail.map(err => 
-            typeof err === 'object' ? `${err.loc?.join('.')} - ${err.msg}` : err
-          ).join(', ')
-        } else {
-          errorMessage = errorData.detail
-        }
-      }
-      
-      // Agregar sugerencias específicas para errores comunes
-      if (response.status === 400) {
-        if (errorMessage.includes('Error al leer el archivo') || errorMessage.includes('formato')) {
-          errorMessage += '\n\nSugerencias:\n• Verifique que el archivo sea un CSV válido\n• Asegúrese de que tenga columnas de fecha y datos numéricos\n• Revise que no tenga caracteres especiales en los encabezados\n• Intente con otro archivo CSV'
-        }
-      }
-      
-      throw new Error(errorMessage)
+      throw new Error(errorData.detail || 'Error al generar escenarios')
     }
   } catch (error) {
     console.error('Error loading scenarios:', error)
     showError(`Error al generar escenarios: ${error.message}`)
-    // Fallback a datos mock
     await loadMockScenarios()
   } finally {
     loading.value = false
@@ -1087,14 +793,13 @@ const loadScenarios = async () => {
 }
 
 const loadMockScenarios = async () => {
-  // Usar datos mock si no hay archivo seleccionado o hay error
   await new Promise(resolve => setTimeout(resolve, 1000))
   
   const mockScenarios = {
     tendencial: {
       scenario_type: 'tendencial',
       scenario_name: 'Escenario Tendencial',
-      description: 'Proyección basada en las tendencias históricas actuales sin cambios significativos.',
+      description: 'Proyección basada en tendencias históricas actuales',
       color: '#3B82F6',
       data: generateMockData('tendencial'),
       parameters: { default: 1.0 }
@@ -1102,7 +807,7 @@ const loadMockScenarios = async () => {
     optimista: {
       scenario_type: 'optimista',
       scenario_name: 'Escenario Optimista',
-      description: 'Escenario favorable con crecimiento económico y mayor inversión en educación técnica.',
+      description: 'Escenario favorable con crecimiento económico',
       color: '#10B981',
       data: generateMockData('optimista'),
       parameters: { default: 1.25, tecnologia: 1.5, empleo: 1.3 }
@@ -1110,7 +815,7 @@ const loadMockScenarios = async () => {
     pesimista: {
       scenario_type: 'pesimista',
       scenario_name: 'Escenario Pesimista',
-      description: 'Escenario desfavorable con reducción en inversión y menor demanda laboral.',
+      description: 'Escenario desfavorable con reducción en inversión',
       color: '#EF4444',
       data: generateMockData('pesimista'),
       parameters: { default: 0.75, tecnologia: 0.6, empleo: 0.7 }
@@ -1118,11 +823,48 @@ const loadMockScenarios = async () => {
   }
   
   scenarios.value = mockScenarios
-  console.log('Escenarios mock cargados:', Object.keys(mockScenarios))
-  scenarioGenerated.value = true;
 }
 
-// Methods for pagination and filtering
+const generateMockData = (scenarioType) => {
+  const baseData = []
+  const currentYear = new Date().getFullYear()
+
+  for (let i = 5; i >= 1; i--) {
+    baseData.push({
+      year: currentYear - i,
+      values: {
+        'Estudiantes Matriculados': Math.floor(1000 + Math.random() * 500),
+        'Programas Ofertados': Math.floor(15 + Math.random() * 10),
+        'Demanda Laboral': Math.floor(800 + Math.random() * 400),
+        'Graduados': Math.floor(200 + Math.random() * 100)
+      }
+    })
+  }
+
+  const multiplier = scenarioType === 'optimista' ? 1.25 : scenarioType === 'pesimista' ? 0.75 : 1.0
+
+  for (let i = 1; i <= 10; i++) {
+    const lastValues = baseData[baseData.length - 1].values
+    baseData.push({
+      year: currentYear + i,
+      values: {
+        'Estudiantes Matriculados': Math.floor(lastValues['Estudiantes Matriculados'] * (1 + 0.05 * multiplier)),
+        'Programas Ofertados': Math.floor(lastValues['Programas Ofertados'] * (1 + 0.03 * multiplier)),
+        'Demanda Laboral': Math.floor(lastValues['Demanda Laboral'] * (1 + 0.07 * multiplier)),
+        'Graduados': Math.floor(lastValues['Graduados'] * (1 + 0.06 * multiplier))
+      }
+    })
+  }
+
+  return baseData
+}
+
+const handleParameterChange = (param, value) => {
+  if (props.userRole === 'planeacion') {
+    customParameters.value[param] = parseFloat(value)
+  }
+}
+
 const goToPage = (page) => {
   if (page >= 1 && page <= totalPages.value) {
     currentPage.value = page
@@ -1130,7 +872,7 @@ const goToPage = (page) => {
 }
 
 const applyDocumentFilters = () => {
-  currentPage.value = 1 // Reset to first page when filtering
+  currentPage.value = 1
 }
 
 const clearDocumentFilters = () => {
@@ -1166,493 +908,6 @@ const getFileTypeBadgeClass = (extension) => {
   return classes[extension.toLowerCase()] || 'bg-gray-100 text-gray-800'
 }
 
-const generateMockData = (scenarioType) => {
-  const baseData = []
-  const currentYear = new Date().getFullYear()
-
-  // Datos históricos (últimos 5 años)
-  for (let i = 5; i >= 1; i--) {
-    baseData.push({
-      year: currentYear - i,
-      values: {
-        'Estudiantes Matriculados': Math.floor(1000 + Math.random() * 500),
-        'Programas Ofertados': Math.floor(15 + Math.random() * 10),
-        'Demanda Laboral': Math.floor(800 + Math.random() * 400),
-        'Graduados': Math.floor(200 + Math.random() * 100)
-      }
-    })
-  }
-
-  // Proyecciones futuras (próximos 10 años)
-  const multiplier = scenarioType === 'optimista' ? 1.25 : scenarioType === 'pesimista' ? 0.75 : 1.0
-
-  for (let i = 1; i <= 10; i++) {
-    const lastValues = baseData[baseData.length - 1].values
-    baseData.push({
-      year: currentYear + i,
-      values: {
-        'Estudiantes Matriculados': Math.floor(lastValues['Estudiantes Matriculados'] * (1 + 0.05 * multiplier)),
-        'Programas Ofertados': Math.floor(lastValues['Programas Ofertados'] * (1 + 0.03 * multiplier)),
-        'Demanda Laboral': Math.floor(lastValues['Demanda Laboral'] * (1 + 0.07 * multiplier)),
-        'Graduados': Math.floor(lastValues['Graduados'] * (1 + 0.06 * multiplier))
-      }
-    })
-  }
-
-  return baseData
-}
-
-const handleParameterChange = (param, value) => {
-  if (props.userRole === 'planeacion') {
-    customParameters.value[param] = parseFloat(value)
-  }
-}
-
-// ==== SISTEMA COMPLETO DE EXPORTACIÓN R4.6 ====
-
-// 1. Añadir al data/ref del componente:
-const exportOptions = ref({
-  format: 'pdf',
-  includeCharts: true,
-  includeNarratives: true,
-  includeComparison: false,
-  template: 'executive'
-})
-
-const exportFormats = [
-  { value: 'pdf', label: 'Documento PDF', icon: 'FileText' },
-  { value: 'png', label: 'Imagen PNG', icon: 'Image' },
-  { value: 'csv', label: 'Datos CSV', icon: 'FileSpreadsheet' },
-  { value: 'json', label: 'Datos JSON', icon: 'Code' }
-]
-
-const exportTemplates = [
-  { value: 'executive', label: 'Ejecutivo', description: 'Resumen para directivos' },
-  { value: 'technical', label: 'Técnico', description: 'Reporte detallado' },
-  { value: 'presentation', label: 'Presentación', description: 'Para exposiciones' }
-]
-
-// 2. Funciones de exportación mejoradas:
-
-const exportToPDF = async () => {
-  try {
-    const scenario = scenarios.value[selectedScenario.value]
-    if (!scenario) return
-
-    // Generar contenido HTML para PDF
-    const htmlContent = generatePDFContent()
-    
-    // Crear un elemento temporal para renderizar
-    const printWindow = window.open('', '_blank')
-    printWindow.document.write(htmlContent)
-    printWindow.document.close()
-    
-    // Esperar a que se cargue y luego imprimir
-    setTimeout(() => {
-      printWindow.print()
-      printWindow.close()
-    }, 1000)
-    
-  } catch (error) {
-    showError('Error al exportar PDF: ' + error.message)
-  }
-}
-
-const exportChartAsPNG = async (chartId = 'trends') => {
-  try {
-    let canvas
-    
-    // Obtener el canvas según la pestaña activa
-    if (chartId === 'trends' && chartCanvas.value) {
-      canvas = chartCanvas.value
-    }
-    
-    if (!canvas) {
-      throw new Error('No se encontró el gráfico para exportar')
-    }
-    
-    // Convertir canvas a imagen
-    const dataURL = canvas.toDataURL('image/png', 1.0)
-    
-    // Crear enlace de descarga
-    const link = document.createElement('a')
-    link.download = `escenario_${selectedScenario.value}_${chartId}_${new Date().toISOString().split('T')[0]}.png`
-    link.href = dataURL
-    link.click()
-    
-    showSuccess('Gráfico exportado como PNG')
-    
-  } catch (error) {
-    showError('Error al exportar gráfico: ' + error.message)
-  }
-}
-
-const exportDataAsCSV = () => {
-  try {
-    const scenario = scenarios.value[selectedScenario.value]
-    if (!scenario || !scenario.data) return
-    
-    // Generar CSV
-    let csvContent = 'Año,Escenario'
-    
-    // Headers dinámicos basados en los indicadores
-    const indicators = Object.keys(scenario.data[0]?.values || {})
-    indicators.forEach(indicator => {
-      csvContent += ',' + indicator
-    })
-    csvContent += '\n'
-    
-    // Datos
-    scenario.data.forEach(d => {
-      csvContent += `${d.year},${scenario.scenario_name}`
-      indicators.forEach(indicator => {
-        csvContent += ',' + (d.values[indicator] || 0)
-      })
-      csvContent += '\n'
-    })
-    
-    // Descargar
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `datos_escenario_${selectedScenario.value}_${new Date().toISOString().split('T')[0]}.csv`
-    link.click()
-    URL.revokeObjectURL(link.href)
-    
-    showSuccess('Datos exportados como CSV')
-    
-  } catch (error) {
-    showError('Error al exportar CSV: ' + error.message)
-  }
-}
-
-const exportDataAsJSON = () => {
-  try {
-    const exportData = {
-      metadata: {
-        exported_at: new Date().toISOString(),
-        scenario_type: selectedScenario.value,
-        source_file: selectedFileInfo.value?.title || 'Datos sintéticos',
-        template: exportOptions.value.template
-      },
-      scenario: {
-        ...scenarios.value[selectedScenario.value],
-        narrative: currentScenarioNarrative.value
-      }
-    }
-    
-    const jsonString = JSON.stringify(exportData, null, 2)
-    const blob = new Blob([jsonString], { type: 'application/json' })
-    const link = document.createElement('a')
-    link.href = URL.createObjectURL(blob)
-    link.download = `escenario_${selectedScenario.value}_completo_${new Date().toISOString().split('T')[0]}.json`
-    link.click()
-    URL.revokeObjectURL(link.href)
-    
-    showSuccess('Escenario completo exportado como JSON')
-    
-  } catch (error) {
-    showError('Error al exportar JSON: ' + error.message)
-  }
-}
-
-const generatePDFContent = () => {
-  const scenario = scenarios.value[selectedScenario.value]
-  const narrative = currentScenarioNarrative.value
-  const template = exportOptions.value.template
-  
-  let content = `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <title>Escenario Prospectivo - ${scenario.scenario_name}</title>
-      <style>
-        body { 
-          font-family: 'Arial', sans-serif; 
-          margin: 40px; 
-          color: #333; 
-          line-height: 1.6; 
-        }
-        .header { 
-          text-align: center; 
-          border-bottom: 3px solid #3B82F6; 
-          padding-bottom: 20px; 
-          margin-bottom: 30px; 
-        }
-        .section { 
-          margin-bottom: 25px; 
-        }
-        .scenario-title { 
-          color: ${scenario.color}; 
-          font-size: 24px; 
-          font-weight: bold; 
-        }
-        .subsection { 
-          margin-left: 20px; 
-          margin-bottom: 15px; 
-        }
-        .indicator-table { 
-          width: 100%; 
-          border-collapse: collapse; 
-          margin: 20px 0; 
-        }
-        .indicator-table th, .indicator-table td { 
-          border: 1px solid #ddd; 
-          padding: 8px; 
-          text-align: left; 
-        }
-        .indicator-table th { 
-          background-color: #f2f2f2; 
-        }
-        .implications-list { 
-          list-style-type: none; 
-          padding-left: 0; 
-        }
-        .implications-list li { 
-          background: #f8f9fa; 
-          margin: 5px 0; 
-          padding: 10px; 
-          border-left: 4px solid ${scenario.color}; 
-        }
-        .footer { 
-          margin-top: 40px; 
-          text-align: center; 
-          font-size: 12px; 
-          color: #666; 
-        }
-        @media print {
-          body { margin: 20px; }
-          .no-print { display: none; }
-        }
-      </style>
-    </head>
-    <body>
-      <div class="header">
-        <h1>ESCENARIOS PROSPECTIVOS</h1>
-        <h2 class="scenario-title">${narrative.title}</h2>
-        <p><strong>Archivo fuente:</strong> ${selectedFileInfo.value?.title || 'Datos sintéticos'}</p>
-        <p><strong>Fecha de generación:</strong> ${new Date().toLocaleDateString()}</p>
-      </div>
-  `
-  
-  // Contenido según template
-  if (template === 'executive') {
-    content += generateExecutiveContent(scenario, narrative)
-  } else if (template === 'technical') {
-    content += generateTechnicalContent(scenario, narrative)
-  } else {
-    content += generatePresentationContent(scenario, narrative)
-  }
-  
-  content += `
-      <div class="footer">
-        <p>Documento generado automáticamente por el Sistema de Escenarios Prospectivos</p>
-        <p>${new Date().toLocaleString()}</p>
-      </div>
-    </body>
-    </html>
-  `
-  
-  return content
-}
-
-const generateExecutiveContent = (scenario, narrative) => {
-  return `
-    <div class="section">
-      <h3>Resumen Ejecutivo</h3>
-      <p>${narrative.overview}</p>
-    </div>
-    
-    <div class="section">
-      <h3>Indicadores Clave (Proyección a 10 años)</h3>
-      <table class="indicator-table">
-        <thead>
-          <tr>
-            <th>Indicador</th>
-            <th>Valor Actual</th>
-            <th>Proyección 2034</th>
-            <th>Variación</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${generateIndicatorRows(scenario)}
-        </tbody>
-      </table>
-    </div>
-    
-    <div class="section">
-      <h3>Implicaciones Estratégicas</h3>
-      <ul class="implications-list">
-        ${narrative.implications.map(impl => `<li>${impl}</li>`).join('')}
-      </ul>
-    </div>
-  `
-}
-
-const generateTechnicalContent = (scenario, narrative) => {
-  return `
-    <div class="section">
-      <h3>Contexto del Escenario</h3>
-      <div class="subsection">
-        <h4>Contexto Demográfico</h4>
-        <p>${narrative.context.demographic}</p>
-      </div>
-      <div class="subsection">
-        <h4>Contexto Económico</h4>
-        <p>${narrative.context.economic}</p>
-      </div>
-      <div class="subsection">
-        <h4>Contexto Educativo</h4>
-        <p>${narrative.context.educational}</p>
-      </div>
-      <div class="subsection">
-        <h4>Marco Temporal</h4>
-        <p>${narrative.timeframe}</p>
-      </div>
-    </div>
-    
-    <div class="section">
-      <h3>Análisis de Riesgos</h3>
-      <ul>
-        ${narrative.risks.map(risk => `<li>${risk}</li>`).join('')}
-      </ul>
-    </div>
-    
-    <div class="section">
-      <h3>Datos Proyectados Completos</h3>
-      <table class="indicator-table">
-        <thead>
-          <tr>
-            <th>Año</th>
-            ${Object.keys(scenario.data[0]?.values || {}).map(ind => `<th>${ind}</th>`).join('')}
-          </tr>
-        </thead>
-        <tbody>
-          ${scenario.data.slice(-10).map(d => `
-            <tr>
-              <td><strong>${d.year}</strong></td>
-              ${Object.values(d.values).map(val => `<td>${val.toLocaleString()}</td>`).join('')}
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    </div>
-  `
-}
-
-const generatePresentationContent = (scenario, narrative) => {
-  return `
-    <div class="section">
-      <h3>Resumen del Escenario</h3>
-      <p style="font-size: 18px; font-weight: bold; color: ${scenario.color};">${narrative.overview}</p>
-    </div>
-    
-    <div class="section">
-      <h3>Puntos Clave</h3>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-        <div>
-          <h4>Oportunidades</h4>
-          <ul class="implications-list">
-            ${narrative.implications.slice(0, 2).map(impl => `<li>${impl}</li>`).join('')}
-          </ul>
-        </div>
-        <div>
-          <h4>Desafíos</h4>
-          <ul>
-            ${narrative.risks.slice(0, 2).map(risk => `<li>${risk}</li>`).join('')}
-          </ul>
-        </div>
-      </div>
-    </div>
-    
-    <div class="section">
-      <h3>Proyecciones Destacadas</h3>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
-        ${generateHighlightCards(scenario)}
-      </div>
-    </div>
-    
-    <div class="section">
-      <h3>Marco Temporal</h3>
-      <p style="background: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid ${scenario.color};">
-        ${narrative.timeframe}
-      </p>
-    </div>
-  `
-}
-
-const generateHighlightCards = (scenario) => {
-  if (!scenario.data || scenario.data.length < 2) return ''
-  
-  const currentData = scenario.data[scenario.data.length - 11] // Año actual aproximado
-  const futureData = scenario.data[scenario.data.length - 1]   // Último año proyectado
-  
-  if (!currentData || !futureData) return ''
-  
-  return Object.keys(currentData.values).slice(0, 4).map(indicator => {
-    const current = currentData.values[indicator]
-    const future = futureData.values[indicator]
-    const variation = ((future - current) / current * 100).toFixed(1)
-    const isPositive = variation > 0
-    
-    return `
-      <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center;">
-        <h5 style="margin: 0 0 10px 0; color: #333;">${indicator}</h5>
-        <div style="font-size: 24px; font-weight: bold; color: ${scenario.color}; margin-bottom: 5px;">
-          ${future.toLocaleString()}
-        </div>
-        <div style="font-size: 14px; color: ${isPositive ? 'green' : 'red'};">
-          ${isPositive ? '↗' : '↘'} ${Math.abs(variation)}%
-        </div>
-      </div>
-    `
-  }).join('')
-}
-
-const generateIndicatorRows = (scenario) => {
-  if (!scenario.data || scenario.data.length < 2) return ''
-  
-  const currentData = scenario.data[scenario.data.length - 11] // Año actual aproximado
-  const futureData = scenario.data[scenario.data.length - 1]   // Último año proyectado
-  
-  if (!currentData || !futureData) return ''
-  
-  return Object.keys(currentData.values).map(indicator => {
-    const current = currentData.values[indicator]
-    const future = futureData.values[indicator]
-    const variation = ((future - current) / current * 100).toFixed(1)
-    
-    return `
-      <tr>
-        <td>${indicator}</td>
-        <td>${current.toLocaleString()}</td>
-        <td>${future.toLocaleString()}</td>
-        <td style="color: ${variation > 0 ? 'green' : 'red'}">${variation}%</td>
-      </tr>
-    `
-  }).join('')
-}
-
-// 3. Función principal de exportación actualizada
-const exportScenario = () => {
-  const format = exportOptions.value.format
-  
-  switch (format) {
-    case 'png':
-      exportChartAsPNG()
-      break
-    case 'csv':
-      exportDataAsCSV()
-      break
-    case 'json':
-      exportDataAsJSON()
-      break
-    default:
-      exportToPDF()
-  }
-}
-
 const getScenarioIcon = (type) => {
   switch (type) {
     case 'optimista':
@@ -1666,15 +921,11 @@ const getScenarioIcon = (type) => {
 
 const getIndicatorData = (indicator) => {
   const scenario = scenarios.value[selectedScenario.value]
-  console.log(`getIndicatorData - scenario:`, scenario)
-  console.log(`getIndicatorData - indicator:`, indicator)
   
   if (!scenario || !scenario.data) {
-    console.log(`getIndicatorData - no scenario or data found`)
     return []
   }
 
-  // Mapeo de nombres de indicadores legibles a claves del backend
   const indicatorMapping = {
     'Población Objetivo': 'poblacion_objetivo',
     'Demanda de Empleo': 'demanda_empleo', 
@@ -1684,25 +935,16 @@ const getIndicatorData = (indicator) => {
     'Graduados': 'oferta_educativa'
   }
 
-  // Usar el mapeo o el indicador original si no existe mapeo
   const mappedIndicator = indicatorMapping[indicator] || indicator
-  console.log(`getIndicatorData - mapped indicator: ${indicator} -> ${mappedIndicator}`)
-
-  // Verificar qué indicadores están disponibles en los datos
-  if (scenario.data.length > 0) {
-    console.log(`getIndicatorData - available indicators:`, Object.keys(scenario.data[0].values || {}))
-  }
   
   const data = scenario.data.slice(-5).map(d => {
     const value = d.values[mappedIndicator] || d.values[indicator] || 0
-    console.log(`getIndicatorData - year ${d.year}, indicator ${mappedIndicator}, value:`, value)
     return {
       year: d.year,
       value: value
     }
   })
   
-  console.log(`getIndicatorData - resultado final:`, data)
   return data
 }
 
@@ -1718,7 +960,7 @@ const showError = (message) => {
   setTimeout(() => { showErrorNotification.value = false }, 5000)
 }
 
-// Watch for filter changes with debounce
+// Watch for filter changes
 let filterTimeout
 watch(() => documentFilters.value.search, () => {
   clearTimeout(filterTimeout)
@@ -1731,27 +973,11 @@ watch([() => documentFilters.value.sector, () => documentFilters.value.year], ()
   currentPage.value = 1
 })
 
-const showScenariosList = ref(false)
-
-// const toggleViewMode = () => {
-//   viewMode.value = viewMode.value === 'list' ? 'generation' : 'list'
-// }
-
 // Lifecycle
 onMounted(async () => {
   await loadCsvFiles()
   await loadScenarios()
 })
-
-// Declare chartCanvas ref
-const chartCanvas = ref(null)
-
-const scenarioGenerated = ref(false)
-
-const hasResults = computed(() => {
-  return Object.keys(scenarios.value).length > 0
-})
-
 </script>
 
 <style scoped>
@@ -1795,5 +1021,22 @@ const hasResults = computed(() => {
   -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+/* Utility classes */
+.h-250 {
+  height: 250px;
+}
+
+.h-210 {
+  height: 210px;
+}
+
+.h-120 {
+  height: 120px;
+}
+
+.h-64 {
+  height: 16rem;
 }
 </style>

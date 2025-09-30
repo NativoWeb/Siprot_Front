@@ -126,12 +126,6 @@
           <ProgramProjections ref="projectionsTab" :programs="programs" />
         </div>
       </div>
-
-      <!-- Reportes estratégicos -->
-      <div class="bg-white shadow-md rounded-xl p-4">
-        <h2 class="text-lg font-semibold text-gray-700 mb-3">📋 Reportes y Alineación Estratégica</h2>
-        <ProgramReports :programs="programs" :analysis-matrix="analysisMatrix" :demand-comparison="demandComparison" />
-      </div>
     </div>
   </div>
 </template>
@@ -142,7 +136,6 @@ import ProgramForm from "../planeacion/educational-offer/ProgramForm.vue";
 import ProgramTable from "../planeacion/educational-offer/ProgramTable.vue";
 import ProgramFilters from "../planeacion/educational-offer/ProgramFilters.vue";
 import ProgramCharts from "../planeacion/educational-offer/ProgramCharts.vue";
-import ProgramReports from "../planeacion/educational-offer/ProgramReports.vue";
 import ProgramBulkUpload from "../planeacion/educational-offer/ProgramBulkUpload.vue";
 import ProgramProjections from "../planeacion/educational-offer/ProgramProjections.vue";
 import DemandForm from "./educational-offer/DemandForm.vue";
@@ -153,7 +146,6 @@ export default {
     ProgramTable, 
     ProgramFilters, 
     ProgramCharts, 
-    ProgramReports,
     ProgramBulkUpload,
     ProgramProjections,
     DemandForm,
