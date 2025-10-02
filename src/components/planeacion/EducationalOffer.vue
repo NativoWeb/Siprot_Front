@@ -26,12 +26,21 @@
         <DemandForm @saved="refreshAllData" />
       </div>
 
-
       <!-- Filtros -->
       <div class="bg-white shadow-md rounded-xl p-4 flex flex-wrap items-center gap-4">
-        <ProgramFilters :sectors="sectors" :levels="levels" v-model="filters" />
+        <ProgramFilters :sectors="sectors" :levels="levels" v-model="pendingFilters" />
+
+        <!-- Botón aplicar -->
         <button
-          class="ml-auto px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
+          class="ml-auto px-3 py-1 text-sm bg-blue-500 text-white hover:bg-blue-600 rounded-lg"
+          @click="applyFilters"
+        >
+          Aplicar filtros
+        </button>
+
+        <!-- Botón limpiar -->
+        <button
+          class="px-3 py-1 text-sm bg-gray-200 hover:bg-gray-300 rounded-lg"
           @click="clearFilters"
         >
           Limpiar filtros
@@ -153,7 +162,8 @@ export default {
   data() {
     return {
       programs: [],
-      filters: { sector: "", level: "", region: "" },
+      filters: { sector: "", level: "", region: "" },       // filtros aplicados
+      pendingFilters: { sector: "", level: "", region: "" }, // filtros seleccionados pero aún no aplicados
       userRole: localStorage.getItem("role"),
       editingProgram: null,
       analysisMatrix: {},
@@ -176,8 +186,13 @@ export default {
     }
   },
   methods: {
+    applyFilters() {
+      this.filters = { ...this.pendingFilters };
+      this.loadPrograms();
+    },
     clearFilters() {
       this.filters = { sector: "", level: "", region: "" };
+      this.pendingFilters = { sector: "", level: "", region: "" };
       this.refreshAllData();
     },
     async loadPrograms() {
@@ -235,7 +250,6 @@ export default {
       await this.loadPrograms();
       await this.loadAnalysisMatrix();
       await this.loadDemandComparison();
-      // Refrescar proyecciones
       this.$refs.projectionsTab?.loadProjections();
     }
   },

@@ -4,19 +4,23 @@
 
     <!-- Gráfica de barras: programas por sector -->
     <div class="chart-container">
-      <h3 class="text-base font-medium mb-2">Programas por sector</h3>
+      <h3 class="text-base font-medium mb-2">📊 Cantidad de programas por sector</h3>
       <BarChart
         v-if="barData.length"
         :data="barData"
         data-key="sector"
-        :series="[{ name: 'Programas', key: 'count' }]"
+        :series="[{ name: 'Número de Programas', key: 'count' }]"
+        :show-labels="true"
       />
       <p v-else class="text-sm text-gray-500">No hay datos para mostrar</p>
+      <p class="text-xs text-gray-400 mt-2">
+        Cada barra representa la cantidad total de programas registrados en ese sector educativo.
+      </p>
     </div>
 
-    <!-- Gráfica de líneas: programas por año (basado en created_at) -->
+    <!-- Gráfica de líneas -->
     <div class="chart-container">
-      <h3 class="text-base font-medium mb-2">Evolución / Proyección de Programas</h3>
+      <h3 class="text-base font-medium mb-2">📈 Evolución de Programas por año (basado en program_date)</h3>
       <LineChart
         v-if="lineData.length"
         :data="lineData"
@@ -51,33 +55,31 @@ export default {
       }));
     },
 
-    // Datos para gráfica de líneas (programas por año usando created_at)
-// Datos para gráfica de líneas (programas por año usando created_at)
-lineData() {
-  const counts = {};
-  this.programs.forEach(p => {
-    const year = p.created_at
-      ? new Date(p.created_at).getFullYear()
-      : new Date().getFullYear();
-    counts[year] = (counts[year] || 0) + 1;
-  });
+    // Datos para gráfica de líneas (programas por año usando program_date)
+    lineData() {
+      const counts = {};
+      this.programs.forEach(p => {
+        const year = p.program_date
+          ? new Date(p.program_date).getFullYear()
+          : new Date().getFullYear();
+        counts[year] = (counts[year] || 0) + 1;
+      });
 
-  let data = Object.entries(counts)
-    .map(([year, count]) => ({ year: Number(year), count }))
-    .sort((a, b) => a.year - b.year);
+      let data = Object.entries(counts)
+        .map(([year, count]) => ({ year: Number(year), count }))
+        .sort((a, b) => a.year - b.year);
 
-  // 🔧 Prevención: si todos los datos están en el mismo año, duplicamos para mostrar
-  if (data.length === 1) {
-    data = [
-      { year: data[0].year - 1, count: 0 },
-      data[0]
-    ];
-  }
+      if (data.length === 1) {
+        data = [
+          { year: data[0].year - 1, count: 0 },
+          data[0]
+        ];
+      }
 
-  return data;
-}
+      return data;
+    }
   }
-  }
+};
 </script>
 
 <style scoped>

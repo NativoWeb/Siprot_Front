@@ -670,14 +670,6 @@ export default {
         this.renderingInProgress = false;
       }
     },
-    
-    toggleDebugMode() {
-      this.debugMode = !this.debugMode;
-      if (this.debugMode && !this.hasProjectionData) {
-        console.log('🐛 Activando modo debug con datos de ejemplo');
-        this.generateSampleData();
-      }
-    }
   },
   
   mounted() {

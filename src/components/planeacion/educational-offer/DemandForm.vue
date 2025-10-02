@@ -34,13 +34,16 @@
       />
     </div>
 
-    <!-- Fuente (opcional) -->
+    <!-- Documento Fuente con búsqueda -->
     <div>
-      <label class="block text-sm font-medium text-gray-700">Fuente (opcional)</label>
-      <input 
-        v-model="form.source" 
-        class="border p-2 rounded w-full"
-        placeholder="Ej: DANE, MinEducación"
+      <label class="block text-sm font-medium text-gray-700">Documento Fuente</label>
+      <v-select
+        v-model="form.source_document_id"
+        :options="documents"
+        label="title"
+        :reduce="doc => doc.id"
+        placeholder="Buscar documento..."
+        :get-option-label="doc => `${doc.title} (${doc.year} - ${doc.sector})`"
       />
     </div>
 
@@ -56,17 +59,32 @@
 
 <script>
 import axios from "axios";
+import vSelect from "vue3-select";
+import "vue3-select/dist/vue3-select.css";
 
 export default {
+  components: { vSelect },
   data() {
     return {
       form: {
         sector: "",
         year: new Date().getFullYear(),
         demand_value: 0,
-        source: ""
-      }
+        source_document_id: null,
+        notes: ""
+      },
+      documents: []
     };
+  },
+  async created() {
+    try {
+      const res = await axios.get("http://localhost:8000/documents", {
+        headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
+      });
+      this.documents = res.data;
+    } catch (err) {
+      console.error("Error cargando documentos:", err);
+    }
   },
   methods: {
     async saveDemand() {
@@ -75,8 +93,7 @@ export default {
           headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
         });
         this.$emit("saved");
-        // Reiniciar formulario
-        this.form = { sector: "", year: new Date().getFullYear(), demand_value: 0, source: "" };
+        this.form = { sector: "", year: new Date().getFullYear(), demand_value: 0, source_document_id: null, notes: "" };
       } catch (err) {
         console.error("Error guardando indicador de demanda:", err);
         alert("No se pudo guardar el indicador.");

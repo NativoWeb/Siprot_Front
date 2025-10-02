@@ -450,6 +450,7 @@
 
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue'
+import { jwtDecode } from "jwt-decode"  // 👈 instala con: npm install jwt-decode
 import { 
   Settings, TrendingUp, TrendingDown, Minus, FileSpreadsheet,
   Search, Filter, X, Calendar, FileText, Building, CheckCircle,
@@ -459,18 +460,8 @@ import LineChart from '../charts/LineChart.vue'
 import BarChart from '../charts/BarChart.vue'
 import ListaEscenarios from './ListaEscenarios.vue'
 
-const props = defineProps({
-  userRole: {
-    type: String,
-    required: false,
-    default: 'instructor',
-    validator: (value) => !value || ['directivo', 'planeacion', 'instructor', 'administrativo', 'superadmin'].includes(value)
-  },
-  historicalData: {
-    type: Array,
-    default: () => []
-  }
-})
+// ✅ rol del usuario logeado
+const userRole = ref(null)
 
 // Reactive state
 const selectedScenario = ref('tendencial')
@@ -723,7 +714,6 @@ const selectCsvFile = (file) => {
 
 const onCsvFileChange = async () => {
   if (!selectedCsvFile.value) return
-  
   showSuccess(`Archivo seleccionado: ${selectedFileInfo.value?.title}`)
   await loadScenarios()
 }
@@ -741,30 +731,36 @@ const loadScenarios = async () => {
     if (!token) throw new Error('No autorizado. Inicie sesión.')
 
     const fileId = selectedCsvFile.value
-    const scenarioTypes = ['tendencial', 'optimista', 'pesimista']
-    const yearsAhead = 10
     
-    const url = new URL(`http://localhost:8000/scenarios/generate/${fileId}`)
-    scenarioTypes.forEach(type => url.searchParams.append('scenario_types', type))
-    url.searchParams.append('years_ahead', yearsAhead.toString())
+    // Construir el body correctamente con los parámetros personalizados
+    const requestBody = {
+      scenario_types: ['tendencial', 'optimista', 'pesimista'],
+      years_ahead: 10,
+      parameters: customParameters.value  // Aquí se envían los parámetros
+    }
 
-    const response = await fetch(url.toString(), {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
+    console.log('📤 Enviando request con parámetros:', requestBody)
+
+    const response = await fetch(
+      `http://localhost:8000/scenarios/generate/${fileId}`,
+      {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody)  // Enviar como body JSON
       }
-    })
+    )
     
     if (response.ok) {
       const scenarioData = await response.json()
+      console.log('✅ Escenarios recibidos:', scenarioData)
       
       const processedScenarios = {}
-      
       for (const [scenarioType, data] of Object.entries(scenarioData)) {
         if (data && data.data && Array.isArray(data.data)) {
           const sortedData = data.data.sort((a, b) => a.year - b.year)
-          
           processedScenarios[scenarioType] = {
             ...data,
             data: sortedData
@@ -778,13 +774,17 @@ const loadScenarios = async () => {
         selectedScenario.value = Object.keys(scenarios.value)[0] || 'tendencial'
       }
       
-      showSuccess(`Escenarios generados exitosamente. Total: ${Object.keys(processedScenarios).length}`)
+      const paramInfo = Object.entries(customParameters.value)
+        .map(([k, v]) => `${k}=${v}`)
+        .join(', ')
+      
+      showSuccess(`Escenarios generados con parámetros: ${paramInfo}`)
     } else {
       const errorData = await response.json()
       throw new Error(errorData.detail || 'Error al generar escenarios')
     }
   } catch (error) {
-    console.error('Error loading scenarios:', error)
+    console.error('❌ Error loading scenarios:', error)
     showError(`Error al generar escenarios: ${error.message}`)
     await loadMockScenarios()
   } finally {
@@ -794,7 +794,6 @@ const loadScenarios = async () => {
 
 const loadMockScenarios = async () => {
   await new Promise(resolve => setTimeout(resolve, 1000))
-  
   const mockScenarios = {
     tendencial: {
       scenario_type: 'tendencial',
@@ -821,14 +820,12 @@ const loadMockScenarios = async () => {
       parameters: { default: 0.75, tecnologia: 0.6, empleo: 0.7 }
     }
   }
-  
   scenarios.value = mockScenarios
 }
 
 const generateMockData = (scenarioType) => {
   const baseData = []
   const currentYear = new Date().getFullYear()
-
   for (let i = 5; i >= 1; i--) {
     baseData.push({
       year: currentYear - i,
@@ -840,9 +837,7 @@ const generateMockData = (scenarioType) => {
       }
     })
   }
-
   const multiplier = scenarioType === 'optimista' ? 1.25 : scenarioType === 'pesimista' ? 0.75 : 1.0
-
   for (let i = 1; i <= 10; i++) {
     const lastValues = baseData[baseData.length - 1].values
     baseData.push({
@@ -855,12 +850,11 @@ const generateMockData = (scenarioType) => {
       }
     })
   }
-
   return baseData
 }
 
 const handleParameterChange = (param, value) => {
-  if (props.userRole === 'planeacion') {
+  if (userRole.value === 'planeacion') {
     customParameters.value[param] = parseFloat(value)
   }
 }
@@ -876,11 +870,7 @@ const applyDocumentFilters = () => {
 }
 
 const clearDocumentFilters = () => {
-  documentFilters.value = {
-    search: '',
-    sector: '',
-    year: ''
-  }
+  documentFilters.value = { search: '', sector: '', year: '' }
   currentPage.value = 1
 }
 
@@ -910,22 +900,15 @@ const getFileTypeBadgeClass = (extension) => {
 
 const getScenarioIcon = (type) => {
   switch (type) {
-    case 'optimista':
-      return TrendingUp
-    case 'pesimista':
-      return TrendingDown
-    default:
-      return Minus
+    case 'optimista': return TrendingUp
+    case 'pesimista': return TrendingDown
+    default: return Minus
   }
 }
 
 const getIndicatorData = (indicator) => {
   const scenario = scenarios.value[selectedScenario.value]
-  
-  if (!scenario || !scenario.data) {
-    return []
-  }
-
+  if (!scenario || !scenario.data) return []
   const indicatorMapping = {
     'Población Objetivo': 'poblacion_objetivo',
     'Demanda de Empleo': 'demanda_empleo', 
@@ -934,18 +917,11 @@ const getIndicatorData = (indicator) => {
     'Demanda Laboral': 'demanda_empleo',
     'Graduados': 'oferta_educativa'
   }
-
   const mappedIndicator = indicatorMapping[indicator] || indicator
-  
-  const data = scenario.data.slice(-5).map(d => {
-    const value = d.values[mappedIndicator] || d.values[indicator] || 0
-    return {
-      year: d.year,
-      value: value
-    }
-  })
-  
-  return data
+  return scenario.data.slice(-5).map(d => ({
+    year: d.year,
+    value: d.values[mappedIndicator] || d.values[indicator] || 0
+  }))
 }
 
 const showSuccess = (message) => {
@@ -975,10 +951,22 @@ watch([() => documentFilters.value.sector, () => documentFilters.value.year], ()
 
 // Lifecycle
 onMounted(async () => {
+  // 👇 detectar rol desde el JWT
+  const token = localStorage.getItem("access_token")
+  if (token) {
+    try {
+      const decoded = jwtDecode(token)
+      userRole.value = decoded.role || null
+      console.log("Rol detectado:", userRole.value)
+    } catch (err) {
+      console.error("Error decodificando token:", err)
+    }
+  }
   await loadCsvFiles()
   await loadScenarios()
 })
 </script>
+
 
 <style scoped>
 .space-y-6 > * + * {
