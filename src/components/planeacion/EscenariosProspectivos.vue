@@ -231,7 +231,7 @@
               </div>
 
               <!-- Agregando filtros para la tabla de datos -->
-              <div v-if="scenarioDetails[scenario.id]?.data" class="mb-6">
+              <div v-if="scenarioDetails[scenario.id]?.projections" class="mb-6">
                 <h4 class="text-lg font-semibold mb-3">Filtros de Datos</h4>
                 <div class="bg-white rounded-lg p-4 border">
                   <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
@@ -298,7 +298,8 @@
               <!-- Gráfica de proyecciones -->
               <div v-if="scenarioDetails[scenario.id]?.data" class="mb-6">
                 <h4 class="text-lg font-semibold mb-3">Proyecciones</h4>
-                <div class="bg-white rounded-lg p-4 border" style="height: 300px;">
+                <!-- Aumentando altura del contenedor y agregando scroll vertical -->
+                <div class="bg-white rounded-lg p-4 border w-full overflow-x-auto overflow-y-auto" style="height: 600px; min-height: 600px;">
                   <LineChart
                     v-if="getScenarioChartData(scenario.id).length > 0"
                     :data="getScenarioChartData(scenario.id)"
@@ -312,25 +313,25 @@
               </div>
 
               <!-- Mejorando tabla de datos con filtros aplicados y más información -->
-              <div v-if="scenarioDetails[scenario.id]?.data" class="mb-4">
+              <div v-if="scenarioDetails[scenario.id]?.projections" class="mb-4">
                 <div class="flex items-center justify-between mb-3">
                   <h4 class="text-lg font-semibold">Datos Detallados</h4>
                   <div class="text-sm text-gray-600">
                     Mostrando {{ getFilteredProjections(scenario.id).length }} de {{ getTotalProjections(scenario.id) }} proyecciones
                   </div>
                 </div>
-                <div class="bg-white rounded-lg border overflow-x-auto">
+                <div class="bg-white rounded-lg border overflow-x-auto max-w-full">
                   <table class="min-w-full divide-y divide-gray-200">
                     <thead class="bg-gray-50">
                       <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Año</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Tipo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sector</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Indicador</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor Base</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Valor Proyectado</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Variación</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Multiplicador</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Año</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Tipo</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Sector</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Indicador</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Valor</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Mult. General</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Mult. Tecnología</th>
+                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase whitespace-nowrap">Mult. Empleo</th>
                       </tr>
                     </thead>
                     <tbody class="bg-white divide-y divide-gray-200">
@@ -339,14 +340,14 @@
                         :key="idx"
                         :class="[
                           'hover:bg-gray-50',
-                          isHistoricalYear(proj.year) ? 'bg-blue-50' : ''
+                          isHistoricalYear(proj.año) ? 'bg-blue-50' : ''
                         ]"
                       >
-                        <td class="px-4 py-3 text-sm font-medium text-gray-900">
+                        <td class="px-4 py-3 text-sm font-medium text-gray-900 whitespace-nowrap">
                           <div class="flex items-center gap-2">
-                            {{ proj.year }}
+                            {{ proj.año }}
                             <span
-                              v-if="isHistoricalYear(proj.year)"
+                              v-if="isHistoricalYear(proj.año)"
                               class="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700"
                             >
                               Histórico
@@ -359,34 +360,36 @@
                             </span>
                           </div>
                         </td>
-                        <td class="px-4 py-3 text-sm">
+                        <td class="px-4 py-3 text-sm whitespace-nowrap">
                           <span
                             class="px-2 py-1 text-xs font-medium rounded-full"
-                            :class="getScenarioTypeBadge(scenario.scenario_type)"
+                            :class="getScenarioTypeBadge(proj.tipo)"
                           >
-                            {{ scenario.scenario_type }}
+                            {{ proj.tipo }}
                           </span>
                         </td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ proj.sector }}</td>
-                        <td class="px-4 py-3 text-sm text-gray-600">{{ proj.indicator_type }}</td>
-                        <td class="px-4 py-3 text-sm text-right text-gray-900">
-                          {{ formatNumber(proj.base_value) }}
+                        <td class="px-4 py-3 text-sm text-gray-600 whitespace-nowrap">{{ proj.sector }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-600">{{ proj.indicador }}</td>
+                        <td class="px-4 py-3 text-sm text-right font-medium text-blue-600 whitespace-nowrap">
+                          {{ formatNumber(proj.valor) }}
                         </td>
-                        <td class="px-4 py-3 text-sm text-right font-medium text-blue-600">
-                          {{ formatNumber(proj.projected_value) }}
-                        </td>
-                        <td class="px-4 py-3 text-sm text-right">
-                          <span
-                            :class="[
-                              'font-medium',
-                              getVariation(proj) >= 0 ? 'text-green-600' : 'text-red-600'
-                            ]"
-                          >
-                            {{ getVariation(proj) >= 0 ? '+' : '' }}{{ getVariation(proj).toFixed(1) }}%
+                        <td class="px-4 py-3 text-sm text-right text-gray-600 whitespace-nowrap">
+                          <span v-if="proj.multiplicador_general !== null && proj.multiplicador_general !== undefined" class="font-medium text-green-600">
+                            {{ proj.multiplicador_general.toFixed(2) }}x
                           </span>
+                          <span v-else class="text-gray-400">-</span>
                         </td>
-                        <td class="px-4 py-3 text-sm text-right text-gray-600">
-                          {{ proj.multiplier_applied?.toFixed(2) }}x
+                        <td class="px-4 py-3 text-sm text-right text-gray-600 whitespace-nowrap">
+                          <span v-if="proj.multiplicador_tecnologia !== null && proj.multiplicador_tecnologia !== undefined" class="font-medium text-purple-600">
+                            {{ proj.multiplicador_tecnologia.toFixed(2) }}x
+                          </span>
+                          <span v-else class="text-gray-400">-</span>
+                        </td>
+                        <td class="px-4 py-3 text-sm text-right text-gray-600 whitespace-nowrap">
+                          <span v-if="proj.multiplicador_empleo !== null && proj.multiplicador_empleo !== undefined" class="font-medium text-orange-600">
+                            {{ proj.multiplicador_empleo.toFixed(2) }}x
+                          </span>
+                          <span v-else class="text-gray-400">-</span>
                         </td>
                       </tr>
                     </tbody>
@@ -434,7 +437,7 @@
               <button
                 @click="savedScenariosPage--"
                 :disabled="savedScenariosPage === 1"
-                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-50"
+                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronLeft class="h-4 w-4" />
               </button>
@@ -442,7 +445,7 @@
               <button
                 @click="savedScenariosPage++"
                 :disabled="savedScenariosPage === totalSavedScenariosPages"
-                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-50"
+                class="px-3 py-2 text-sm font-medium text-gray-500 bg-white border rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <ChevronRight class="h-4 w-4" />
               </button>
@@ -766,7 +769,8 @@
                 <h3 class="text-lg font-semibold mb-4">
                   Proyección de Tendencias - {{ scenarios[selectedScenario]?.scenario_name }}
                 </h3>
-                <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="h-250">
+                <!-- Aumentando altura del contenedor de gráfica principal -->
+                <div v-if="scenarios[selectedScenario]?.data && scenarios[selectedScenario].data.length > 0" class="w-full overflow-x-auto overflow-y-auto" style="height: 600px; min-height: 600px;">
                   <LineChart
                     :data="scenarios[selectedScenario].data"
                     :series="trendSeries"
@@ -785,7 +789,8 @@
               <!-- Comparison Tab -->
               <div v-if="activeTab === 'comparison'">
                 <h3 class="text-lg font-semibold mb-4">Comparación de Escenarios</h3>
-                <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="h-210">
+                <!-- Aumentando altura del contenedor de comparación -->
+                <div v-if="comparisonChartData.data && comparisonChartData.data.length > 0" class="w-full overflow-x-auto overflow-y-auto" style="height: 600px; min-height: 600px;">
                   <LineChart
                     :data="comparisonChartData.data"
                     :series="comparisonChartSeries"
@@ -810,7 +815,8 @@
                     class="bg-gray-50 rounded-lg p-4"
                   >
                     <h4 class="text-lg font-semibold mb-4">{{ indicator }}</h4>
-                    <div class="h-64">
+                    <!-- Aumentando altura de gráficas de indicadores -->
+                    <div class="w-full overflow-x-auto overflow-y-auto" style="height: 400px; min-height: 400px;">
                       <BarChart
                         :data="getIndicatorData(indicator)"
                         :series="[{ key: 'value', name: indicator }]"
@@ -985,9 +991,7 @@ const visiblePages = computed(() => {
   const current = currentPage.value
   
   if (total <= 7) {
-    for (let i = 1; i <= total; i++) {
-      pages.push(i)
-    }
+    for (let i = 1; i <= total; i++) pages.push(i)
   } else {
     if (current <= 4) {
       for (let i = 1; i <= 5; i++) pages.push(i)
@@ -1466,13 +1470,23 @@ const loadScenarioDetails = async (scenarioId) => {
     const token = localStorage.getItem('access_token')
     if (!token) throw new Error('No autorizado')
 
+    console.log('[v0] Loading scenario details for ID:', scenarioId) // Debug log
+
     const response = await fetch(`http://localhost:8000/scenarios/details/${scenarioId}`, {
       headers: { 'Authorization': `Bearer ${token}` }
     })
     
     if (response.ok) {
       const data = await response.json()
-      scenarioDetails.value[scenarioId] = data
+      console.log('[v0] Scenario details received:', data) // Debug log
+      console.log('[v0] list_data structure:', data.list_data) // Debug log
+      
+      scenarioDetails.value[scenarioId] = {
+        ...data,
+        projections: data.list_data || [] // Usar list_data para la tabla
+      }
+      
+      console.log('[v0] Projections assigned:', scenarioDetails.value[scenarioId].projections) // Debug log
       
       scenarioSummaries.value[scenarioId] = calculateScenarioSummary(scenarioId)
     } else {
@@ -1480,7 +1494,7 @@ const loadScenarioDetails = async (scenarioId) => {
        throw new Error(errorData.detail || 'Error al cargar detalles del escenario')
     }
   } catch (error) {
-    console.error('Error loading scenario details:', error)
+    console.error('[v0] Error loading scenario details:', error)
     showError(error.message)
   }
 }
@@ -1496,14 +1510,16 @@ const getScenarioTypeBadge = (type) => {
 
 const getScenarioChartData = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.projections) return []
+  if (!details?.data) return []
   
   const yearMap = {}
-  details.projections.forEach(proj => {
+  details.data.forEach(proj => {
     if (!yearMap[proj.year]) {
       yearMap[proj.year] = { year: proj.year, values: {} }
     }
-    yearMap[proj.year].values[proj.indicator_type] = proj.projected_value
+    Object.entries(proj.values || {}).forEach(([indicator, value]) => {
+      yearMap[proj.year].values[indicator] = value
+    })
   })
   
   return Object.values(yearMap).sort((a, b) => a.year - b.year)
@@ -1511,9 +1527,9 @@ const getScenarioChartData = (scenarioId) => {
 
 const getScenarioChartSeries = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.projections) return []
+  if (!details?.data || !details.data[0]) return []
   
-  const indicators = [...new Set(details.projections.map(p => p.indicator_type))]
+  const indicators = Object.keys(details.data[0].values || {})
   return indicators.map(ind => ({
     key: `values.${ind}`,
     name: ind
@@ -1550,15 +1566,17 @@ const calculateScenarioSummary = (scenarioId) => {
   // Obtener indicadores únicos
   const indicatorsMap = {}
   details.data.forEach(proj => {
-    if (!indicatorsMap[proj.indicator_type]) {
-      indicatorsMap[proj.indicator_type] = {
-        name: proj.indicator_type,
-        values: []
+    Object.entries(proj.values || {}).forEach(([indicator, value]) => {
+      if (!indicatorsMap[indicator]) {
+        indicatorsMap[indicator] = {
+          name: indicator,
+          values: []
+        }
       }
-    }
-    indicatorsMap[proj.indicator_type].values.push({
-      year: proj.year,
-      value: proj.projected_value
+      indicatorsMap[indicator].values.push({
+        year: proj.year,
+        value: value
+      })
     })
   })
 
@@ -1591,8 +1609,8 @@ const calculateScenarioSummary = (scenarioId) => {
 
 const getScenarioProjectionsCount = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.data) return 0
-  return details.data.length
+  if (!details?.projections) return 0
+  return details.projections.length
 }
 
 const initializeDataFilters = (scenarioId) => {
@@ -1619,48 +1637,48 @@ const clearDataFilters = (scenarioId) => {
 
 const getAvailableIndicators = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.data) return []
+  if (!details?.projections) return []
   
-  const indicators = [...new Set(details.data.map(d => d.indicator_type))]
+  const indicators = [...new Set(details.projections.map(d => d.indicador))]
   return indicators.sort()
 }
 
 const getAvailableYears = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.data) return []
+  if (!details?.projections) return []
   
-  const years = [...new Set(details.data.map(d => d.year))]
+  const years = [...new Set(details.projections.map(d => d.año))]
   return years.sort((a, b) => a - b)
 }
 
 const getFilteredProjections = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  if (!details?.data) return []
+  if (!details?.projections) return []
 
   initializeDataFilters(scenarioId)
   
-  let filtered = details.data
+  let filtered = details.projections
 
   const filters = dataFilters.value[scenarioId]
   
   if (filters.indicator) {
-    filtered = filtered.filter(p => p.indicator_type === filters.indicator)
+    filtered = filtered.filter(p => p.indicador === filters.indicator)
   }
   
   if (filters.yearFrom) {
-    filtered = filtered.filter(p => p.year >= parseInt(filters.yearFrom))
+    filtered = filtered.filter(p => p.año >= parseInt(filters.yearFrom))
   }
   
   if (filters.yearTo) {
-    filtered = filtered.filter(p => p.year <= parseInt(filters.yearTo))
+    filtered = filtered.filter(p => p.año <= parseInt(filters.yearTo))
   }
 
-  return filtered.sort((a, b) => a.year - b.year)
+  return filtered.sort((a, b) => a.año - b.año)
 }
 
 const getTotalProjections = (scenarioId) => {
   const details = scenarioDetails.value[scenarioId]
-  return details?.data?.length || 0
+  return details?.projections?.length || 0
 }
 
 const getPaginatedProjections = (scenarioId) => {
@@ -1705,10 +1723,6 @@ const isHistoricalYear = (year) => {
   return year <= new Date().getFullYear()
 }
 
-const getVariation = (projection) => {
-  if (!projection.base_value || projection.base_value === 0) return 0
-  return ((projection.projected_value - projection.base_value) / projection.base_value) * 100
-}
 
 const getScenarioParameters = (scenario) => {
   if (!scenario.parameters) return null
@@ -1853,5 +1867,17 @@ onMounted(async () => {
 
 .h-64 {
   height: 16rem;
+}
+
+.overflow-hidden {
+  overflow: hidden;
+}
+
+.max-w-full {
+  max-width: 100%;
+}
+
+.whitespace-nowrap {
+  white-space: nowrap;
 }
 </style>
