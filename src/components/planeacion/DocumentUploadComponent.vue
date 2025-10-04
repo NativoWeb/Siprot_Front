@@ -317,40 +317,11 @@ const notificationMessage = ref('')
 const errorMessage = ref('')
 
 // Data for dropdowns
-const sectors = ref<string[]>([
-  'Tecnología', 
-  'Turismo', 
-  'Agroindustria', 
-  'Salud', 
-  'Construcción',
-  'Educación',
-  'Comercio',
-  'Servicios',
-  'Manufactura',
-  'Transporte'
-])
+const sectors = ref<string[]>([])
+const coreLines = ref<string[]>([])
+const documentTypes = ref<string[]>([])
 
-const coreLines = ref<string[]>([
-  'Innovación y Desarrollo', 
-  'Formación para el Trabajo', 
-  'Emprendimiento', 
-  'Investigación Aplicada',
-  'Desarrollo Sostenible',
-  'Competitividad',
-  'Internacionalización'
-])
-
-const documentTypes = ref<string[]>([
-  'Plan de Desarrollo', 
-  'Estudio Prospectivo', 
-  'Matriz DOFA', 
-  'Informe de Gestión', 
-  'Reglamento',
-  'Manual de Procedimientos',
-  'Política Institucional',
-  'Proyecto Educativo',
-  'Datos CSV'
-])
+const isLoadingCatalogs = ref(false)
 
 const currentYear = new Date().getFullYear()
 
@@ -603,6 +574,8 @@ const uploadDocument = async () => {
     showSuccess(`Documento "${documentTitle.value}" cargado exitosamente!`)
     clearForm()
 
+    await refreshCatalogs()
+
   } catch (error: any) {
     console.error('Error al cargar documento:', error)
     uploadProgress.value = 0
@@ -653,12 +626,113 @@ const showError = (message: string) => {
   }, 8000)
 }
 
+const fetchSectors = async () => {
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch('http://localhost:8000/catalogs/sectors/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      sectors.value = data.map((sector: any) => sector.name)
+    } else {
+      // Fallback a datos por defecto si falla la API
+      sectors.value = [
+        'Tecnología', 'Turismo', 'Agroindustria', 'Salud', 'Construcción',
+        'Educación', 'Comercio', 'Servicios', 'Manufactura', 'Transporte'
+      ]
+    }
+  } catch (error) {
+    console.error('Error loading sectors:', error)
+    // Fallback a datos por defecto
+    sectors.value = [
+      'Tecnología', 'Turismo', 'Agroindustria', 'Salud', 'Construcción',
+      'Educación', 'Comercio', 'Servicios', 'Manufactura', 'Transporte'
+    ]
+  }
+}
+
+const fetchCoreLines = async () => {
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch('http://localhost:8000/catalogs/medular-lines/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      coreLines.value = data.map((line: any) => line.name)
+    } else {
+      // Fallback a datos por defecto
+      coreLines.value = [
+        'Innovación y Desarrollo', 'Formación para el Trabajo', 'Emprendimiento', 
+        'Investigación Aplicada', 'Desarrollo Sostenible', 'Competitividad', 'Internacionalización'
+      ]
+    }
+  } catch (error) {
+    console.error('Error loading core lines:', error)
+    // Fallback a datos por defecto
+    coreLines.value = [
+      'Innovación y Desarrollo', 'Formación para el Trabajo', 'Emprendimiento', 
+      'Investigación Aplicada', 'Desarrollo Sostenible', 'Competitividad', 'Internacionalización'
+    ]
+  }
+}
+
+const fetchDocumentTypes = async () => {
+  try {
+    const token = localStorage.getItem('access_token')
+    const response = await fetch('http://localhost:8000/catalogs/document-types/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    })
+    
+    if (response.ok) {
+      const data = await response.json()
+      documentTypes.value = data.map((type: any) => type.name)
+    } else {
+      // Fallback a datos por defecto
+      documentTypes.value = [
+        'Plan de Desarrollo', 'Estudio Prospectivo', 'Matriz DOFA', 'Informe de Gestión', 
+        'Reglamento', 'Manual de Procedimientos', 'Política Institucional', 'Proyecto Educativo', 'Datos CSV'
+      ]
+    }
+  } catch (error) {
+    console.error('Error loading document types:', error)
+    // Fallback a datos por defecto
+    documentTypes.value = [
+      'Plan de Desarrollo', 'Estudio Prospectivo', 'Matriz DOFA', 'Informe de Gestión', 
+      'Reglamento', 'Manual de Procedimientos', 'Política Institucional', 'Proyecto Educativo', 'Datos CSV'
+    ]
+  }
+}
+
+const loadCatalogs = async () => {
+  isLoadingCatalogs.value = true
+  try {
+    await Promise.all([
+      fetchSectors(),
+      fetchCoreLines(),
+      fetchDocumentTypes()
+    ])
+  } finally {
+    isLoadingCatalogs.value = false
+  }
+}
+
+const refreshCatalogs = async () => {
+  await loadCatalogs()
+}
+
 // Lifecycle
 onMounted(() => {
-  // Aquí podrías cargar las opciones desde el backend si es necesario
-  // fetchSectors()
-  // fetchCoreLines()
-  // fetchDocumentTypes()
+  loadCatalogs()
 })
 </script>
 

@@ -80,30 +80,34 @@ const formatNumber = (value) => {
   return value.toLocaleString()
 }
 
-const getNestedValue = (obj, path) => {
-  const keys = path.split('.')
-  let result = obj
-  for (const key of keys) {
-    if (result && typeof result === 'object' && key in result) {
-      result = result[key]
-    } else {
-      return 0
-    }
+// ✅ Safe getter
+const getNestedValue = (obj, key) => {
+  if (!obj) return 0
+  if (!key) return 0
+  if (typeof key !== 'string') return typeof key === 'number' ? key : 0
+  return key.split('.').reduce((o, x) => (o && o[x] !== undefined ? o[x] : 0), obj)
+}
+
+// ✅ Detecta si serie es tipo {name, key} o {name, data}
+const getValueFor = (serie, dataPoint, index) => {
+  if (serie.key) {
+    return getNestedValue(dataPoint, serie.key)
+  } else if (Array.isArray(serie.data)) {
+    return serie.data[index] ?? 0
   }
-  return typeof result === 'number' ? result : 0
+  return 0
 }
 
 const calculateMaxValue = () => {
   chartDimensions.maxValue = 0
-  props.data.forEach(d => {
-    props.series.forEach(serie => {
-      const value = getNestedValue(d, serie.key)
+  props.data.forEach((d, dataIndex) => {
+    props.series.forEach((serie) => {
+      const value = getValueFor(serie, d, dataIndex)
       if (value > chartDimensions.maxValue) {
         chartDimensions.maxValue = value
       }
     })
   })
-  // Agregar espacio arriba
   chartDimensions.maxValue = chartDimensions.maxValue * 1.1
 }
 
@@ -114,44 +118,30 @@ const drawChart = () => {
   const ctx = canvas.getContext('2d')
   const rect = canvas.getBoundingClientRect()
   
-  // Set canvas size
   canvas.width = rect.width * window.devicePixelRatio
   canvas.height = rect.height * window.devicePixelRatio
   ctx.scale(window.devicePixelRatio, window.devicePixelRatio)
 
-  // Clear canvas
   ctx.clearRect(0, 0, rect.width, rect.height)
 
-  // Chart dimensions
   chartDimensions.chartWidth = rect.width - chartDimensions.padding * 2
   chartDimensions.chartHeight = rect.height - chartDimensions.padding * 2
 
   calculateMaxValue()
 
-  // Draw background
   ctx.fillStyle = '#fafafa'
   ctx.fillRect(0, 0, rect.width, rect.height)
 
-  // Draw grid
   drawGrid(ctx)
-
-  // Draw axes
   drawAxes(ctx)
-
-  // Draw bars
   drawBars(ctx)
-
-  // Draw labels
   drawLabels(ctx)
 }
 
 const drawGrid = (ctx) => {
   const { padding, chartWidth, chartHeight } = chartDimensions
-
   ctx.strokeStyle = '#e5e7eb'
   ctx.lineWidth = 0.5
-
-  // Horizontal grid lines
   for (let i = 0; i <= 5; i++) {
     const y = padding + (chartHeight / 5) * i
     ctx.beginPath()
@@ -163,21 +153,16 @@ const drawGrid = (ctx) => {
 
 const drawAxes = (ctx) => {
   const { padding, chartWidth, chartHeight } = chartDimensions
-
   ctx.strokeStyle = '#374151'
   ctx.lineWidth = 2
   ctx.beginPath()
-  // Eje Y
-
-  ctx.lineTo(padding, padding + chartHeight)
-  // Eje X
+  ctx.moveTo(padding, padding + chartHeight)
   ctx.lineTo(padding + chartWidth, padding + chartHeight)
   ctx.stroke()
 }
 
 const drawBars = (ctx) => {
   const { padding, chartWidth, chartHeight, maxValue } = chartDimensions
-
   if (!props.data.length) return
 
   const groupWidth = chartWidth / props.data.length * 0.8
@@ -188,47 +173,37 @@ const drawBars = (ctx) => {
     const groupX = padding + dataIndex * (chartWidth / props.data.length) + groupSpacing / 2
 
     props.series.forEach((serie, serieIndex) => {
-      const value = getNestedValue(d, serie.key)
+      const value = getValueFor(serie, d, dataIndex)
       const barHeight = maxValue > 0 ? (value / maxValue) * chartHeight : 0
       const barX = groupX + serieIndex * barWidth
       const barY = padding + chartHeight - barHeight
 
-      // Gradiente para las barras
       const gradient = ctx.createLinearGradient(0, barY, 0, barY + barHeight)
       const color = props.colors[serieIndex] || '#3B82F6'
       gradient.addColorStop(0, color)
-      gradient.addColorStop(1, color + '80') // Más transparente abajo
+      gradient.addColorStop(1, color + '80')
 
       ctx.fillStyle = gradient
-      ctx.fillRect(barX, barY, barWidth * 0.9, barHeight) // 0.9 para un poco de espacio entre barras
+      ctx.fillRect(barX, barY, barWidth * 0.9, barHeight)
 
-      // Borde de la barra
       ctx.strokeStyle = color
       ctx.lineWidth = 1
       ctx.strokeRect(barX, barY, barWidth * 0.9, barHeight)
 
-      // Valor en la parte superior de la barra
-      if (barHeight > 20) { // Solo mostrar si hay espacio
+      if (barHeight > 20) {
         ctx.fillStyle = '#374151'
         ctx.font = '11px sans-serif'
         ctx.textAlign = 'center'
-        ctx.fillText(
-          formatNumber(value),
-          barX + (barWidth * 0.9) / 2,
-          barY - 5
-        )
+        ctx.fillText(formatNumber(value), barX + (barWidth * 0.9) / 2, barY - 5)
       }
     })
   })
 }
 
 const drawLabels = (ctx) => {
-  const { padding, chartWidth, chartHeight, maxValue } = chartDimensions
-
+  const { padding, chartWidth, chartHeight } = chartDimensions
   ctx.fillStyle = '#374151'
   ctx.font = '12px sans-serif'
-
-  // Etiquetas del eje X
   ctx.textAlign = 'center'
   props.data.forEach((d, index) => {
     const x = padding + index * (chartWidth / props.data.length) + (chartWidth / props.data.length) / 2
@@ -239,27 +214,21 @@ const drawLabels = (ctx) => {
 
 const handleMouseMove = (event) => {
   if (!chartCanvas.value) return
-
   const canvas = chartCanvas.value
   const rect = canvas.getBoundingClientRect()
   const x = event.clientX - rect.left
   const y = event.clientY - rect.top
-
   const { padding, chartWidth, chartHeight } = chartDimensions
 
-  // Verificar si está dentro del área del gráfico
   if (x >= padding && x <= padding + chartWidth && y >= padding && y <= padding + chartHeight) {
-    // Determinar qué barra está siendo hover
     const dataIndex = Math.floor((x - padding) / (chartWidth / props.data.length))
-    
     if (dataIndex >= 0 && dataIndex < props.data.length) {
       const d = props.data[dataIndex]
       const tooltipData = props.series.map((serie, index) => ({
         name: serie.name,
-        value: getNestedValue(d, serie.key),
+        value: getValueFor(serie, d, dataIndex),
         color: props.colors[index] || '#3B82F6'
       }))
-
       tooltip.value = {
         visible: true,
         x: Math.min(x, rect.width - 200),

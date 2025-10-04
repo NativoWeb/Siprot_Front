@@ -2,53 +2,68 @@
 import { ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import router from '../router'
-
+import { showSuccess, showError } from '../plugins/notifications'
 
 // Variables reactivas para email y contraseña
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
+const isLoading = ref(false)
+
 const togglePassword = () => {
   showPassword.value = !showPassword.value
 }
 
-
-// Funcion post de formulario
+// Función post de formulario
 const loginUser = async () => {
+  // Evitar múltiples envíos
+  if (isLoading.value) return
+  
+  isLoading.value = true
+  
   try {
-    // Se hace la peticion al back
+    // Se hace la petición al back
     const res = await fetch('http://localhost:8000/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email: email.value, password: password.value }) 
     })
 
-    // Si el codigo de respuesta no es 200 *Ok* lanza un error
+    // Si el código de respuesta no es 200 *Ok* lanza un error
     if (!res.ok) {
-      const errorData = await res.json();
-      throw new Error(errorData.detail || 'Credenciales inválidas');
+      const errorData = await res.json()
+      throw new Error(errorData.detail || 'Credenciales inválidas')
     }
 
-    // Se guarda el token de acceso y el rol del usuario 
+    // Se guarda el token de acceso, refresh token, rol y datos del usuario
     const data = await res.json()
-    localStorage.setItem('access_token', data.access_token);
+    
+    // 🔑 IMPORTANTE: Guardar AMBOS tokens
+    localStorage.setItem('access_token', data.access_token)
+    localStorage.setItem('refresh_token', data.refresh_token) // ⬅️ NUEVO
     localStorage.setItem('role', data.user.role)
+    localStorage.setItem('user_info', JSON.stringify(data.user)) // Guardar info completa del usuario
     
-    console.log('Login exitoso. Rol del usuario:', data.user.role);
+    console.log('Login exitoso. Rol del usuario:', data.user.role)
     
-    // Redireccionando al usuario segun el rol
+    // Mostrar notificación de éxito
+    showSuccess('Inicio de sesión exitoso')
+    
+    // Redireccionando al usuario según el rol
     if (data.user.role === 'superadmin') {
-      console.log('Intentando redirigir a: AdminMainView');
+      console.log('Intentando redirigir a: AdminMainView')
       router.push({ name: 'AdminMainView' })
     } else {
-      console.log('Intentando redirigir a: / (ruta por defecto)');
+      console.log('Intentando redirigir a: / (ruta por defecto)')
       router.push('/') 
     }
 
   } catch (err: any) {
-    // Mostramos el error
-    alert(`Error al iniciar sesión: ${err.message || 'Credenciales inválidas'}`)
+    // Mostramos el error con notificación
+    showError(err.message || 'Credenciales inválidas')
     console.error('Error de login:', err)
+  } finally {
+    isLoading.value = false
   }
 }
 </script>
@@ -71,7 +86,14 @@ const loginUser = async () => {
           <form @submit.prevent="loginUser" class="flex flex-col gap-10">
             <div class="flex flex-col gap-3">
               <label>Email</label>
-              <input v-model="email" class="input-custom" type="email" required placeholder="tu@ejemplo.com" />
+              <input 
+                v-model="email" 
+                class="input-custom" 
+                type="email" 
+                required 
+                placeholder="tu@ejemplo.com"
+                :disabled="isLoading"
+              />
             </div>
 
             <div class="flex flex-col gap-3 relative">
@@ -82,6 +104,7 @@ const loginUser = async () => {
                 :type="showPassword ? 'text' : 'password'"
                 required
                 placeholder="***********"
+                :disabled="isLoading"
               />
               <span
                 @click="togglePassword"
@@ -91,8 +114,15 @@ const loginUser = async () => {
               </span>
             </div>
 
-
-            <button class="w-[100%] input-button-custom" type="submit">Iniciar Sesión</button>
+            <button 
+              class="w-[100%] input-button-custom" 
+              type="submit"
+              :disabled="isLoading"
+              :class="{ 'opacity-50 cursor-not-allowed': isLoading }"
+            >
+              {{ isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión' }}
+            </button>
+            
             <RouterLink class="text-center" to="/">¿Olvidaste tu contraseña?</RouterLink>
           </form>
         </div>

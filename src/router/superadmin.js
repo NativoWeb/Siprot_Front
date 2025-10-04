@@ -60,6 +60,12 @@ const superadminRoutes = [
     name: 'Audits',
     component: AuditComponent
   },
+    {
+    path: "indicadores-estrategicos",
+    name: "StrategicIndicators",
+    component: () => import("../components/planeacion/IndicadoresEstrategicos.vue"),
+    meta: { requiresAuth: true, roles: ["planeacion", "superadmin", "administrativo"] },
+  },
 ]
 
 export default superadminRoutes

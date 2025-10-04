@@ -9,6 +9,92 @@
         </p>
       </div>
 
+      <!-- Formulario para nueva línea medular -->
+      <div class="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 class="text-xl font-semibold text-gray-900 mb-4">Crear Nueva Línea Medular</h2>
+        <form @submit.prevent="submitForm" class="space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label for="nombre" class="block text-sm font-medium text-gray-700 mb-1">
+                Nombre de la Línea Medular *
+              </label>
+              <input
+                id="nombre"
+                v-model="formData.name"
+                type="text"
+                required
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+                placeholder="Ej: Tecnologías de la Información"
+              />
+              <div v-if="duplicateError" class="mt-1 text-sm text-red-600">
+                Ya existe una línea medular con este nombre
+              </div>
+            </div>
+            
+            <div>
+              <label for="sector" class="block text-sm font-medium text-gray-700 mb-1">
+                Sector Económico
+              </label>
+              <select
+                id="sector"
+                v-model="formData.sector_id"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              >
+                <option value="">Seleccionar sector</option>
+                <option v-for="sector in sectores" :key="sector.id" :value="sector.id">
+                  {{ sector.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+          
+          <div>
+            <label for="descripcion" class="block text-sm font-medium text-gray-700 mb-1">
+              Descripción
+            </label>
+            <textarea
+              id="descripcion"
+              v-model="formData.description"
+              rows="3"
+              class="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-green-500 focus:border-green-500"
+              placeholder="Describe los objetivos y alcance de esta línea medular..."
+            ></textarea>
+          </div>
+          
+          <div class="flex justify-end space-x-3">
+            <button
+              type="button"
+              @click="resetForm"
+              class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 transition-colors"
+            >
+              Limpiar
+            </button>
+            <button
+              type="submit"
+              :disabled="isSubmitting"
+              class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <span v-if="isSubmitting">Guardando...</span>
+              <span v-else>Crear Línea Medular</span>
+            </button>
+          </div>
+        </form>
+        
+        <!-- Success message -->
+        <div v-if="showSuccessMessage" class="mt-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-md">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <svg class="h-5 w-5 text-green-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
+              </svg>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700">Línea medular creada exitosamente</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Panel de estadísticas -->
       <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         <div class="bg-white rounded-lg shadow p-6 border-l-4 border-green-500">
@@ -77,21 +163,21 @@
           
           <div class="flex flex-wrap gap-2">
             <button
-              v-for="categoria in categorias"
-              :key="categoria.id"
-              @click="toggleCategoriaFilter(categoria.id)"
+              v-for="sector in sectores"
+              :key="sector.id"
+              @click="toggleSectorFilter(sector.id)"
               :class="[
                 'px-3 py-1.5 rounded-full text-sm font-medium transition-colors',
-                categoriaFilters.includes(categoria.id)
-                  ? `bg-${categoria.color}-100 text-${categoria.color}-800 border border-${categoria.color}-300`
+                sectorFilters.includes(sector.id)
+                  ? 'bg-green-100 text-green-800 border border-green-300'
                   : 'bg-gray-100 text-gray-600 border border-gray-200 hover:bg-gray-200'
               ]"
             >
-              {{ categoria.nombre }}
+              {{ sector.name }}
             </button>
             
             <button
-              v-if="searchTerm || categoriaFilters.length > 0"
+              v-if="searchTerm || sectorFilters.length > 0"
               @click="clearFilters"
               class="px-3 py-1.5 rounded-full text-sm font-medium bg-gray-200 text-gray-700 hover:bg-gray-300 transition-colors"
             >
@@ -101,8 +187,14 @@
         </div>
       </div>
 
+      <!-- Added loading state -->
+      <div v-if="isLoading" class="flex justify-center items-center py-12">
+        <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+        <span class="ml-2 text-gray-600">Cargando líneas medulares...</span>
+      </div>
+
       <!-- Visualización de líneas medulares -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+      <div v-else class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
         <div
           v-for="linea in filteredLineas"
           :key="linea.id"
@@ -227,7 +319,7 @@
       
       <!-- Mensaje sin resultados -->
       <div 
-        v-if="filteredLineas.length === 0"
+        v-if="filteredLineas.length === 0 && !isLoading"
         class="bg-white rounded-lg shadow p-8 text-center"
       >
         <SearchIcon class="h-16 w-16 text-gray-400 mx-auto mb-4" />
@@ -241,212 +333,201 @@
         </button>
       </div>
     </div>
+    
+    <!-- Added error notification -->
+    <div v-if="showErrorNotification" class="fixed bottom-4 right-4 bg-red-50 border-l-4 border-red-400 p-4 shadow-md rounded-md z-50">
+      <div class="flex">
+        <div class="flex-shrink-0">
+          <svg class="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+            <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 011.414 1.414l2 2a1 1 0 01-1.414 0l4-4z" clip-rule="evenodd" />
+          </svg>
+        </div>
+        <div class="ml-3">
+          <p class="text-sm text-red-700">{{ errorMessage }}</p>
+        </div>
+        <div class="ml-auto pl-3">
+          <button @click="showErrorNotification = false" class="inline-flex rounded-md p-1.5 text-red-500 hover:bg-red-100">
+            <span class="sr-only">Cerrar</span>
+            <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 011.414 1.414l2 2a1 1 0 01-1.414 0l4-4z" clip-rule="evenodd" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { 
   SearchIcon
 } from '@heroicons/vue/outline'
 
-// Datos de ejemplo
-const categorias = [
-  { id: 'tecnologica', nombre: 'Tecnológica', color: 'blue' },
-  { id: 'pedagogica', nombre: 'Pedagógica', color: 'green' },
-  { id: 'investigacion', nombre: 'Investigación', color: 'purple' },
-  { id: 'emprendimiento', nombre: 'Emprendimiento', color: 'amber' },
-  { id: 'sostenibilidad', nombre: 'Sostenibilidad', color: 'emerald' }
-]
+const isLoading = ref(false);
+const showErrorNotification = ref(false);
+const errorMessage = ref('');
 
-const lineasMedulares = [
-  {
-    id: 1,
-    nombre: 'Transformación Digital',
-    descripcion: 'Integración de tecnologías digitales en todos los procesos formativos y administrativos para potenciar la innovación y eficiencia institucional.',
-    categoria: { id: 'tecnologica', nombre: 'Tecnológica', color: 'blue' },
-    icono: 'SearchIcon',
-    cumplimiento: 78,
-    objetivos: [
-      'Implementar plataformas digitales para la formación virtual y presencial',
-      'Desarrollar competencias digitales en instructores y aprendices',
-      'Modernizar la infraestructura tecnológica institucional',
-      'Fomentar la cultura digital en todos los niveles organizacionales'
-    ],
-    programas: [
-      { id: 101, nombre: 'Desarrollo de Software', nivel: 'Tecnólogo', estado: 'Activo' },
-      { id: 102, nombre: 'Análisis de Datos', nivel: 'Especialización', estado: 'Nuevo' },
-      { id: 103, nombre: 'Ciberseguridad', nivel: 'Tecnólogo', estado: 'Activo' },
-      { id: 104, nombre: 'Inteligencia Artificial', nivel: 'Especialización', estado: 'En desarrollo' }
-    ],
-    sectores: [
-      { id: 201, nombre: 'Tecnologías de la Información' },
-      { id: 202, nombre: 'Telecomunicaciones' },
-      { id: 203, nombre: 'Industria 4.0' }
-    ]
-  },
-  {
-    id: 2,
-    nombre: 'Formación Basada en Proyectos',
-    descripcion: 'Metodología pedagógica centrada en el desarrollo de proyectos reales que integran competencias técnicas y transversales para responder a necesidades del sector productivo.',
-    categoria: { id: 'pedagogica', nombre: 'Pedagógica', color: 'green' },
-    icono: 'SearchIcon',
-    cumplimiento: 85,
-    objetivos: [
-      'Implementar metodologías activas centradas en el aprendiz',
-      'Desarrollar proyectos formativos con impacto en el sector productivo',
-      'Fortalecer el trabajo colaborativo y las competencias blandas',
-      'Evaluar por resultados de aprendizaje demostrables'
-    ],
-    programas: [
-      { id: 105, nombre: 'Gestión de Proyectos', nivel: 'Tecnólogo', estado: 'Activo' },
-      { id: 106, nombre: 'Diseño de Experiencias de Aprendizaje', nivel: 'Curso', estado: 'Activo' },
-      { id: 107, nombre: 'Evaluación por Competencias', nivel: 'Diplomado', estado: 'Activo' }
-    ],
-    sectores: [
-      { id: 204, nombre: 'Educación' },
-      { id: 205, nombre: 'Consultoría' },
-      { id: 206, nombre: 'Gestión del Conocimiento' }
-    ]
-  },
-  {
-    id: 3,
-    nombre: 'Investigación Aplicada',
-    descripcion: 'Desarrollo de procesos de investigación orientados a la solución de problemas reales del sector productivo y la generación de innovación tecnológica y social.',
-    categoria: { id: 'investigacion', nombre: 'Investigación', color: 'purple' },
-    icono: 'SearchIcon',
-    cumplimiento: 62,
-    objetivos: [
-      'Fortalecer grupos de investigación aplicada en áreas estratégicas',
-      'Desarrollar proyectos de innovación con el sector productivo',
-      'Fomentar la cultura investigativa en aprendices e instructores',
-      'Transferir conocimiento y tecnología a las empresas'
-    ],
-    programas: [
-      { id: 108, nombre: 'Semilleros de Investigación', nivel: 'Transversal', estado: 'Activo' },
-      { id: 109, nombre: 'Metodología de la Investigación', nivel: 'Curso', estado: 'Activo' },
-      { id: 110, nombre: 'Gestión de la Innovación', nivel: 'Especialización', estado: 'Nuevo' }
-    ],
-    sectores: [
-      { id: 207, nombre: 'Investigación y Desarrollo' },
-      { id: 208, nombre: 'Biotecnología' },
-      { id: 209, nombre: 'Energías Renovables' }
-    ]
-  },
-  {
-    id: 4,
-    nombre: 'Emprendimiento e Innovación',
-    descripcion: 'Fomento de la cultura emprendedora y el desarrollo de competencias para la creación y gestión de empresas innovadoras que respondan a las necesidades del mercado.',
-    categoria: { id: 'emprendimiento', nombre: 'Emprendimiento', color: 'amber' },
-    icono: 'SearchIcon',
-    cumplimiento: 70,
-    objetivos: [
-      'Desarrollar competencias emprendedoras en los aprendices',
-      'Incubar proyectos empresariales innovadores',
-      'Fortalecer el ecosistema de emprendimiento institucional',
-      'Conectar emprendimientos con fuentes de financiación'
-    ],
-    programas: [
-      { id: 111, nombre: 'Creación de Startups', nivel: 'Tecnólogo', estado: 'Activo' },
-      { id: 112, nombre: 'Modelos de Negocio', nivel: 'Curso', estado: 'Activo' },
-      { id: 113, nombre: 'Financiación de Emprendimientos', nivel: 'Diplomado', estado: 'En desarrollo' }
-    ],
-    sectores: [
-      { id: 210, nombre: 'Emprendimiento' },
-      { id: 211, nombre: 'Economía Naranja' },
-      { id: 212, nombre: 'Fintech' }
-    ]
-  },
-  {
-    id: 5,
-    nombre: 'Desarrollo Sostenible',
-    descripcion: 'Integración de principios de sostenibilidad ambiental, social y económica en todos los procesos formativos y operativos de la institución.',
-    categoria: { id: 'sostenibilidad', nombre: 'Sostenibilidad', color: 'emerald' },
-    icono: 'SearchIcon',
-    cumplimiento: 65,
-    objetivos: [
-      'Implementar prácticas sostenibles en ambientes de formación',
-      'Desarrollar competencias en economía circular y verde',
-      'Reducir la huella ambiental institucional',
-      'Fomentar proyectos de impacto social y ambiental'
-    ],
-    programas: [
-      { id: 114, nombre: 'Gestión Ambiental', nivel: 'Tecnólogo', estado: 'Activo' },
-      { id: 115, nombre: 'Economía Circular', nivel: 'Curso', estado: 'Nuevo' },
-      { id: 116, nombre: 'Energías Renovables', nivel: 'Tecnólogo', estado: 'Activo' }
-    ],
-    sectores: [
-      { id: 213, nombre: 'Medio Ambiente' },
-      { id: 214, nombre: 'Energías Limpias' },
-      { id: 215, nombre: 'Desarrollo Social' }
-    ]
-  },
-  {
-    id: 6,
-    nombre: 'Bilingüismo y Competencias Globales',
-    descripcion: 'Fortalecimiento de competencias comunicativas en lenguas extranjeras y habilidades interculturales para la inserción en mercados globales.',
-    categoria: { id: 'pedagogica', nombre: 'Pedagógica', color: 'green' },
-    icono: 'SearchIcon',
-    cumplimiento: 55,
-    objetivos: [
-      'Implementar estrategias de bilingüismo en todos los programas',
-      'Desarrollar competencias interculturales en aprendices',
-      'Fomentar la movilidad internacional académica',
-      'Certificar competencias en lenguas extranjeras'
-    ],
-    programas: [
-      { id: 117, nombre: 'Inglés para Propósitos Específicos', nivel: 'Curso', estado: 'Activo' },
-      { id: 118, nombre: 'Comunicación Intercultural', nivel: 'Diplomado', estado: 'En desarrollo' },
-      { id: 119, nombre: 'Preparación para Certificaciones Internacionales', nivel: 'Curso', estado: 'Activo' }
-    ],
-    sectores: [
-      { id: 216, nombre: 'Servicios Internacionales' },
-      { id: 217, nombre: 'Turismo' },
-      { id: 218, nombre: 'BPO' }
-    ]
+const formData = ref({
+  name: '',
+  description: '',
+  sector_id: ''
+});
+const isSubmitting = ref(false);
+const showSuccessMessage = ref(false);
+const duplicateError = ref(false);
+
+const sectores = ref([]);
+const lineasMedulares = ref([]);
+
+const sectorFilters = ref([]);
+const searchTerm = ref(''); // Declared searchTerm variable
+
+const checkDuplicate = () => {
+  if (!formData.value.name.trim()) {
+    duplicateError.value = false;
+    return false;
   }
-]
+  
+  const exists = lineasMedulares.value.some(linea => 
+    linea.nombre.toLowerCase() === formData.value.name.trim().toLowerCase()
+  );
+  duplicateError.value = exists;
+  return exists;
+};
 
-// Estadísticas calculadas
-const stats = {
-  totalLineas: lineasMedulares.length,
-  totalProgramas: lineasMedulares.reduce((total, linea) => total + linea.programas.length, 0),
-  aprendicesImpactados: 125840,
-  sectoresVinculados: [...new Set(lineasMedulares.flatMap(linea => linea.sectores.map(sector => sector.id)))].length
-}
+const fetchSectors = async () => {
+  try {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch('http://localhost:8000/catalogs/sectors/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      sectores.value = data;
+    } else {
+      throw new Error('Error al cargar sectores');
+    }
+  } catch (error) {
+    console.error('Error loading sectors:', error);
+    showError('Error al cargar los sectores desde el servidor');
+  }
+};
 
-// Estado reactivo
-const searchTerm = ref('')
-const categoriaFilters = ref([])
-const expandedLineas = ref([])
+const submitForm = async () => {
+  console.log('Form submission started');
+  
+  // Validate for duplicates
+  if (checkDuplicate()) {
+    console.log('Duplicate found, stopping submission');
+    return;
+  }
+  
+  if (!formData.value.name.trim()) {
+    showError('El nombre de la línea medular es requerido');
+    return;
+  }
+  
+  isSubmitting.value = true;
+  
+  try {
+    console.log('Calling createMedularLine with:', formData.value);
+    const success = await createMedularLine(formData.value);
+    
+    if (success) {
+      console.log('Medular line created successfully');
+      resetForm();
+      showSuccessMessage.value = true;
+      setTimeout(() => {
+        showSuccessMessage.value = false;
+      }, 3000);
+    }
+  } catch (error) {
+    console.log('Error creating medular line:', error);
+    showError('Error al crear la línea medular');
+  } finally {
+    isSubmitting.value = false;
+  }
+};
 
-// Métodos
-const toggleCategoriaFilter = (categoriaId) => {
-  const index = categoriaFilters.value.indexOf(categoriaId)
+const resetForm = () => {
+  formData.value = {
+    name: '',
+    description: '',
+    sector_id: ''
+  };
+  duplicateError.value = false;
+  showSuccessMessage.value = false;
+};
+
+const createMedularLine = async (lineData) => {
+  try {
+    const token = localStorage.getItem('access_token');
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    const userId = user.id || 1;
+    
+    const requestData = {
+      name: lineData.name,
+      description: lineData.description,
+      sector_id: lineData.sector_id || null,
+      is_active: true
+    };
+    
+    console.log('Sending request to create medular line:', requestData);
+    
+    const response = await fetch('http://localhost:8000/catalogs/core-lines', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': token ? `Bearer ${token}` : ''
+      },
+      body: JSON.stringify(requestData)
+    });
+    
+    if (response.ok) {
+      console.log('Medular line created successfully, refreshing list');
+      await fetchMedularLines();
+      return true;
+    } else {
+      const errorData = await response.json();
+      throw new Error(errorData.detail || 'Error al crear línea medular');
+    }
+  } catch (error) {
+    console.error('Error creating medular line:', error);
+    showError(error.message || 'Error al crear la línea medular');
+    return false;
+  }
+};
+
+const toggleSectorFilter = (sectorId) => {
+  const index = sectorFilters.value.indexOf(sectorId);
   if (index === -1) {
-    categoriaFilters.value.push(categoriaId)
+    sectorFilters.value.push(sectorId);
   } else {
-    categoriaFilters.value.splice(index, 1)
+    sectorFilters.value.splice(index, 1);
   }
-}
+};
 
 const clearFilters = () => {
-  searchTerm.value = ''
-  categoriaFilters.value = []
-}
+  searchTerm.value = '';
+  sectorFilters.value = [];
+};
 
 const toggleExpanded = (lineaId) => {
-  const index = expandedLineas.value.indexOf(lineaId)
+  const index = expandedLineas.value.indexOf(lineaId);
   if (index === -1) {
-    expandedLineas.value.push(lineaId)
+    expandedLineas.value.push(lineaId);
   } else {
-    expandedLineas.value.splice(index, 1)
+    expandedLineas.value.splice(index, 1);
   }
-}
+};
 
 const formatNumber = (num) => {
-  return new Intl.NumberFormat().format(num)
-}
+  return new Intl.NumberFormat().format(num);
+};
 
 const getIconComponent = (iconName) => {
   const icons = {
@@ -454,34 +535,116 @@ const getIconComponent = (iconName) => {
     SearchIcon,
     SearchIcon,
     SearchIcon
-  }
-  return icons[iconName] || SearchIcon
-}
+  };
+  return icons[iconName] || SearchIcon;
+};
 
 const getEstadoClass = (estado) => {
   switch (estado) {
     case 'Activo':
-      return 'bg-green-100 text-green-800'
+      return 'bg-green-100 text-green-800';
     case 'Nuevo':
-      return 'bg-blue-100 text-blue-800'
+      return 'bg-blue-100 text-blue-800';
     case 'En desarrollo':
-      return 'bg-amber-100 text-amber-800'
+      return 'bg-amber-100 text-amber-800';
     default:
-      return 'bg-gray-100 text-gray-800'
+      return 'bg-gray-100 text-gray-800';
   }
-}
+};
 
-// Datos filtrados
 const filteredLineas = computed(() => {
-  return lineasMedulares.filter(linea => {
+  return lineasMedulares.value.filter(linea => {
     const matchesSearch = searchTerm.value === '' || 
       linea.nombre.toLowerCase().includes(searchTerm.value.toLowerCase()) ||
-      linea.descripcion.toLowerCase().includes(searchTerm.value.toLowerCase())
+      linea.descripcion.toLowerCase().includes(searchTerm.value.toLowerCase());
     
-    const matchesCategoria = categoriaFilters.value.length === 0 || 
-      categoriaFilters.value.includes(linea.categoria.id)
+    const matchesSector = sectorFilters.value.length === 0 || 
+      sectorFilters.value.includes(linea.sector_id);
     
-    return matchesSearch && matchesCategoria
-  })
-})
+    return matchesSearch && matchesSector;
+  });
+});
+
+const fetchMedularLines = async () => {
+  isLoading.value = true;
+  try {
+    const token = localStorage.getItem('access_token');
+    const response = await fetch('http://localhost:8000/catalogs/core-lines/', {
+      headers: {
+        'Authorization': token ? `Bearer ${token}` : ''
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      lineasMedulares.value = data.map(line => ({
+        id: line.id,
+        nombre: line.name,
+        descripcion: line.description || '',
+        categoria: getCategoryInfo(line.category),
+        icono: 'SearchIcon',
+        cumplimiento: line.objective_compliance || 0,
+        objetivos: line.strategic_objectives || [],
+        programas: line.associated_programs || [],
+        sectores: line.related_sectors || []
+      }));
+    } else {
+      throw new Error('Error al cargar líneas medulares');
+    }
+  } catch (error) {
+    console.error('Error loading medular lines:', error);
+    showError('Error al cargar las líneas medulares desde el servidor');
+    // Fallback to mock data
+    loadMockData();
+  } finally {
+    isLoading.value = false;
+  }
+};
+
+const getCategoryInfo = (categoryId) => {
+  const category = categorias.find(cat => cat.id === categoryId);
+  return category || { id: 'general', nombre: 'General', color: 'gray' };
+};
+
+const showError = (message) => {
+  errorMessage.value = message;
+  showErrorNotification.value = true;
+  setTimeout(() => {
+    showErrorNotification.value = false;
+  }, 5000);
+};
+
+const loadMockData = () => {
+  lineasMedulares.value = [];
+};
+
+const stats = computed(() => ({
+  totalLineas: lineasMedulares.value.length,
+  totalProgramas: lineasMedulares.value.reduce((total, linea) => total + linea.programas.length, 0),
+  aprendicesImpactados: 125840,
+  sectoresVinculados: [...new Set(lineasMedulares.value.flatMap(linea => linea.sectores.map(sector => sector.id)))].length
+}));
+
+const categorias = [
+  { id: 'tecnologica', nombre: 'Tecnológica', color: 'blue' },
+  { id: 'pedagogica', nombre: 'Pedagógica', color: 'green' },
+  { id: 'investigacion', nombre: 'Investigación', color: 'purple' },
+  { id: 'emprendimiento', nombre: 'Emprendimiento', color: 'amber' },
+  { id: 'sostenibilidad', nombre: 'Sostenibilidad', color: 'emerald' }
+];
+
+const expandedLineas = ref([]);
+
+onMounted(() => {
+  fetchSectors();
+  fetchMedularLines();
+});
+
+watch(() => formData.value.name, () => {
+  if (formData.value.name.trim()) {
+    checkDuplicate();
+  } else {
+    duplicateError.value = false;
+  }
+});
 </script>

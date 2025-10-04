@@ -95,7 +95,7 @@ onMounted(() => {
       alert('🔒 Sesión expirada. Inicia sesión nuevamente.')
       localStorage.removeItem('access_token')
       router.push('/iniciar-sesion')
-    } else if (decoded.role !== 'administrativo' && decoded.role !== 'superadmin') {
+    } else if (decoded.role !== 'administrativo' && decoded.role !== 'superadmin' && decoded.role !== 'planeacion') {
       alert('❌ No tienes permisos para acceder a esta vista.')
       router.push('/')
     }

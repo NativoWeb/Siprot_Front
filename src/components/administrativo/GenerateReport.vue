@@ -56,14 +56,6 @@ const {
 // Non-hook variables and constants
 const tiposReporte = ref([
   {
-    tipo: 'indicadores',
-    nombre: 'Reporte de Indicadores Clave',
-    descripcion: 'Consolida indicadores de oferta educativa, DOFA y escenarios prospectivos con datos actualizados.',
-    tiempo_estimado: '2-3 min',
-    opciones_disponibles: ['Datos en tiempo real', 'Análisis de tendencias', 'Estado semáforo'],
-    fuentes_datos: ['oferta_educativa', 'dofa', 'escenarios']
-  },
-  {
     tipo: 'prospectiva',
     nombre: 'Informe de Prospectiva Anual',
     descripcion: 'Análisis prospectivo basado en escenarios reales y matriz DOFA actualizada.',

@@ -538,19 +538,24 @@ const loadHistory = async () => {
   try {
     showHistory.value = true
     historyLoading.value = true
-    
+    error.value = null
+
     const response = await fetch(`${API_BASE_URL}/dofa/history`, {
       headers: getAuthHeaders()
     })
-    
+
     if (!response.ok) {
-      throw new Error(`Error ${response.status}: ${response.statusText}`)
+      const errorText = await response.text()
+      throw new Error(`Error ${response.status}: ${errorText}`)
     }
-    
+
     const data = await response.json()
+    console.log('Historial DOFA recibido:', data)
     history.value = data || []
   } catch (err) {
-    console.error('Error loading history:', err)
+    console.error('Error cargando historial:', err)
+    error.value = err instanceof Error ? err.message : 'Error desconocido'
+    history.value = []
   } finally {
     historyLoading.value = false
   }
