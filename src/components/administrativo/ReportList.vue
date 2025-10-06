@@ -1,18 +1,19 @@
 <script setup>
 import { onMounted, computed, ref } from 'vue'
 import { useReports } from '../../composables/useReports'
-import ModalViewReport from './ModalViewReport.vue' // Importar el componente modal
+import ModalViewReport from './ModalViewReport.vue'
 
 const {
   reportes,
   listarMisReportes,
   descargarReporte,
-  verReporte, // Agregar la nueva función
+  verReporte,
+  eliminarReporte,
   loading,
   error
 } = useReports()
 
-// ... todas las variables reactivas existentes ...
+// Variables reactivas existentes
 const tabActiva = ref('todos')
 const filtroEstado = ref('')
 const paginaActual = ref(1)
@@ -25,7 +26,12 @@ const pdfUrl = ref(null)
 const loadingPDF = ref(false)
 const errorPDF = ref(null)
 
-// ... todas las funciones computadas existentes ...
+// Estados para la eliminación
+const modalConfirmacionVisible = ref(false)
+const reporteAEliminar = ref(null)
+const eliminandoReportes = ref(new Set())
+
+// Tabs de navegación
 const tabs = [
   { id: 'todos', label: 'Todos', icon: 'fas fa-th-large' },
   { id: 'indicadores', label: 'Indicadores', icon: 'fas fa-chart-bar' },
@@ -34,6 +40,7 @@ const tabs = [
   { id: 'consolidado', label: 'Consolidado', icon: 'fas fa-file-alt' }
 ]
 
+// Computed properties
 const contadoresPorTipo = computed(() => {
   const contadores = {
     todos: reportes.value.length,
@@ -122,7 +129,7 @@ const estadisticas = computed(() => {
   return stats
 })
 
-// ... todas las funciones existentes de paginación y filtros ...
+// Funciones de navegación y filtros
 const cambiarTab = (tabId) => {
   tabActiva.value = tabId
   filtroEstado.value = ''
@@ -213,7 +220,7 @@ const descargarDesdeModal = async (reporte) => {
   }
 }
 
-// ... resto de funciones existentes (formateo, descarga, etc.) ...
+// Funciones para descarga directa
 const descargandoReportes = ref(new Set())
 
 const descargarReporteId = async (reporte) => {
@@ -234,6 +241,46 @@ const estaDescargando = (reporteId) => {
   return descargandoReportes.value.has(reporteId)
 }
 
+// Funciones para eliminación - CORREGIDAS
+const abrirModalConfirmacion = (reporte) => {
+  reporteAEliminar.value = reporte
+  modalConfirmacionVisible.value = true
+}
+
+const confirmarEliminacion = async () => {
+  if (!reporteAEliminar.value) return
+  
+  try {
+    eliminandoReportes.value.add(reporteAEliminar.value.id)
+    
+    // Llamar a la función de eliminación
+    await eliminarReporte(reporteAEliminar.value.id)
+    
+    // Cerrar el modal
+    modalConfirmacionVisible.value = false
+    reporteAEliminar.value = null
+    
+    // Mostrar mensaje de éxito
+    console.log('Reporte eliminado exitosamente')
+    
+  } catch (error) {
+    console.error('Error al eliminar el reporte:', error)
+    alert(`Error al eliminar el reporte: ${error.message}`)
+  } finally {
+    eliminandoReportes.value.delete(reporteAEliminar.value?.id)
+  }
+}
+
+const cancelarEliminacion = () => {
+  modalConfirmacionVisible.value = false
+  reporteAEliminar.value = null
+}
+
+const estaEliminando = (reporteId) => {
+  return eliminandoReportes.value.has(reporteId)
+}
+
+// Funciones de formato
 const formatearFecha = (fechaStr) => {
   const fecha = new Date(fechaStr)
   return fecha.toLocaleDateString('es-ES', { 
@@ -273,12 +320,7 @@ const obtenerIconoTipo = (tipo) => {
   return iconos[tipo] || 'fas fa-file'
 }
 
-const eliminarReporte = (reporte) => {
-  if (confirm(`¿Estás seguro de eliminar el reporte #${reporte.id}?`)) {
-    console.log('Eliminando reporte:', reporte.id)
-  }
-}
-
+// Cargar reportes al montar el componente
 onMounted(async () => {
   await cargarReportes()
 })
@@ -286,8 +328,6 @@ onMounted(async () => {
 
 <template>
   <div class="lista-reportes">
-    <!-- Todo el contenido existente permanece igual hasta las acciones de las cards -->
-    
     <!-- Header Principal -->
     <div class="header-section">
       <div class="header-content">
@@ -311,6 +351,15 @@ onMounted(async () => {
         <div class="stat-info">
           <span class="stat-value">{{ estadisticas.completado }}</span>
           <span class="stat-label">Completados</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon generando">
+          <i class="fas fa-clock"></i>
+        </div>
+        <div class="stat-info">
+          <span class="stat-value">{{ estadisticas.generando }}</span>
+          <span class="stat-label">Generando</span>
         </div>
       </div>
       <div class="stat-card">
@@ -500,7 +549,6 @@ onMounted(async () => {
             <span>{{ estaDescargando(reporte.id) ? 'Descargando...' : 'Descargar' }}</span>
           </button>
           
-          <!-- BOTÓN VER MODIFICADO -->
           <button 
             class="action-btn secondary" 
             v-if="reporte.estado === 'completado'"
@@ -511,12 +559,16 @@ onMounted(async () => {
             Ver PDF
           </button>
           
+          <!-- BOTÓN ELIMINAR MODIFICADO -->
           <button 
-            class="action-btn danger" 
-            @click="eliminarReporte(reporte)"
-            title="Eliminar reporte"
+            class="action-btn danger eliminar-btn" 
+            @click="abrirModalConfirmacion(reporte)"
+            :disabled="estaEliminando(reporte.id)"
+            :title="estaEliminando(reporte.id) ? 'Eliminando...' : 'Eliminar reporte'"
           >
-            <i class="fas fa-trash"></i>
+            <i v-if="estaEliminando(reporte.id)" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-trash"></i>
+            <span>{{ estaEliminando(reporte.id) ? 'Eliminando...' : 'Eliminar' }}</span>
           </button>
         </div>
       </div>
@@ -581,10 +633,40 @@ onMounted(async () => {
       @descargar="descargarDesdeModal"
       @recargar="recargarPDF"
     />
+
+    <!-- MODAL DE CONFIRMACIÓN DE ELIMINACIÓN -->
+    <div v-if="modalConfirmacionVisible" class="modal-overlay">
+      <div class="modal-confirmacion">
+        <div class="modal-header">
+          <h3>Confirmar Eliminación</h3>
+          <button @click="cancelarEliminacion" class="btn-cerrar">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <div class="modal-body">
+          <div class="advertencia-icono">
+            <i class="fas fa-exclamation-triangle"></i>
+          </div>
+          <p>¿Estás seguro de que deseas eliminar el reporte <strong>#{{ reporteAEliminar?.id }}</strong>?</p>
+          <p class="advertencia-texto">Esta acción no se puede deshacer y el reporte se perderá permanentemente.</p>
+        </div>
+        <div class="modal-actions">
+          <button @click="cancelarEliminacion" class="btn-cancelar">
+            Cancelar
+          </button>
+          <button @click="confirmarEliminacion" class="btn-confirmar-eliminar" :disabled="estaEliminando(reporteAEliminar?.id)">
+            <i v-if="estaEliminando(reporteAEliminar?.id)" class="fas fa-spinner fa-spin"></i>
+            <i v-else class="fas fa-trash"></i>
+            {{ estaEliminando(reporteAEliminar?.id) ? 'Eliminando...' : 'Eliminar' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style scoped>
+/* (Los estilos se mantienen igual que en la versión anterior) */
 /* Variables CSS */
 .lista-reportes {
   --primary-color: #00af00;
@@ -593,6 +675,7 @@ onMounted(async () => {
   --success-color: #10b981;
   --warning-color: #f59e0b;
   --danger-color: #ef4444;
+  --danger-hover: #dc2626;
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
   --gray-200: #e5e7eb;
@@ -607,6 +690,7 @@ onMounted(async () => {
   --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
   --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
   --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
 }
 
 .lista-reportes {
@@ -1139,15 +1223,22 @@ onMounted(async () => {
   cursor: pointer;
   transition: all 0.2s ease;
   border: 1px solid transparent;
+  justify-content: center;
+}
+
+.action-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
 }
 
 .action-btn.primary {
   background: var(--primary-color);
   color: white;
-  flex: 1;
+  flex: 1.3;
 }
 
-.action-btn.primary:hover {
+.action-btn.primary:hover:not(:disabled) {
   background: var(--primary-hover);
   transform: translateY(-1px);
 }
@@ -1156,23 +1247,26 @@ onMounted(async () => {
   background: white;
   color: var(--gray-700);
   border-color: var(--gray-200);
-  flex: 1;
+  flex: 1.3;
 }
 
-.action-btn.secondary:hover {
+.action-btn.secondary:hover:not(:disabled) {
   background: var(--gray-50);
   border-color: var(--gray-300);
 }
 
-.action-btn.danger {
-  background: white;
-  color: var(--danger-color);
-  border-color: var(--gray-200);
+/* Estilos específicos para el botón de eliminar */
+.action-btn.danger.eliminar-btn {
+  background: var(--danger-color);
+  color: white;
+  border-color: var(--danger-color);
+  flex: 1;
 }
 
-.action-btn.danger:hover {
-  background: rgb(239 68 68 / 0.05);
-  border-color: var(--danger-color);
+.action-btn.danger.eliminar-btn:hover:not(:disabled) {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+  transform: translateY(-1px);
 }
 
 /* Estilos de Paginación */
@@ -1274,6 +1368,156 @@ onMounted(async () => {
   text-align: center;
 }
 
+/* Modal de Confirmación de Eliminación */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 1rem;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal-confirmacion {
+  background: white;
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-xl);
+  width: 100%;
+  max-width: 450px;
+  animation: slideIn 0.3s ease;
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem 1.5rem 0;
+}
+
+.modal-header h3 {
+  margin: 0;
+  color: var(--gray-900);
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.btn-cerrar {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  color: var(--gray-500);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.btn-cerrar:hover {
+  background: var(--gray-100);
+  color: var(--gray-700);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  text-align: center;
+}
+
+.advertencia-icono {
+  font-size: 3rem;
+  color: var(--warning-color);
+  margin-bottom: 1rem;
+}
+
+.modal-body p {
+  margin: 0 0 0.75rem 0;
+  color: var(--gray-700);
+  line-height: 1.5;
+}
+
+.advertencia-texto {
+  color: var(--danger-color) !important;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+
+.modal-actions {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0 1.5rem 1.5rem;
+}
+
+.btn-cancelar {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: white;
+  border: 2px solid var(--gray-300);
+  border-radius: var(--border-radius);
+  color: var(--gray-700);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-cancelar:hover {
+  background: var(--gray-50);
+  border-color: var(--gray-400);
+}
+
+.btn-confirmar-eliminar {
+  flex: 1;
+  padding: 0.75rem 1.5rem;
+  background: var(--danger-color);
+  border: 2px solid var(--danger-color);
+  border-radius: var(--border-radius);
+  color: white;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.btn-confirmar-eliminar:hover:not(:disabled) {
+  background: var(--danger-hover);
+  border-color: var(--danger-hover);
+  transform: translateY(-1px);
+}
+
+.btn-confirmar-eliminar:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.reporte-card {
+  animation: fadeIn 0.3s ease;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .stats-section {
@@ -1342,6 +1586,10 @@ onMounted(async () => {
   .filter-buttons {
     justify-content: space-between;
   }
+  
+  .modal-actions {
+    flex-direction: column;
+  }
 }
 
 @media (max-width: 480px) {
@@ -1374,25 +1622,31 @@ onMounted(async () => {
     width: 100%;
   }
   
+  .action-btn.primary,
+  .action-btn.secondary,
+  .action-btn.danger.eliminar-btn {
+    flex: 1;
+  }
+  
   .filter-btn {
     flex: 1;
     justify-content: center;
   }
-}
-
-/* Animaciones adicionales */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+  
+  .modal-confirmacion {
+    margin: 1rem;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
+  
+  .modal-header {
+    padding: 1rem 1rem 0;
   }
-}
-
-.reporte-card {
-  animation: fadeIn 0.3s ease;
+  
+  .modal-body {
+    padding: 1rem;
+  }
+  
+  .modal-actions {
+    padding: 0 1rem 1rem;
+  }
 }
 </style>
