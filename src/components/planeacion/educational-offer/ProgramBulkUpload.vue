@@ -1,41 +1,44 @@
 <template>
   <div class="bulk-upload bg-white shadow-md rounded-xl p-6">
     <h2 class="text-lg font-semibold text-gray-700 mb-4">
-      Carga masiva de {{ typeName }}
+      Carga masiva de programas
     </h2>
 
     <!-- Información sobre el formato -->
     <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-      <h3 class="text-sm font-medium text-blue-800 mb-2">Formatos de archivo permitidos:</h3>
-      <p class="text-sm text-blue-700 mb-2">El archivo debe contener las siguientes columnas según el tipo:</p>
+      <h3 class="text-sm font-medium text-blue-800 mb-2">Formato del archivo CSV/Excel:</h3>
+      <p class="text-sm text-blue-700 mb-3">El archivo debe contener las siguientes columnas:</p>
 
-      <!-- Formato de Programas -->
+      <!-- Columnas obligatorias -->
       <div class="mb-3">
-        <h4 class="text-sm font-semibold text-blue-700 mb-1">Programas:</h4>
-        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
-          <li><strong>code</strong> - Código del programa (obligatorio)</li>
-          <li><strong>name</strong> - Nombre del programa (obligatorio)</li>
-          <li><strong>sector</strong> - Sector educativo (obligatorio)</li>
-          <li><strong>level</strong> - Nivel académico (obligatorio)</li>
-          <li><strong>core_line</strong> - Línea estratégica (obligatorio)</li>
-          <li><strong>capacity</strong> - Capacidad de cupos (número)</li>
-          <li><strong>region</strong> - Región (opcional)</li>
-          <li><strong>description</strong> - Descripción (opcional)</li>
-          <li><strong>current_students</strong> - Estudiantes actuales (número, opcional)</li>
-          <li><strong>program_date</strong> - Fecha de creación del programa (YYYY-MM-DD, obligatorio)</li>
+        <h4 class="text-sm font-semibold text-blue-700 mb-1">📌 Columnas obligatorias:</h4>
+        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1 ml-2">
+          <li><strong>code</strong> - Código único del programa</li>
+          <li><strong>name</strong> - Nombre completo del programa</li>
+          <li><strong>sector</strong> - Sector educativo (ej: Tecnología, Salud)</li>
+          <li><strong>level</strong> - Nivel académico (ej: Técnico, Tecnólogo)</li>
+          <li><strong>core_line</strong> - Línea estratégica o medular</li>
+          <li><strong>capacity</strong> - Capacidad total de cupos (número entero)</li>
         </ul>
       </div>
 
-      <!-- Formato de Indicadores de Demanda -->
+      <!-- Columnas opcionales -->
       <div>
-        <h4 class="text-sm font-semibold text-blue-700 mb-1">Indicadores de Demanda:</h4>
-        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1">
-          <li><strong>sector</strong> - Sector (obligatorio)</li>
-          <li><strong>indicator_value</strong> - Valor del indicador (número, opcional)</li>
-          <li><strong>source_document_id</strong> - ID del documento fuente (opcional)</li>
-          <li><strong>demand_value</strong> - Valor de la demanda (número, opcional)</li>
-          <li><strong>year</strong> - Año (YYYY, obligatorio)</li>
+        <h4 class="text-sm font-semibold text-blue-700 mb-1">✨ Columnas opcionales:</h4>
+        <ul class="text-sm text-blue-700 list-disc list-inside space-y-1 ml-2">
+          <li><strong>current_students</strong> - Número de estudiantes matriculados actualmente</li>
+          <li><strong>region</strong> - Región geográfica del programa</li>
+          <li><strong>description</strong> - Descripción detallada del programa</li>
+          <li><strong>program_date</strong> - Fecha de creación del programa (formato: YYYY-MM-DD)</li>
         </ul>
+      </div>
+
+      <!-- Ejemplo -->
+      <div class="mt-3 p-2 bg-white rounded border border-blue-300">
+        <p class="text-xs font-mono text-gray-700">
+          <strong>Ejemplo:</strong> code,name,sector,level,core_line,capacity,current_students,region<br>
+          PROG001,Técnico en Sistemas,Tecnología,Técnico,Desarrollo Software,30,25,Bogotá
+        </p>
       </div>
     </div>
 
@@ -60,6 +63,7 @@
           <button type="button" @click="$refs.fileInput.click()" class="text-blue-600 hover:text-blue-700 font-medium">
             selecciona un archivo
           </button>
+          <p class="text-xs text-gray-500 mt-2">Formatos permitidos: CSV, XLSX, XLS</p>
         </div>
         <div v-else class="space-y-2">
           <p class="text-green-600 font-medium">✓ {{ selectedFile.name }}</p>
@@ -84,10 +88,14 @@
       <button
         type="button"
         @click="processFile"
-        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
         :disabled="!selectedFile || isProcessing"
       >
-        {{ isProcessing ? 'Procesando...' : 'Procesar archivo' }}
+        <svg v-if="isProcessing" class="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+        </svg>
+        <span>{{ isProcessing ? 'Procesando...' : 'Procesar archivo' }}</span>
       </button>
     </div>
 
@@ -99,10 +107,23 @@
       <p class="text-sm" :class="processingResult.success ? 'text-green-700' : 'text-red-700'">
         {{ processingResult.message }}
       </p>
+      <div v-if="processingResult.created_programs && processingResult.created_programs.length > 0" class="mt-3">
+        <h4 class="text-sm font-medium text-green-800 mb-2">✓ Programas creados exitosamente:</h4>
+        <ul class="text-sm text-green-700 space-y-1 max-h-40 overflow-y-auto">
+          <li v-for="(program, index) in processingResult.created_programs.slice(0, 10)" :key="index">
+            • {{ program }}
+          </li>
+          <li v-if="processingResult.created_programs.length > 10" class="font-semibold">
+            ... y {{ processingResult.created_programs.length - 10 }} más
+          </li>
+        </ul>
+      </div>
       <div v-if="processingResult.errors && processingResult.errors.length > 0" class="mt-3">
-        <h4 class="text-sm font-medium text-red-800 mb-2">Errores encontrados:</h4>
-        <ul class="text-sm text-red-700 space-y-1">
-          <li v-for="(error, index) in processingResult.errors" :key="index"> • {{ error }} </li>
+        <h4 class="text-sm font-medium text-red-800 mb-2">⚠️ Errores encontrados:</h4>
+        <ul class="text-sm text-red-700 space-y-1 max-h-40 overflow-y-auto">
+          <li v-for="(error, index) in processingResult.errors" :key="index">
+            • {{ error }}
+          </li>
         </ul>
       </div>
     </div>
@@ -113,13 +134,7 @@
 import axios from "axios";
 
 export default {
-  name: "BulkUpload",
-  props: {
-    type: {
-      type: String,
-      default: "programs", // "programs" o "demand_indicators"
-    },
-  },
+  name: "ProgramBulkUpload",
   emits: ["uploaded"],
   data() {
     return {
@@ -128,35 +143,6 @@ export default {
       isProcessing: false,
       processingResult: null,
     };
-  },
-  computed: {
-    typeName() {
-      return this.type === "programs" ? "programas" : "indicadores de demanda";
-    },
-    columns() {
-      if (this.type === "programs") {
-        return [
-          { name: "code", desc: "Código del programa (obligatorio)" },
-          { name: "name", desc: "Nombre del programa (obligatorio)" },
-          { name: "sector", desc: "Sector educativo (obligatorio)" },
-          { name: "level", desc: "Nivel académico (obligatorio)" },
-          { name: "core_line", desc: "Línea estratégica (obligatorio)" },
-          { name: "capacity", desc: "Capacidad de cupos (número)" },
-          { name: "region", desc: "Región (opcional)" },
-          { name: "description", desc: "Descripción (opcional)" },
-          { name: "current_students", desc: "Estudiantes actuales (número, opcional)" },
-          { name: "program_date", desc: "Fecha de creación del programa (YYYY-MM-DD, obligatorio)" },
-        ];
-      } else {
-        return [
-          { name: "sector", desc: "Sector (obligatorio)" },
-          { name: "indicator_value", desc: "Valor del indicador (número, opcional)" },
-          { name: "source_document_id", desc: "ID del documento fuente (opcional)" },
-          { name: "demand_value", desc: "Valor de la demanda (número, opcional)" },
-          { name: "year", desc: "Año (YYYY, obligatorio)" },
-        ];
-      }
-    },
   },
   methods: {
     handleFileDrop(event) {
@@ -202,26 +188,30 @@ export default {
         const formData = new FormData();
         formData.append("file", this.selectedFile);
 
-        const url =
-          this.type === "programs"
-            ? "http://localhost:8000/programs/bulk-upload"
-            : "http://localhost:8000/demand-indicators/bulk-upload";
-
-        const response = await axios.post(url, formData, {
-          headers: {
-            "Content-Type": "multipart/form-data",
-            Authorization: `Bearer ${localStorage.getItem("access_token")}`,
-          },
-        });
+        const response = await axios.post(
+          "http://localhost:8000/programs/bulk-upload",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+              Authorization: `Bearer ${localStorage.getItem("access_token")}`,
+            },
+          }
+        );
 
         this.processingResult = {
           success: true,
           message: response.data.message,
+          created_programs: response.data.created_programs || [],
           errors: response.data.errors || [],
         };
 
         this.$emit("uploaded");
-        setTimeout(() => this.clearFile(), 3000);
+        
+        // Limpiar después de 5 segundos si fue exitoso
+        if (this.processingResult.success && this.processingResult.errors.length === 0) {
+          setTimeout(() => this.clearFile(), 5000);
+        }
       } catch (error) {
         console.error("Error procesando archivo:", error);
         this.processingResult = {
