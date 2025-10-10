@@ -20,12 +20,6 @@
         <ProgramBulkUpload @uploaded="refreshAllData" />
       </div>
 
-      <!-- Formulario para indicadores de demanda -->
-      <div v-if="userRole === 'planeacion'" class="bg-white shadow-md rounded-xl p-4">
-        <h2 class="text-lg font-semibold text-gray-700 mb-3">Registrar indicador de demanda</h2>
-        <DemandForm @saved="refreshAllData" />
-      </div>
-
       <!-- Filtros -->
       <div class="bg-white shadow-md rounded-xl p-4 flex flex-wrap items-center gap-4">
         <ProgramFilters :sectors="sectors" :levels="levels" v-model="pendingFilters" />
@@ -102,14 +96,23 @@
         <!-- Comparación demanda -->
         <div v-if="activeTab === 'demand'">
           <h2 class="text-lg font-semibold text-gray-700 mb-3">📈 Comparación Oferta vs Demanda</h2>
+          <div class="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <p class="text-sm text-blue-800">
+              <strong>Fórmula de demanda:</strong> (Estudiantes matriculados / Capacidad total) × 100
+            </p>
+            <p class="text-xs text-blue-700 mt-1">
+              Un porcentaje alto indica que el sector está cerca de su capacidad máxima.
+            </p>
+          </div>
           <table v-if="demandComparison.length" class="w-full border-collapse border">
             <thead class="bg-gray-200">
               <tr>
                 <th class="border px-3 py-2">Sector</th>
                 <th class="border px-3 py-2">Programas</th>
                 <th class="border px-3 py-2">Estudiantes</th>
-                <th class="border px-3 py-2">Demanda</th>
-                <th class="border px-3 py-2">Brecha</th>
+                <th class="border px-3 py-2">Capacidad Total</th>
+                <th class="border px-3 py-2">% Demanda</th>
+                <th class="border px-3 py-2">Cupos Disponibles</th>
               </tr>
             </thead>
             <tbody>
@@ -117,8 +120,15 @@
                 <td class="border px-3 py-2 font-semibold">{{ d.sector }}</td>
                 <td class="border px-3 py-2 text-center">{{ d.programs }}</td>
                 <td class="border px-3 py-2 text-center">{{ d.current_students }}</td>
-                <td class="border px-3 py-2 text-center">{{ d.demand_value }}</td>
-                <td class="border px-3 py-2 text-center" :class="d.gap > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'">{{ d.gap }}</td>
+                <td class="border px-3 py-2 text-center">{{ d.total_capacity }}</td>
+                <td class="border px-3 py-2 text-center font-bold" 
+                    :class="d.demand_percentage > 90 ? 'text-red-600' : d.demand_percentage > 70 ? 'text-yellow-600' : 'text-green-600'">
+                  {{ d.demand_percentage }}%
+                </td>
+                <td class="border px-3 py-2 text-center" 
+                    :class="d.available_spots < 5 ? 'text-red-600 font-bold' : 'text-gray-700'">
+                  {{ d.available_spots }}
+                </td>
               </tr>
             </tbody>
           </table>
@@ -147,7 +157,6 @@ import ProgramFilters from "../planeacion/educational-offer/ProgramFilters.vue";
 import ProgramCharts from "../planeacion/educational-offer/ProgramCharts.vue";
 import ProgramBulkUpload from "../planeacion/educational-offer/ProgramBulkUpload.vue";
 import ProgramProjections from "../planeacion/educational-offer/ProgramProjections.vue";
-import DemandForm from "./educational-offer/DemandForm.vue";
 
 export default {
   components: { 
@@ -157,7 +166,6 @@ export default {
     ProgramCharts, 
     ProgramBulkUpload,
     ProgramProjections,
-    DemandForm,
   },
   data() {
     return {
@@ -224,8 +232,7 @@ export default {
     async loadDemandComparison() {
       try {
         const res = await axios.get("http://localhost:8000/programs/analysis/demand-comparison", {
-          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` },
-          params: { year: new Date().getFullYear() }
+          headers: { Authorization: `Bearer ${localStorage.getItem("access_token")}` }
         });
         this.demandComparison = res.data;
       } catch (err) {
@@ -250,7 +257,9 @@ export default {
       await this.loadPrograms();
       await this.loadAnalysisMatrix();
       await this.loadDemandComparison();
-      this.$refs.projectionsTab?.loadProjections();
+      if (this.$refs.projectionsTab) {
+        this.$refs.projectionsTab.loadProjections();
+      }
     }
   },
   mounted() {
