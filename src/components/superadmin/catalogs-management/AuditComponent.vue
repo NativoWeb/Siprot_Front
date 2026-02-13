@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 p-6">
+  <div class="w-[90%]">
     <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow p-6">
       <h1 class="text-2xl font-bold text-gray-800 mb-4">📜 Logs de Auditoría</h1>
 

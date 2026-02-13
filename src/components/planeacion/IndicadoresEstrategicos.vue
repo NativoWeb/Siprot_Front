@@ -1,10 +1,10 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="w-[90%]">
     <div class="max-w-7xl mx-auto px-4 py-8">
       <div class="flex justify-between items-center mb-8">
         <div>
-          <h1 class="text-3xl font-bold text-gray-900 dark:text-white font-serif">Indicadores Estratégicos</h1>
-          <p class="text-gray-600 dark:text-gray-300 mt-2">Dashboard ejecutivo y gestión de indicadores</p>
+          <h1 class="text-3xl font-bold text-gray-900 font-serif">Indicadores Estratégicos</h1>
+          <p class="text-gray-600 mt-2">Dashboard ejecutivo y gestión de indicadores</p>
         </div>
         <div class="flex gap-3">
           <button
@@ -31,65 +31,65 @@
         </div>
       </div>
 
-      <div v-if="!showHistoricosSection" class="mb-12 pb-8 border-b-2 border-gray-200 dark:border-gray-700">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+      <div v-if="!showHistoricosSection" class="mb-12 pb-8 border-b-2 border-gray-200">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
           Dashboard Ejecutivo
         </h2>
 
          Resumen Ejecutivo 
         <div v-if="resumen" class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Total Indicadores</p>
-                <p class="text-3xl font-bold text-gray-900 dark:text-white">{{ resumen.total_indicadores }}</p>
+                <p class="text-gray-600 text-sm">Total Indicadores</p>
+                <p class="text-3xl font-bold text-gray-900">{{ resumen.total_indicadores }}</p>
               </div>
-              <div class="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-lg flex items-center justify-center text-2xl">
+              <div class="w-14 h-14 bg-blue-100 rounded-lg flex items-center justify-center text-2xl">
                 📊
               </div>
             </div>
           </div>
           
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">En Meta</p>
+                <p class="text-gray-600 text-sm">En Meta</p>
                 <p class="text-3xl font-bold text-green-600">{{ resumen.verde }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-500 mt-1">
                   {{ calcularPorcentaje(resumen.verde, resumen.total_indicadores) }}%
                 </p>
               </div>
-              <div class="w-14 h-14 bg-green-100 dark:bg-green-900/30 rounded-lg flex items-center justify-center text-2xl">
+              <div class="w-14 h-14 bg-green-100 rounded-lg flex items-center justify-center text-2xl">
                 ✅
               </div>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">En Progreso</p>
+                <p class="text-gray-600 text-sm">En Progreso</p>
                 <p class="text-3xl font-bold text-yellow-600">{{ resumen.amarillo }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-500 mt-1">
                   {{ calcularPorcentaje(resumen.amarillo, resumen.total_indicadores) }}%
                 </p>
               </div>
-              <div class="w-14 h-14 bg-yellow-100 dark:bg-yellow-900/30 rounded-lg flex items-center justify-center text-2xl">
+              <div class="w-14 h-14 bg-yellow-100 rounded-lg flex items-center justify-center text-2xl">
                 ⚠️
               </div>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-shadow">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
             <div class="flex items-center justify-between">
               <div>
-                <p class="text-gray-600 dark:text-gray-400 text-sm">Críticos</p>
+                <p class="text-gray-600 text-sm">Críticos</p>
                 <p class="text-3xl font-bold text-red-600">{{ resumen.rojo }}</p>
-                <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                <p class="text-xs text-gray-500 mt-1">
                   {{ calcularPorcentaje(resumen.rojo, resumen.total_indicadores) }}%
                 </p>
               </div>
-              <div class="w-14 h-14 bg-red-100 dark:bg-red-900/30 rounded-lg flex items-center justify-center text-2xl">
+              <div class="w-14 h-14 bg-red-100 rounded-lg flex items-center justify-center text-2xl">
                 🚨
               </div>
             </div>
@@ -98,15 +98,15 @@
 
          Gráficos de Distribución 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Distribución por Estado</h3>
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-gray-900">Distribución por Estado</h3>
             <div class="h-64">
               <canvas id="estadosChart"></canvas>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-gray-900 dark:text-white">Cumplimiento por Categoría</h3>
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-gray-900">Cumplimiento por Categoría</h3>
             <div class="h-64">
               <canvas id="categoriasChart"></canvas>
             </div>
@@ -115,51 +115,51 @@
 
          Top Indicadores 
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-green-700 dark:text-green-400 flex items-center gap-2">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-green-700 flex items-center gap-2">
               Top 5 - Mejor Desempeño
             </h3>
             <div class="space-y-3">
               <div 
                 v-for="(ind, index) in topMejores" 
                 :key="'mejor-' + ind.id"
-                class="flex items-center justify-between p-3 bg-green-50 dark:bg-green-900/20 rounded-lg"
+                class="flex items-center justify-between p-3 bg-green-50 rounded-lg"
               >
                 <div class="flex items-center gap-3">
-                  <span class="font-bold text-green-700 dark:text-green-400 text-lg">{{ index + 1 }}</span>
+                  <span class="font-bold text-green-700 text-lg">{{ index + 1 }}</span>
                   <div>
-                    <p class="font-medium text-gray-900 dark:text-white">{{ ind.nombre }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ ind.categoria }}</p>
+                    <p class="font-medium text-gray-900">{{ ind.nombre }}</p>
+                    <p class="text-xs text-gray-600">{{ ind.categoria }}</p>
                   </div>
                 </div>
                 <div class="text-right">
-                  <p class="font-bold text-green-700 dark:text-green-400">{{ Math.round(ind.cumplimiento) }}%</p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">{{ ind.valor_actual }} / {{ ind.meta }} {{ ind.unidad }}</p>
+                  <p class="font-bold text-green-700">{{ Math.round(ind.cumplimiento) }}%</p>
+                  <p class="text-xs text-gray-600">{{ ind.valor_actual }} / {{ ind.meta }} {{ ind.unidad }}</p>
                 </div>
               </div>
             </div>
           </div>
 
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 class="text-lg font-semibold mb-4 text-red-700 dark:text-red-400 flex items-center gap-2">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="text-lg font-semibold mb-4 text-red-700 flex items-center gap-2">
               Top 5 - Requiere Atención
             </h3>
             <div class="space-y-3">
               <div 
                 v-for="(ind, index) in topPeores" 
                 :key="'peor-' + ind.id"
-                class="flex items-center justify-between p-3 bg-red-50 dark:bg-red-900/20 rounded-lg"
+                class="flex items-center justify-between p-3 bg-red-50 rounded-lg"
               >
                 <div class="flex items-center gap-3">
-                  <span class="font-bold text-red-700 dark:text-red-400 text-lg">{{ index + 1 }}</span>
+                  <span class="font-bold text-red-700 text-lg">{{ index + 1 }}</span>
                   <div>
-                    <p class="font-medium text-gray-900 dark:text-white">{{ ind.nombre }}</p>
-                    <p class="text-xs text-gray-600 dark:text-gray-400">{{ ind.categoria }}</p>
+                    <p class="font-medium text-gray-900">{{ ind.nombre }}</p>
+                    <p class="text-xs text-gray-600">{{ ind.categoria }}</p>
                   </div>
                 </div>
                 <div class="text-right">
-                  <p class="font-bold text-red-700 dark:text-red-400">{{ Math.round(ind.cumplimiento) }}%</p>
-                  <p class="text-xs text-gray-600 dark:text-gray-400">{{ ind.valor_actual }} / {{ ind.meta }} {{ ind.unidad }}</p>
+                  <p class="font-bold text-red-700">{{ Math.round(ind.cumplimiento) }}%</p>
+                  <p class="text-xs text-gray-600">{{ ind.valor_actual }} / {{ ind.meta }} {{ ind.unidad }}</p>
                 </div>
               </div>
             </div>
@@ -168,23 +168,23 @@
       </div>
 
       <div v-if="!showHistoricosSection">
-        <h2 class="text-2xl font-bold text-gray-900 dark:text-white mb-6 flex items-center gap-2">
+        <h2 class="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
           Gestión de Indicadores
         </h2>
 
          Filtros y Búsqueda 
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
+        <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm mb-6">
           <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Categoría</label>
-              <select v-model="filtroCategoria" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <label class="block text-sm font-medium text-gray-900 mb-2">Categoría</label>
+              <select v-model="filtroCategoria" class="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900">
                 <option value="">Todas</option>
                 <option v-for="cat in categoriasDisponibles" :key="cat" :value="cat">{{ cat }}</option>
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Estado</label>
-              <select v-model="filtroEstado" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <label class="block text-sm font-medium text-gray-900 mb-2">Estado</label>
+              <select v-model="filtroEstado" class="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900">
                 <option value="">Todos</option>
                 <option value="verde">En Meta</option>
                 <option value="amarillo">En Progreso</option>
@@ -192,12 +192,12 @@
               </select>
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Desde</label>
-              <input v-model="filtroFechaDesde" type="date" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+              <label class="block text-sm font-medium text-gray-900 mb-2">Desde</label>
+              <input v-model="filtroFechaDesde" type="date" class="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900" />
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Hasta</label>
-              <input v-model="filtroFechaHasta" type="date" class="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white" />
+              <label class="block text-sm font-medium text-gray-900 mb-2">Hasta</label>
+              <input v-model="filtroFechaHasta" type="date" class="w-full p-2 border border-gray-300 rounded-lg bg-white text-gray-900" />
             </div>
           </div>
         </div>
@@ -207,13 +207,13 @@
           <div
             v-for="indicador in indicadoresFiltrados"
             :key="indicador.id"
-            class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-md transition-all cursor-pointer"
+            class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm hover:shadow-md transition-all cursor-pointer"
             @click="verDetalle(indicador)"
           >
             <div class="flex items-start justify-between mb-4">
               <div class="flex items-center gap-2">
                 <div class="w-3 h-3 rounded-full" :class="getSemaforoClass(indicador.estado_semaforo)"></div>
-                <h3 class="font-semibold text-gray-900 dark:text-white">{{ indicador.nombre }}</h3>
+                <h3 class="font-semibold text-gray-900">{{ indicador.nombre }}</h3>
               </div>
               <div class="flex gap-2" @click.stop>
                 <button
@@ -235,26 +235,26 @@
               </div>
             </div>
 
-            <p class="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">{{ indicador.descripcion }}</p>
+            <p class="text-sm text-gray-600 mb-4 line-clamp-2">{{ indicador.descripcion }}</p>
 
             <div class="space-y-2 mb-4">
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Valor Actual:</span>
-                <span class="font-semibold text-gray-900 dark:text-white">{{ indicador.valor_actual }} {{ indicador.unidad }}</span>
+                <span class="text-gray-600">Valor Actual:</span>
+                <span class="font-semibold text-gray-900">{{ indicador.valor_actual }} {{ indicador.unidad }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Meta:</span>
-                <span class="font-semibold text-gray-900 dark:text-white">{{ indicador.meta }} {{ indicador.unidad }}</span>
+                <span class="text-gray-600">Meta:</span>
+                <span class="font-semibold text-gray-900">{{ indicador.meta }} {{ indicador.unidad }}</span>
               </div>
               <div class="flex justify-between text-sm">
-                <span class="text-gray-600 dark:text-gray-400">Cumplimiento:</span>
+                <span class="text-gray-600">Cumplimiento:</span>
                 <span class="font-semibold" :class="getTextClass(indicador.estado_semaforo)">
                   {{ Math.round(indicador.cumplimiento) }}%
                 </span>
               </div>
             </div>
 
-            <div class="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-4">
+            <div class="w-full bg-gray-200 rounded-full h-2 mb-4">
               <div
                 class="h-2 rounded-full transition-all"
                 :class="getSemaforoClass(indicador.estado_semaforo)"
@@ -262,27 +262,27 @@
               ></div>
             </div>
 
-            <div class="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+            <div class="flex items-center justify-between text-xs text-gray-600">
               <span>{{ indicador.categoria }}</span>
               <span>{{ indicador.responsable }}</span>
             </div>
           </div>
         </div>
 
-        <div v-else class="text-center py-12 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
-          <p class="text-gray-600 dark:text-gray-400">No se encontraron indicadores con los filtros aplicados</p>
+        <div v-else class="text-center py-12 bg-white rounded-xl border border-gray-200">
+          <p class="text-gray-600">No se encontraron indicadores con los filtros aplicados</p>
         </div>
       </div>
 
-      <div v-if="showHistoricosSection && indicadorHistorico" class="fixed inset-0 bg-white dark:bg-gray-900 z-[9999] overflow-y-auto">
+      <div v-if="showHistoricosSection && indicadorHistorico" class="fixed inset-0 bg-white z-[9999] overflow-y-auto">
         <div class="max-w-7xl mx-auto px-4 py-8">
           <div class="flex justify-between items-center mb-6">
             <div>
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 <div class="w-4 h-4 rounded-full" :class="getSemaforoClass(indicadorHistorico.estado_semaforo)"></div>
                 {{ indicadorHistorico.nombre }}
               </h2>
-              <p class="text-gray-600 dark:text-gray-300 mt-2">{{ indicadorHistorico.descripcion }}</p>
+              <p class="text-gray-600 mt-2">{{ indicadorHistorico.descripcion }}</p>
             </div>
             <button
               @click="cerrarHistoricos"
@@ -294,37 +294,37 @@
 
            Estadísticas Actuales 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-              <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Valor Actual</p>
-              <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p class="text-xs text-blue-600 font-medium">Valor Actual</p>
+              <p class="text-2xl font-bold text-blue-900">
                 {{ indicadorHistorico.valor_actual }} {{ indicadorHistorico.unidad }}
               </p>
             </div>
-            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-              <p class="text-xs text-green-600 dark:text-green-400 font-medium">Meta</p>
-              <p class="text-2xl font-bold text-green-900 dark:text-green-100">
+            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+              <p class="text-xs text-green-600 font-medium">Meta</p>
+              <p class="text-2xl font-bold text-green-900">
                 {{ indicadorHistorico.meta }} {{ indicadorHistorico.unidad }}
               </p>
             </div>
-            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-              <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Cumplimiento</p>
-              <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">
+            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p class="text-xs text-purple-600 font-medium">Cumplimiento</p>
+              <p class="text-2xl font-bold text-purple-900">
                 {{ Math.round(indicadorHistorico.cumplimiento) }}%
               </p>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-              <p class="text-xs text-gray-600 dark:text-gray-400 font-medium">Responsable</p>
-              <p class="text-lg font-bold text-gray-900 dark:text-white">
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <p class="text-xs text-gray-600 font-medium">Responsable</p>
+              <p class="text-lg font-bold text-gray-900">
                 {{ indicadorHistorico.responsable }}
               </p>
             </div>
           </div>
 
            Gráfico Histórico 
-          <div class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
+          <div class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm mb-6">
             <div class="flex justify-between items-center mb-4">
-              <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Evolución Histórica</h3>
-              <select v-model="yearsToShow" @change="cargarHistorico(indicadorHistorico.id)" class="p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white">
+              <h3 class="text-lg font-semibold text-gray-900">Evolución Histórica</h3>
+              <select v-model="yearsToShow" @change="cargarHistorico(indicadorHistorico.id)" class="p-2 border border-gray-300 rounded-lg bg-white text-gray-900">
                 <option :value="1">1 año</option>
                 <option :value="3">3 años</option>
                 <option :value="5">5 años</option>
@@ -340,31 +340,31 @@
               :loading="loadingHistorico"
               :show-cumplimiento="true"
             />
-            <div v-else class="h-64 flex items-center justify-center bg-gray-50 dark:bg-gray-800 rounded-lg">
-              <p class="text-gray-600 dark:text-gray-400">No hay datos históricos disponibles</p>
+            <div v-else class="h-64 flex items-center justify-center bg-gray-50 rounded-lg">
+              <p class="text-gray-600">No hay datos históricos disponibles</p>
             </div>
           </div>
 
            Tabla de Datos Históricos 
-          <div v-if="datosHistoricosTabla.length > 0" class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm mb-6">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Datos Históricos Detallados</h3>
+          <div v-if="datosHistoricosTabla.length > 0" class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm mb-6">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Datos Históricos Detallados</h3>
             <div class="overflow-x-auto">
               <table class="w-full text-sm">
-                <thead class="bg-gray-50 dark:bg-gray-700">
+                <thead class="bg-gray-50">
                   <tr>
-                    <th class="px-4 py-3 text-left font-medium text-gray-900 dark:text-white">Período</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Valor</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Meta</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Cumplimiento</th>
-                    <th class="px-4 py-3 text-right font-medium text-gray-900 dark:text-white">Variación</th>
-                    <th class="px-4 py-3 text-center font-medium text-gray-900 dark:text-white">Estado</th>
+                    <th class="px-4 py-3 text-left font-medium text-gray-900">Período</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-900">Valor</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-900">Meta</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-900">Cumplimiento</th>
+                    <th class="px-4 py-3 text-right font-medium text-gray-900">Variación</th>
+                    <th class="px-4 py-3 text-center font-medium text-gray-900">Estado</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="(dato, index) in datosHistoricosTabla" :key="index" class="border-t border-gray-200 dark:border-gray-700">
-                    <td class="px-4 py-3 text-gray-900 dark:text-white">{{ dato.periodo }}</td>
-                    <td class="px-4 py-3 text-right text-gray-900 dark:text-white">{{ dato.valor }} {{ indicadorHistorico.unidad }}</td>
-                    <td class="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{{ dato.meta }} {{ indicadorHistorico.unidad }}</td>
+                  <tr v-for="(dato, index) in datosHistoricosTabla" :key="index" class="border-t border-gray-200">
+                    <td class="px-4 py-3 text-gray-900">{{ dato.periodo }}</td>
+                    <td class="px-4 py-3 text-right text-gray-900">{{ dato.valor }} {{ indicadorHistorico.unidad }}</td>
+                    <td class="px-4 py-3 text-right text-gray-600">{{ dato.meta }} {{ indicadorHistorico.unidad }}</td>
                     <td class="px-4 py-3 text-right font-semibold" :class="getTextClass(dato.estado)">
                       {{ dato.cumplimiento }}%
                     </td>
@@ -381,30 +381,30 @@
           </div>
 
            Estadísticas del Período 
-          <div v-if="estadisticasHistoricas" class="bg-white dark:bg-gray-800 rounded-xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-            <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-4">Estadísticas del Período</h3>
+          <div v-if="estadisticasHistoricas" class="bg-white rounded-xl p-6 border border-gray-200 shadow-sm">
+            <h3 class="text-lg font-semibold text-gray-900 mb-4">Estadísticas del Período</h3>
             <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
               <div class="text-center">
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Promedio</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ estadisticasHistoricas.promedio }} {{ indicadorHistorico.unidad }}</p>
+                <p class="text-xs text-gray-600 mb-1">Promedio</p>
+                <p class="text-xl font-bold text-gray-900">{{ estadisticasHistoricas.promedio }} {{ indicadorHistorico.unidad }}</p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Máximo</p>
+                <p class="text-xs text-gray-600 mb-1">Máximo</p>
                 <p class="text-xl font-bold text-green-600">{{ estadisticasHistoricas.maximo }} {{ indicadorHistorico.unidad }}</p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Mínimo</p>
+                <p class="text-xs text-gray-600 mb-1">Mínimo</p>
                 <p class="text-xl font-bold text-red-600">{{ estadisticasHistoricas.minimo }} {{ indicadorHistorico.unidad }}</p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Tendencia</p>
+                <p class="text-xs text-gray-600 mb-1">Tendencia</p>
                 <p class="text-xl font-bold" :class="getTendenciaClass(estadisticasHistoricas.tendencia)">
                   {{ getTendenciaIcon(estadisticasHistoricas.tendencia) }} {{ estadisticasHistoricas.tendencia }}
                 </p>
               </div>
               <div class="text-center">
-                <p class="text-xs text-gray-600 dark:text-gray-400 mb-1">Volatilidad</p>
-                <p class="text-xl font-bold text-gray-900 dark:text-white">{{ estadisticasHistoricas.volatilidad }}%</p>
+                <p class="text-xs text-gray-600 mb-1">Volatilidad</p>
+                <p class="text-xl font-bold text-gray-900">{{ estadisticasHistoricas.volatilidad }}%</p>
               </div>
             </div>
           </div>
@@ -416,45 +416,45 @@
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9000] p-4"
         @click.self="cerrarModales"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
           <div class="flex justify-between items-start mb-6">
             <div>
-              <h2 class="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
+              <h2 class="text-2xl font-bold text-gray-900 flex items-center gap-3">
                 <div class="w-4 h-4 rounded-full" :class="getSemaforoClass(indicadorSeleccionado.estado_semaforo)"></div>
                 {{ indicadorSeleccionado.nombre }}
               </h2>
-              <p class="text-gray-600 dark:text-gray-300 mt-2">{{ indicadorSeleccionado.descripcion }}</p>
+              <p class="text-gray-600 mt-2">{{ indicadorSeleccionado.descripcion }}</p>
             </div>
             <button
               @click="cerrarModales"
-              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+              class="text-gray-500 hover:text-gray-700 text-2xl"
             >
               ✕
             </button>
           </div>
 
           <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-            <div class="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-              <p class="text-xs text-blue-600 dark:text-blue-400 font-medium">Valor Actual</p>
-              <p class="text-2xl font-bold text-blue-900 dark:text-blue-100">
+            <div class="bg-blue-50 rounded-lg p-4 border border-blue-200">
+              <p class="text-xs text-blue-600 font-medium">Valor Actual</p>
+              <p class="text-2xl font-bold text-blue-900">
                 {{ indicadorSeleccionado.valor_actual }} {{ indicadorSeleccionado.unidad }}
               </p>
             </div>
-            <div class="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-              <p class="text-xs text-green-600 dark:text-green-400 font-medium">Meta</p>
-              <p class="text-2xl font-bold text-green-900 dark:text-green-100">
+            <div class="bg-green-50 rounded-lg p-4 border border-green-200">
+              <p class="text-xs text-green-600 font-medium">Meta</p>
+              <p class="text-2xl font-bold text-green-900">
                 {{ indicadorSeleccionado.meta }} {{ indicadorSeleccionado.unidad }}
               </p>
             </div>
-            <div class="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-              <p class="text-xs text-purple-600 dark:text-purple-400 font-medium">Cumplimiento</p>
-              <p class="text-2xl font-bold text-purple-900 dark:text-purple-100">
+            <div class="bg-purple-50 rounded-lg p-4 border border-purple-200">
+              <p class="text-xs text-purple-600 font-medium">Cumplimiento</p>
+              <p class="text-2xl font-bold text-purple-900">
                 {{ Math.round(indicadorSeleccionado.cumplimiento) }}%
               </p>
             </div>
-            <div class="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 border border-gray-200 dark:border-gray-600">
-              <p class="text-xs text-gray-600 dark:text-gray-400 font-medium">Responsable</p>
-              <p class="text-lg font-bold text-gray-900 dark:text-white">
+            <div class="bg-gray-50 rounded-lg p-4 border border-gray-200">
+              <p class="text-xs text-gray-600 font-medium">Responsable</p>
+              <p class="text-lg font-bold text-gray-900">
                 {{ indicadorSeleccionado.responsable }}
               </p>
             </div>
@@ -463,7 +463,7 @@
           <div class="flex justify-end gap-3">
             <button
               @click="cerrarModales"
-              class="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+              class="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-900 transition-colors"
             >
               Cerrar
             </button>
@@ -483,14 +483,14 @@
         class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9000] p-4"
         @click.self="cerrarModales"
       >
-        <div class="bg-white dark:bg-gray-800 rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+        <div class="bg-white rounded-xl p-6 max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
           <div class="flex justify-between items-center mb-6">
-            <h2 class="text-2xl font-bold text-gray-900 dark:text-white">
+            <h2 class="text-2xl font-bold text-gray-900">
               {{ showCreateModal ? 'Nuevo Indicador' : 'Editar Indicador' }}
             </h2>
             <button
               @click="cerrarModales"
-              class="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 text-2xl"
+              class="text-gray-500 hover:text-gray-700 text-2xl"
             >
               ✕
             </button>
@@ -499,22 +499,22 @@
           <form @submit.prevent="guardarIndicador" class="space-y-4">
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Nombre *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Nombre *</label>
                 <input
                   v-model="formulario.nombre"
                   type="text"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                   placeholder="Ej: Satisfacción del Cliente"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Categoría *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Categoría *</label>
                 <select
                   v-model="formulario.categoria"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccionar</option>
                   <option value="Académico">Académico</option>
@@ -526,55 +526,55 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Valor Actual *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Valor Actual *</label>
                 <input
                   v-model.number="formulario.valor_actual"
                   type="number"
                   step="0.01"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Meta *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Meta *</label>
                 <input
                   v-model.number="formulario.meta"
                   type="number"
                   step="0.01"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Unidad *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Unidad *</label>
                 <input
                   v-model="formulario.unidad"
                   type="text"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                   placeholder="Ej: %, puntos, días"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Responsable *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Responsable *</label>
                 <input
                   v-model="formulario.responsable"
                   type="text"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                   placeholder="Nombre del responsable"
                 />
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Tendencia *</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Tendencia *</label>
                 <select
                   v-model="formulario.tendencia"
                   required
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="">Seleccionar</option>
                   <option value="ascendente">Ascendente</option>
@@ -584,10 +584,10 @@
               </div>
 
               <div>
-                <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Frecuencia</label>
+                <label class="block text-sm font-medium text-gray-900 mb-2">Frecuencia</label>
                 <select
                   v-model="formulario.frecuencia_medicion"
-                  class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                  class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 >
                   <option value="diaria">Diaria</option>
                   <option value="semanal">Semanal</option>
@@ -599,11 +599,11 @@
             </div>
 
             <div>
-              <label class="block text-sm font-medium text-gray-900 dark:text-white mb-2">Descripción</label>
+              <label class="block text-sm font-medium text-gray-900 mb-2">Descripción</label>
               <textarea
                 v-model="formulario.descripcion"
                 rows="3"
-                class="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500"
+                class="w-full p-3 border border-gray-300 rounded-lg bg-white text-gray-900 focus:ring-2 focus:ring-blue-500"
                 placeholder="Descripción del indicador..."
               ></textarea>
             </div>
@@ -612,7 +612,7 @@
               <button
                 type="button"
                 @click="cerrarModales"
-                class="px-6 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-900 dark:text-white transition-colors"
+                class="px-6 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 text-gray-900 transition-colors"
               >
                 Cancelar
               </button>

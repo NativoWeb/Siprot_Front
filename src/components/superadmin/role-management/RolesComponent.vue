@@ -1,5 +1,5 @@
 <template>
-  <div class="roles-management p-6 bg-gray-50 min-h-screen">
+  <div class="roles-management w-[90%]">
     <!-- Header -->
     <div class="mb-8">
       <h1 class="text-3xl font-bold text-gray-900 mb-2">Gestión de Roles y Permisos</h1>

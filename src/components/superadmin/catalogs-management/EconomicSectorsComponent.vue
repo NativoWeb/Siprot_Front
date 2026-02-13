@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50">
+  <div class="w-[90%]">
     <!-- Header -->
     <header class="bg-gradient-to-r from-green-700 to-green-900 text-white shadow-lg">
       <div class="container mx-auto px-4 py-6">

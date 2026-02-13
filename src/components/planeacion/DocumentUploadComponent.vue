@@ -1,5 +1,5 @@
 <template>
-<div class="mt-12 pb-10 w-[100%] h-auto bg-[#ebebeb83] max-w-[1000px] shadow-[0_3px_10px_rgb(0,0,0,0.2)]">
+<div class="mt-12 pb-10 w-[90%] h-auto bg-[#ebebeb83] shadow-[0_3px_10px_rgb(0,0,0,0.2)]">
   <div class="flex flex-col justify-center mt-10 m-auto w-[90%]">
     <div class="mb-10">
       <h1 class="text-2xl font-bold mb-2">Carga de Documentos Estratégicos</h1>

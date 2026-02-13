@@ -30,20 +30,24 @@
   <div class="container-info w-[100%]">
     <h3>Usuarios Registrados</h3>
     <span class="subtitle">Evolución mensual de usuarios</span>
-    <BarChart
-      :data="stats.usuarios_mensual.map(d => `${d.month}/${d.year}`)"
-      :labels="stats.usuarios_mensual.map(d => `${d.month}/${d.year}`)"
-      :series="[{ name: 'Usuarios', data: stats.usuarios_mensual.map(d => d.count) }]"
-    />
+    <div class="h-64">
+      <BarChart
+        :data="stats.usuarios_mensual.map(d => `${d.month}/${d.year}`)"
+        :labels="stats.usuarios_mensual.map(d => `${d.month}/${d.year}`)"
+        :series="[{ name: 'Usuarios', data: stats.usuarios_mensual.map(d => d.count) }]"
+      />
+    </div>
   </div>
   <div class="container-info w-[100%]">
     <h3>Documentos</h3>
     <span class="subtitle">Estadísticas de documentos por mes</span>
-    <BarChart
-      :data="stats.documentos_mensual.map(d => `${d.month}/${d.year}`)"
-      :labels="stats.documentos_mensual.map(d => `${d.month}/${d.year}`)"
-      :series="[{ name: 'Documentos', data: stats.documentos_mensual.map(d => d.count) }]"
-    />
+    <div class="h-64">
+      <BarChart
+        :data="stats.documentos_mensual.map(d => `${d.month}/${d.year}`)"
+        :labels="stats.documentos_mensual.map(d => `${d.month}/${d.year}`)"
+        :series="[{ name: 'Documentos', data: stats.documentos_mensual.map(d => d.count) }]"
+      />
+    </div>
   </div>
 </div>
   </div>

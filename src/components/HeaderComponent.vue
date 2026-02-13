@@ -193,7 +193,8 @@
   </transition>
 
   <main
-    class="mt-16 sm:mt-20 lg:mt-24 m-auto w-[95%] sm:w-[90%] lg:w-[85%] xl:w-[80%] flex flex-col items-center justify-center"
+    class="mt-16 sm:mt-20 lg:mt-24 flex flex-col items-center justify-center transition-all duration-300"
+    :class="sidebarOpen && role === 'superadmin' ? 'ml-64 w-[calc(100%-16rem)]' : 'm-auto w-[95%] sm:w-[90%] lg:w-[85%] xl:w-[80%]'"
   >
     <RouterView />
   </main>
